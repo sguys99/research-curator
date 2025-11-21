@@ -1,0 +1,22 @@
+# INTERMEDIATE:
+#   LIMS: total_lims.csv
+# PROCESSED:
+#   HPMC_DATASET: dataset_hpmc.csv
+#   HPMC_FEATURES: features_hpmc.csv
+#   HEC_DATASET: dataset_hec.csv
+#   HEC_FEATURES: features_hec.csv
+#   TARGETS_LAST: targets_last.csv
+#   TARGETS_MEAN: targets_mean.csv
+#   TARGETS_WITH_MAP: targets_with_map
+# RAW:
+#   HPMC_CHUM_MASTER: HPMC_CHUM_MASTER.tsv
+#   HPMC_MIX_INPUT: HPMC_MIX_INPUT.tsv
+#   HPMC_MIXING: HPMC_MIXING.tsv
+#   HPMC_PROD_MASTER: HPMC_PROD_MASTER.tsv
+#   HEC_CHUM_MASTER: HEC_CHUM_MASTER.tsv
+#   HEC_MIX_INPUT: HEC_MIX_INPUT.tsv
+#   HEC_MIXING: HEC_MIXING.tsv
+#   HEC_PROD_MASTER: HEC_PROD_MASTER.tsv
+
+#   MOCKUP_DB: WMS_MOCKUP.sqlite
+#   OIS_DB: OIS.sqlite

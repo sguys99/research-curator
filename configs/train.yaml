@@ -1,0 +1,49 @@
+# PIPELINE_TYPE: "HPMC"
+# DATA_PIPELINE:
+#   PACKCODE_PREPROCESSOR:
+#     RAW_COL: PACK_CODE
+#     NEW_COL: PACK_CAT
+#     MAJOR_CATEGORIES:
+#     - FMC
+#     - PMC
+#     - HIEND
+#     - EMA
+#     - ETC
+#     - PMB
+#   OUTLIER_PREPROCESSOR:
+#     DATA_TYPE: HPMC
+#   CUSTOM_IMPUTER:
+#     DATA_TYPE: HPMC
+#     FILL_VALUE: 0
+#     COLS:
+#       - RE_INPUT_QTY
+#       - RE_INPUT_RATE
+#       - RE_INPUT_VIS_W
+#       - RE_INPUT_VIS_D
+#       - RE_INPUT_LOG_W
+#       - RE_INPUT_LOG_D
+#       - RE_INPUT_MOISTURE
+#       - RE_INPUT_BD
+#       - RE_INPUT_MEO
+#       - RE_INPUT_HPO
+#       - RE_INPUT_HEO
+#       - RE_INPUT_ASH
+#   DROPNA_TRANSFORMER:
+#     COLS:
+#       - INPUT_QTY
+#       - INPUT_RATE
+#       - INPUT_VIS_W
+#       - INPUT_VIS_D
+#       - INPUT_LOG_W
+#       - INPUT_LOG_D
+#       - INPUT_MOISTURE
+#       - INPUT_BD
+#       - INPUT_MEO
+#       - INPUT_HPO
+#       - INPUT_HEO
+#       - INPUT_ASH
+# MODEL_PIPELINE:
+#   MODEL: RandomForest
+# RANDOM_SEED: 42
+# TRAIN_SIZE: 0.8
+# SAVE_LOG: true
