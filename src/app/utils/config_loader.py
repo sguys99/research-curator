@@ -2,7 +2,7 @@ from typing import Any
 
 import yaml
 
-from my_ml.utils.path import DATA_CONFIG_PATH
+from app.utils.path import DATA_CONFIG_PATH
 
 
 def load_config(path: str) -> dict[str, Any]:
