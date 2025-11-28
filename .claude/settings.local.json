@@ -9,7 +9,10 @@
       "Bash(docker compose:*)",
       "Bash(python:*)",
       "Bash(uvicorn:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(docker stop:*)",
+      "Bash(docker rm:*)",
+      "Bash(docker rmi:*)"
     ],
     "deny": [],
     "ask": []
