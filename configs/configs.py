@@ -23,7 +23,8 @@ class Config(BaseSettings):
 def load_configs() -> Config:
     print("Loading configs...")
     secrets: dict[str, str] = __get_secret(
-        region_name="ap-northeast-2", secret_name="v2/marvel/dev/ai-streamlit"
+        region_name="ap-northeast-2",
+        secret_name="v2/marvel/dev/ai-streamlit",
     )
     return Config(**secrets)
 

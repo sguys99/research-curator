@@ -29,10 +29,17 @@ class Settings(BaseSettings):
     QDRANT_COLLECTION_NAME: str = "research_articles"
     QDRANT_VECTOR_SIZE: int = 1536  # OpenAI embedding size
 
+    # LLM Configuration
+    LLM_PROVIDER: Literal["openai", "claude"] = "openai"
+
     # OpenAI
     OPENAI_API_KEY: str = Field(default="")
     OPENAI_MODEL: str = "gpt-4o"
     OPENAI_EMBEDDING_MODEL: str = "text-embedding-3-small"
+
+    # Anthropic Claude
+    ANTHROPIC_API_KEY: str = Field(default="")
+    ANTHROPIC_MODEL: str = "claude-3-5-sonnet-20241022"
 
     # Search APIs
     SERPER_API_KEY: str = Field(default="")
@@ -63,7 +70,12 @@ class Settings(BaseSettings):
     MAX_ARTICLES_PER_SOURCE: int = 10
 
     # CORS
-    CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:8501"]
+    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:8501"
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        """Get CORS origins as list."""
+        return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
 
     @property
     def database_url_str(self) -> str:
