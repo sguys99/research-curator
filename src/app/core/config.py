@@ -39,7 +39,7 @@ class Settings(BaseSettings):
 
     # Anthropic Claude
     ANTHROPIC_API_KEY: str = Field(default="")
-    ANTHROPIC_MODEL: str = "claude-3-5-sonnet-20241022"
+    ANTHROPIC_MODEL: str = "claude-3-5-sonnet-20240620"
 
     # Search APIs
     SERPER_API_KEY: str = Field(default="")
