@@ -15,7 +15,10 @@
       "Bash(docker rmi:*)",
       "Bash(git add:*)",
       "Bash(pre-commit run:*)",
-      "Bash(uv pip list:*)"
+      "Bash(uv pip list:*)",
+      "Bash(source:*)",
+      "Bash(python3:*)",
+      "Bash(git restore:*)"
     ],
     "deny": [],
     "ask": []

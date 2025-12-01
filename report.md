@@ -424,3 +424,519 @@ curl -X POST http://localhost:8000/llm/summarize \
 4. **데이터베이스 마이그레이션**
    - Alembic 마이그레이션 생성
    - 초기 데이터 시딩
+
+---
+
+## Day 3: 데이터 수집 파이프라인 구현 (2025-12-01)
+
+### 작업 계획
+
+Day 3의 목표는 다양한 소스(arXiv, 뉴스 등)에서 AI 관련 콘텐츠를 자동으로 수집하는 파이프라인을 구축하는 것입니다.
+
+**핵심 작업:**
+1. Base Collector 인터페이스 설계
+2. 재시도 로직 및 에러 핸들링 구현
+3. Serper/Brave Search API 통합
+4. arXiv 논문 수집기 구현
+5. 뉴스 수집기 구현
+6. 데이터 수집 API 엔드포인트 구현
+7. 통합 테스트 및 검증
+
+---
+
+### 작업 결과
+
+#### 1. Base Collector 인터페이스
+
+**`src/app/collectors/base.py`** - 추상 베이스 클래스
+
+**주요 구성 요소:**
+
+- **SourceType Enum**: 콘텐츠 유형 정의
+  - `PAPER`: 학술 논문
+  - `NEWS`: 뉴스 기사
+  - `REPORT`: 리서치 리포트
+  - `BLOG`: 블로그 포스트
+  - `OTHER`: 기타
+
+- **CollectedData 데이터클래스**: 표준화된 수집 데이터 구조
+  ```python
+  @dataclass
+  class CollectedData:
+      title: str                    # 제목
+      content: str                  # 본문 또는 요약
+      url: str                      # 원문 URL
+      source_type: SourceType       # 콘텐츠 유형
+      source_name: str              # 소스 이름 (예: "arXiv", "TechCrunch")
+      metadata: Dict[str, Any]      # 추가 메타데이터
+      collected_at: datetime        # 수집 시간
+  ```
+
+- **BaseCollector 추상 클래스**: 모든 수집기의 기본 인터페이스
+  - `collect()`: 추상 메서드, 각 수집기가 구현
+  - `_create_collected_data()`: 헬퍼 메서드, 데이터 생성 표준화
+
+- **커스텀 예외 클래스**:
+  - `CollectorError`: 베이스 예외
+  - `RateLimitError`: Rate limiting 예외
+  - `APIError`: API 호출 실패 예외
+
+**설계 철학:**
+- 모든 수집기가 동일한 데이터 형식 반환
+- 확장 가능한 구조 (새 소스 추가 용이)
+- 타입 안전성 (Enum, dataclass 활용)
+
+---
+
+#### 2. 재시도 로직 및 에러 핸들링
+
+**`src/app/core/retry.py`** - 재시도 유틸리티
+
+**retry_with_backoff 데코레이터:**
+```python
+@retry_with_backoff(
+    max_retries=3,           # 최대 재시도 횟수
+    initial_delay=1.0,       # 초기 지연 시간 (초)
+    max_delay=60.0,          # 최대 지연 시간
+    backoff_factor=2.0,      # 지연 시간 증가 배수
+    exceptions=(Exception,)  # 재시도할 예외 타입
+)
+async def fetch_data():
+    # API 호출
+    pass
+```
+
+**특징:**
+- **Exponential Backoff**: 재시도 간격이 지수적으로 증가
+  - 1차 실패: 1초 대기
+  - 2차 실패: 2초 대기
+  - 3차 실패: 4초 대기
+- **동기/비동기 함수 모두 지원**: 자동 감지
+- **상세한 로깅**: 각 재시도 시 로그 기록
+- **설정 가능한 예외 타입**: 특정 예외만 재시도
+
+**RateLimiter 클래스:**
+```python
+rate_limiter = RateLimiter(max_calls=10, time_window=60.0)
+await rate_limiter.acquire()  # 호출 전 대기
+```
+
+**특징:**
+- 시간 윈도우 내 최대 호출 횟수 제한
+- 자동 대기 (rate limit 초과 시)
+- API 서비스 보호
+
+---
+
+#### 3. Search API 통합
+
+**`src/app/collectors/search_client.py`** - Serper/Brave Search 클라이언트
+
+**SearchClient 클래스:**
+
+**Serper API 지원:**
+```python
+results = await search_client.serper_search(
+    query="transformer optimization",
+    num_results=10,
+    search_type="search",  # search, news, scholar
+    date_filter="w"        # d(day), w(week), m(month)
+)
+```
+
+**Brave Search API 지원:**
+```python
+results = await search_client.brave_search(
+    query="GPT-4 news",
+    num_results=10,
+    search_type="web",     # web, news
+    freshness="pw"         # pd, pw, pm
+)
+```
+
+**주요 기능:**
+- **멀티 프로바이더**: Serper와 Brave를 통일된 인터페이스로 제공
+- **자동 재시도**: `@retry_with_backoff` 데코레이터 적용
+- **Rate Limiting**: API 호출 빈도 자동 제어
+- **에러 처리**:
+  - 429: Rate limit 예외
+  - 401: 인증 실패 예외
+  - 기타: 일반 API 에러
+- **결과 파싱**: 각 API의 응답을 표준 형식으로 변환
+
+**파싱된 결과 형식:**
+```python
+{
+    "title": "...",
+    "snippet": "...",
+    "link": "...",
+    "date": "...",
+    "source": "..."
+}
+```
+
+---
+
+#### 4. arXiv Collector
+
+**`src/app/collectors/arxiv.py`** - arXiv 논문 수집기
+
+**ArxivCollector 클래스:**
+
+**사용 예시:**
+```python
+collector = ArxivCollector()
+papers = await collector.collect(
+    query="large language model",
+    limit=10,
+    filters={
+        "categories": ["cs.AI", "cs.LG"],
+        "sort_by": "relevance",       # relevance, last_updated, submitted
+        "sort_order": "descending"    # ascending, descending
+    }
+)
+```
+
+**지원 기능:**
+- **arXiv 공식 API 사용**: 무료, 안정적
+- **카테고리 필터링**: AI, ML, NLP 등 세부 분야 선택
+- **정렬 옵션**: 관련도, 최신순, 제출일순
+- **풍부한 메타데이터 수집**:
+  - arXiv ID
+  - 저자 목록
+  - 주요 카테고리 및 전체 카테고리
+  - 발행일, 업데이트일
+  - PDF URL
+  - DOI, Journal Reference
+
+**수집 데이터 구조:**
+```python
+CollectedData(
+    title="Attention Is All You Need",
+    content="초록 전문...",
+    url="http://arxiv.org/abs/1706.03762",
+    source_type=SourceType.PAPER,
+    source_name="arXiv",
+    metadata={
+        "arxiv_id": "1706.03762",
+        "authors": ["Ashish Vaswani", ...],
+        "primary_category": "cs.CL",
+        "categories": ["cs.CL", "cs.AI"],
+        "published": "2017-06-12T17:57:34+00:00",
+        "pdf_url": "https://arxiv.org/pdf/1706.03762"
+    }
+)
+```
+
+**인기 AI 카테고리 목록:**
+```python
+["cs.AI", "cs.LG", "cs.CL", "cs.CV", "cs.NE", "cs.RO", "stat.ML"]
+```
+
+---
+
+#### 5. News Collector
+
+**`src/app/collectors/news.py`** - 뉴스 수집기
+
+**NewsCollector 클래스:**
+
+**사용 예시:**
+```python
+collector = NewsCollector(search_provider="serper")
+articles = await collector.collect(
+    query="artificial intelligence",
+    limit=10,
+    filters={
+        "domains": ["techcrunch.com", "venturebeat.com"],
+        "date_filter": "w"  # 최근 1주일
+    }
+)
+```
+
+**기본 뉴스 도메인:**
+- `techcrunch.com` - 스타트업/기술 뉴스
+- `venturebeat.com` - AI/테크 뉴스
+- `technologyreview.com` - MIT Technology Review
+- `theverge.com` - 테크 뉴스
+- `wired.com` - 테크/문화
+- `arstechnica.com` - 기술 분석
+- `zdnet.com` - 엔터프라이즈 기술
+
+**주요 기능:**
+- **도메인 필터링**: 신뢰할 수 있는 소스만 선택
+- **검색 쿼리 자동 구성**: `site:` 연산자 활용
+- **Search API 통합**: Serper 또는 Brave 선택 가능
+- **날짜 필터**: 최근 뉴스만 수집
+
+**도메인 쿼리 생성 예시:**
+```python
+# 입력
+query = "GPT-4"
+domains = ["techcrunch.com", "venturebeat.com"]
+
+# 생성된 쿼리
+"GPT-4 (site:techcrunch.com OR site:venturebeat.com)"
+```
+
+---
+
+#### 6. 데이터 수집 API 엔드포인트
+
+**`src/app/api/schemas/collectors.py`** - Pydantic 스키마
+
+**주요 스키마:**
+
+1. **CollectionRequest**: 수집 요청
+```python
+{
+    "query": "transformer optimization",
+    "sources": ["arxiv", "news"],  # Optional
+    "limit": 10,
+    "filters": {
+        "categories": ["cs.AI"],
+        "domains": ["techcrunch.com"]
+    }
+}
+```
+
+2. **CollectionResponse**: 수집 결과
+```python
+{
+    "total": 15,
+    "results": [...],
+    "errors": []
+}
+```
+
+3. **CollectedItemResponse**: 개별 아이템
+```python
+{
+    "title": "...",
+    "content": "...",
+    "url": "...",
+    "source_type": "paper",
+    "source_name": "arXiv",
+    "metadata": {...},
+    "collected_at": "2024-12-01T10:00:00"
+}
+```
+
+**`src/app/api/routers/collectors.py`** - API 라우터
+
+**API 엔드포인트:**
+
+**1. POST `/api/collectors/search`** - 통합 검색
+- 여러 소스를 동시에 검색
+- 소스 지정 가능 (미지정 시 전체 검색)
+- 각 소스별 에러 개별 처리
+- 부분 성공 지원 (일부 소스 실패해도 성공한 결과 반환)
+
+**2. POST `/api/collectors/arxiv`** - arXiv 전용
+- arXiv 논문만 검색
+- 카테고리, 정렬 필터 지원
+
+**3. POST `/api/collectors/news`** - 뉴스 전용
+- 뉴스 기사만 검색
+- 도메인, 날짜 필터 지원
+
+**4. GET `/api/collectors/sources`** - 소스 목록
+- 지원되는 모든 소스 정보
+- 각 소스별 필터 옵션 정보
+
+**CollectorRegistry:**
+- 모든 수집기를 중앙 집중식으로 관리
+- 동적으로 수집기 추가/제거 가능
+- 소스 정보 제공
+
+---
+
+#### 7. 통합 테스트
+
+**테스트 결과:**
+
+**1. Health Check**
+```bash
+$ curl http://localhost:8000/health
+{"status": "healthy"}
+```
+
+**2. 소스 목록 조회**
+```bash
+$ curl http://localhost:8000/api/collectors/sources
+{
+  "sources": [
+    {
+      "name": "arxiv",
+      "type": "paper",
+      "description": "Academic papers from arXiv.org",
+      "supported_filters": ["categories", "sort_by", "sort_order"]
+    },
+    {
+      "name": "news",
+      "type": "news",
+      "description": "Tech and AI news articles",
+      "supported_filters": ["domains", "date_filter", "freshness"]
+    }
+  ]
+}
+```
+
+**3. arXiv 논문 수집**
+```bash
+$ curl -X POST http://localhost:8000/api/collectors/arxiv \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "large language model",
+    "limit": 3,
+    "filters": {
+      "categories": ["cs.AI", "cs.LG"]
+    }
+  }'
+
+# 결과: 3개의 관련 논문 성공적으로 수집
+# - "Demystifying Instruction Mixing for Fine-tuning Large Language Models"
+# - "WizardLM: Empowering large pre-trained language models..."
+# - "PB-LLM: Partially Binarized Large Language Models"
+```
+
+**4. 통합 검색**
+```bash
+$ curl -X POST http://localhost:8000/api/collectors/search \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "GPT-4",
+    "sources": ["arxiv"],
+    "limit": 2
+  }'
+
+# 결과: 2개의 GPT-4 관련 논문 수집 성공
+```
+
+**5. Swagger UI**
+- URL: `http://localhost:8000/docs`
+- 모든 엔드포인트 정상 작동
+- 대화형 API 테스트 가능
+
+---
+
+### 최종 디렉토리 구조
+
+```
+research-curator/
+├── src/app/
+│   ├── collectors/              # 신규 추가
+│   │   ├── __init__.py
+│   │   ├── base.py             # BaseCollector 인터페이스
+│   │   ├── search_client.py    # Serper/Brave API 클라이언트
+│   │   ├── arxiv.py            # arXiv 수집기
+│   │   └── news.py             # 뉴스 수집기
+│   │
+│   ├── core/
+│   │   ├── config.py
+│   │   ├── security.py
+│   │   └── retry.py            # 신규 추가: 재시도 로직
+│   │
+│   └── api/
+│       ├── schemas/
+│       │   ├── llm.py
+│       │   └── collectors.py   # 신규 추가
+│       │
+│       └── routers/
+│           ├── llm.py
+│           └── collectors.py   # 신규 추가
+│
+└── pyproject.toml              # arxiv 패키지 추가
+```
+
+---
+
+### 설치된 패키지
+
+```toml
+dependencies = [
+    # 기존 패키지...
+    "arxiv>=2.3.1",              # 신규 추가
+    "feedparser>=6.0.12",        # arxiv 의존성
+    "sgmllib3k==1.0.0",          # feedparser 의존성
+]
+```
+
+---
+
+### 주요 성과
+
+#### 1. 완전한 데이터 수집 파이프라인 구축
+- **모듈화된 구조**: 각 소스별 독립적인 Collector
+- **표준화된 인터페이스**: BaseCollector 추상 클래스
+- **확장 가능성**: 새 소스 추가 용이 (Google Scholar, Reports 등)
+
+#### 2. 견고한 에러 핸들링
+- **자동 재시도**: Exponential backoff 전략
+- **Rate Limiting**: API 호출 빈도 자동 제어
+- **부분 실패 허용**: 일부 소스 실패해도 다른 소스는 정상 수집
+
+#### 3. RESTful API 제공
+- **4개의 엔드포인트**: 통합 검색, arXiv, 뉴스, 소스 목록
+- **OpenAPI 문서 자동 생성**: Swagger UI
+- **타입 안전성**: Pydantic 스키마
+
+#### 4. 실전 테스트 완료
+- arXiv에서 실제 논문 수집 성공
+- 모든 API 엔드포인트 정상 작동 확인
+- Swagger UI를 통한 대화형 테스트 가능
+
+---
+
+### 다음 단계 (Day 4)
+
+**Day 4 목표: LLM 통합 및 데이터 처리**
+
+1. **데이터 처리 모듈** (`src/app/processors/`)
+   - `summarizer.py`: LLM 기반 한국어 요약 생성
+   - `evaluator.py`: 중요도 평가 (LLM + 메타데이터)
+   - `classifier.py`: 카테고리 분류
+   - `embedder.py`: 임베딩 생성
+
+2. **프롬프트 설계**
+   - 요약 생성 프롬프트 (한국어)
+   - 중요도 평가 프롬프트
+   - 카테고리 분류 프롬프트
+
+3. **배치 처리 최적화**
+   - 여러 아티클 동시 처리
+   - 비용 최적화
+
+4. **테스트**
+   - 수집된 데이터로 LLM 처리 테스트
+   - 품질 검증
+
+---
+
+### 참고 사항
+
+**API 키 설정:**
+```bash
+# .env 파일에 추가 필요
+SERPER_API_KEY=your-serper-api-key-here
+BRAVE_API_KEY=your-brave-api-key-here
+```
+
+**실행 방법:**
+```bash
+# 서버 시작
+uvicorn app.api.main:app --reload
+
+# API 문서 확인
+open http://localhost:8000/docs
+
+# 테스트 요청
+curl -X POST http://localhost:8000/api/collectors/arxiv \
+  -H "Content-Type: application/json" \
+  -d '{"query": "GPT", "limit": 5}'
+```
+
+**로깅:**
+- 모든 수집 작업은 로그 기록
+- 재시도 시도 및 실패 정보 포함
+- 디버깅 및 모니터링 용이
