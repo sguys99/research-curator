@@ -14,6 +14,7 @@ maintainers = [
 dependencies = [
     "aiosmtplib>=5.0.0",
     "alembic>=1.17.2",
+    "arxiv>=2.3.1",
     "asyncpg>=0.31.0",
     "boto3>=1.41.2",
     "fastapi>=0.121.3",
