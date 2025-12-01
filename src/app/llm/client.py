@@ -7,7 +7,7 @@ from typing import Any, Literal
 import litellm
 from litellm import completion, embedding
 
-from src.app.core.config import settings
+from app.core.config import settings
 
 # Disable verbose logging for litellm
 litellm.suppress_debug_info = True
