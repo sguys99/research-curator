@@ -1,213 +1,429 @@
-"""
-텍스트 임베딩 생성기
+"""Text embedding generation with OpenAI API.
 
-OpenAI Embedding API를 사용하여 텍스트를 벡터로 변환합니다.
-Vector DB 저장 및 시맨틱 검색에 사용됩니다.
+This module provides functionality to generate embeddings for text using OpenAI's
+embedding models. Includes batch processing, retry logic, token limit handling,
+and caching for improved performance.
 """
 
 import asyncio
 import hashlib
 import logging
+from typing import Any
 
-from ..llm.client import get_llm_client
+import tiktoken
+from tenacity import (
+    RetryError,
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
+
+from app.core.config import settings
+from app.llm.client import get_llm_client
 
 logger = logging.getLogger(__name__)
 
 
 class TextEmbedder:
-    """텍스트 임베딩 생성 클래스"""
+    """Text embedding generator with caching and retry logic."""
+
+    # OpenAI embedding model token limits
+    MAX_TOKENS = 8191  # text-embedding-3-small max tokens
 
     def __init__(
         self,
         model: str | None = None,
         use_cache: bool = True,
+        max_retries: int = 3,
+        retry_wait_min: int = 1,
+        retry_wait_max: int = 10,
     ):
-        """
-        Args:
-            model: 임베딩 모델 (None이면 기본 모델 사용)
-            use_cache: 캐싱 사용 여부 (동일 텍스트 재사용)
-        """
-        self.model = model
-        self.use_cache = use_cache
-        self.llm_client = get_llm_client(provider="openai", model=model)
+        """Initialize text embedder.
 
-        # 캐시 (메모리)
+        Args:
+            model: Embedding model name (defaults to settings.OPENAI_EMBEDDING_MODEL)
+            use_cache: Enable caching for identical texts
+            max_retries: Maximum number of retry attempts for API calls
+            retry_wait_min: Minimum wait time between retries (seconds)
+            retry_wait_max: Maximum wait time between retries (seconds)
+        """
+        self.model = model or settings.OPENAI_EMBEDDING_MODEL
+        self.use_cache = use_cache
+        self.max_retries = max_retries
+        self.retry_wait_min = retry_wait_min
+        self.retry_wait_max = retry_wait_max
+
+        # Get LLM client
+        self.llm_client = get_llm_client(provider="openai", model=self.model)
+
+        # Initialize tokenizer for token counting
+        try:
+            self.tokenizer = tiktoken.encoding_for_model("text-embedding-3-small")
+        except KeyError:
+            # Fallback to cl100k_base encoding if model not found
+            self.tokenizer = tiktoken.get_encoding("cl100k_base")
+
+        # In-memory cache
         self._cache: dict[str, list[float]] = {}
 
-    def _get_cache_key(self, text: str) -> str:
-        """텍스트의 캐시 키 생성 (SHA-256 해시)"""
-        return hashlib.sha256(text.encode("utf-8")).hexdigest()
+        logger.info(f"TextEmbedder initialized with model: {self.model}")
 
-    async def embed(self, text: str) -> list[float]:
-        """
-        단일 텍스트 임베딩 생성
+    def _get_cache_key(self, text: str) -> str:
+        """Generate cache key for text using SHA-256 hash.
 
         Args:
-            text: 임베딩할 텍스트
+            text: Input text
 
         Returns:
-            임베딩 벡터 (리스트)
+            SHA-256 hash of the text
+        """
+        return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+    def count_tokens(self, text: str) -> int:
+        """Count the number of tokens in text.
+
+        Args:
+            text: Input text
+
+        Returns:
+            Number of tokens
+        """
+        try:
+            tokens = self.tokenizer.encode(text)
+            return len(tokens)
+        except Exception as e:
+            logger.warning(f"Error counting tokens, using character estimate: {e}")
+            # Fallback: rough estimate (1 token ≈ 4 characters)
+            return len(text) // 4
+
+    def truncate_text(self, text: str, max_tokens: int | None = None) -> str:
+        """Truncate text to fit within token limit.
+
+        Args:
+            text: Input text
+            max_tokens: Maximum number of tokens (defaults to MAX_TOKENS)
+
+        Returns:
+            Truncated text
+        """
+        max_tokens = max_tokens or self.MAX_TOKENS
+        token_count = self.count_tokens(text)
+
+        if token_count <= max_tokens:
+            return text
+
+        # Truncate text by decoding tokens
+        try:
+            tokens = self.tokenizer.encode(text)
+            truncated_tokens = tokens[:max_tokens]
+            truncated_text = self.tokenizer.decode(truncated_tokens)
+            logger.warning(
+                f"Text truncated from {token_count} to {max_tokens} tokens",
+            )
+            return truncated_text
+        except Exception as e:
+            logger.error(f"Error truncating text: {e}")
+            # Fallback: character-based truncation (rough estimate)
+            char_limit = max_tokens * 4
+            return text[:char_limit]
+
+    @retry(
+        retry=retry_if_exception_type((RuntimeError, ConnectionError)),
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=10),
+        reraise=True,
+    )
+    async def _embed_with_retry(self, text: str) -> list[float]:
+        """Generate embedding with automatic retry on failure.
+
+        Args:
+            text: Input text
+
+        Returns:
+            Embedding vector
+
+        Raises:
+            RuntimeError: If embedding generation fails after all retries
+        """
+        try:
+            embedding = await self.llm_client.agenerate_embedding(text, model=self.model)
+            return embedding
+        except Exception as e:
+            logger.error(f"Error generating embedding: {e}")
+            raise RuntimeError(f"Embedding generation failed: {e}") from e
+
+    async def embed(self, text: str, truncate: bool = True) -> list[float]:
+        """Generate embedding for single text.
+
+        Args:
+            text: Input text
+            truncate: Automatically truncate text if exceeds token limit
+
+        Returns:
+            Embedding vector (list of floats)
+
+        Raises:
+            ValueError: If text is empty
+            RuntimeError: If embedding generation fails
 
         Examples:
             >>> embedder = TextEmbedder()
             >>> embedding = await embedder.embed("Attention Is All You Need")
-            >>> print(len(embedding))  # 1536 (OpenAI text-embedding-3-small)
+            >>> len(embedding)
+            1536
         """
         if not text or not text.strip():
-            logger.warning("Empty text provided for embedding")
-            # 빈 벡터 반환 (차원은 모델 기본 차원)
-            return [0.0] * 1536
+            raise ValueError("Empty text provided for embedding")
 
-        # 캐시 확인
+        # Check cache
         if self.use_cache:
             cache_key = self._get_cache_key(text)
             if cache_key in self._cache:
                 logger.debug(f"Cache hit for text: {text[:50]}...")
                 return self._cache[cache_key]
 
-        try:
-            # LLM Client를 통한 임베딩 생성
-            embedding = await self.llm_client.agenerate_embedding(text)
+        # Truncate if needed
+        if truncate:
+            token_count = self.count_tokens(text)
+            if token_count > self.MAX_TOKENS:
+                text = self.truncate_text(text)
 
-            # 캐시 저장
+        # Generate embedding with retry
+        try:
+            embedding = await self._embed_with_retry(text)
+
+            # Cache result
             if self.use_cache:
                 cache_key = self._get_cache_key(text)
                 self._cache[cache_key] = embedding
 
-            logger.info(f"Embedding generated: {len(embedding)} dimensions " f"for text: {text[:50]}...")
+            logger.info(
+                f"Embedding generated: {len(embedding)} dimensions "
+                f"for text: {text[:50]}... ({self.count_tokens(text)} tokens)",
+            )
 
             return embedding
 
-        except Exception as e:
-            logger.error(f"Error generating embedding: {e}")
-            raise
+        except RetryError as e:
+            logger.error(f"Embedding generation failed after {self.max_retries} retries: {e}")
+            raise RuntimeError("Max retries exceeded for embedding generation") from e
 
     async def batch_embed(
         self,
         texts: list[str],
-        batch_size: int = 100,
+        batch_size: int = 10,
+        truncate: bool = True,
+        fail_on_error: bool = False,
     ) -> list[list[float]]:
-        """
-        여러 텍스트 동시 임베딩 (병렬 처리)
+        """Generate embeddings for multiple texts in batches.
 
         Args:
-            texts: 텍스트 리스트
-            batch_size: 배치 크기 (OpenAI API는 배치 지원하지만 여기서는 병렬 처리)
+            texts: List of input texts
+            batch_size: Number of texts to process concurrently
+            truncate: Automatically truncate texts exceeding token limit
+            fail_on_error: If True, raise exception on any error; if False, return zero vectors
 
         Returns:
-            임베딩 벡터 리스트
+            List of embedding vectors
 
         Examples:
             >>> texts = ["Text 1", "Text 2", "Text 3"]
             >>> embeddings = await embedder.batch_embed(texts)
-            >>> print(len(embeddings))  # 3
+            >>> len(embeddings)
+            3
         """
         if not texts:
             logger.warning("Empty texts list provided")
             return []
 
-        try:
-            # 병렬 처리 (asyncio.gather 사용)
-            embeddings = await asyncio.gather(
-                *[self.embed(text) for text in texts],
-                return_exceptions=True,
-            )
+        all_embeddings: list[list[float]] = []
 
-            # 에러 처리
-            processed_embeddings = []
-            for i, embedding in enumerate(embeddings):
-                if isinstance(embedding, Exception):
-                    logger.error(f"Error embedding text {i}: {embedding}")
-                    # 빈 벡터로 대체
-                    processed_embeddings.append([0.0] * 1536)
+        # Process in batches to avoid rate limits
+        for i in range(0, len(texts), batch_size):
+            batch = texts[i : i + batch_size]
+            logger.info(f"Processing batch {i // batch_size + 1}: {len(batch)} texts")
+
+            # Generate embeddings concurrently within batch
+            tasks = [self.embed(text, truncate=truncate) for text in batch]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+
+            # Process results
+            for j, result in enumerate(results):
+                if isinstance(result, Exception):
+                    logger.error(f"Error embedding text {i + j}: {result}")
+                    if fail_on_error:
+                        raise result
+                    # Return zero vector on error
+                    all_embeddings.append([0.0] * self.get_embedding_dimension())
                 else:
-                    processed_embeddings.append(embedding)
+                    all_embeddings.append(result)
 
-            logger.info(
-                f"Batch embedding completed: "
-                f"{len(processed_embeddings)} texts, "
-                f"{sum(1 for e in embeddings if not isinstance(e, Exception))} succeeded",
-            )
+            # Small delay between batches to respect rate limits
+            if i + batch_size < len(texts):
+                await asyncio.sleep(0.5)
 
-            return processed_embeddings
+        logger.info(
+            f"Batch embedding completed: {len(all_embeddings)} texts, "
+            f"{sum(1 for e in all_embeddings if e != [0.0] * self.get_embedding_dimension())} "
+            f"succeeded",
+        )
 
-        except Exception as e:
-            logger.error(f"Error in batch embedding: {e}")
-            raise
+        return all_embeddings
 
-    def embed_article(self, title: str, content: str, summary: str | None = None) -> str:
-        """
-        아티클을 임베딩하기 위한 텍스트 생성
+    def prepare_article_text(
+        self,
+        title: str,
+        content: str,
+        summary: str | None = None,
+    ) -> str:
+        """Prepare article text for embedding.
 
-        제목, 요약(있으면), 내용을 결합하여 최적의 임베딩 텍스트 생성
+        Combines title, summary, and content into optimized embedding text.
 
         Args:
-            title: 제목
-            content: 내용
-            summary: 요약 (선택적)
+            title: Article title
+            content: Article content
+            summary: Article summary (optional)
 
         Returns:
-            임베딩할 텍스트
+            Combined text for embedding
 
         Examples:
-            >>> text = embedder.embed_article(
+            >>> text = embedder.prepare_article_text(
             ...     title="GPT-4",
             ...     content="GPT-4 is a large multimodal model...",
             ...     summary="GPT-4는 대규모 멀티모달 모델입니다."
             ... )
         """
-        parts = [f"제목: {title}"]
+        parts = [f"Title: {title}"]
 
         if summary:
-            parts.append(f"요약: {summary}")
+            parts.append(f"Summary: {summary}")
 
-        # 내용은 처음 1000자만 사용 (임베딩 토큰 제한 고려)
-        content_snippet = content[:1000]
-        parts.append(f"내용: {content_snippet}")
+        # Use first 2000 characters of content
+        content_snippet = content[:2000] if content else ""
+        if content_snippet:
+            parts.append(f"Content: {content_snippet}")
 
-        return "\n\n".join(parts)
+        combined_text = "\n\n".join(parts)
 
-    async def embed_article_async(
+        # Ensure within token limit
+        return self.truncate_text(combined_text)
+
+    async def embed_article(
         self,
         title: str,
         content: str,
         summary: str | None = None,
     ) -> list[float]:
-        """
-        아티클 임베딩 생성 (비동기)
+        """Generate embedding for article.
 
         Args:
-            title: 제목
-            content: 내용
-            summary: 요약
+            title: Article title
+            content: Article content
+            summary: Article summary (optional)
 
         Returns:
-            임베딩 벡터
+            Embedding vector
+
+        Examples:
+            >>> embedding = await embedder.embed_article(
+            ...     title="Attention Is All You Need",
+            ...     content="We propose a new architecture...",
+            ...     summary="Transformer 모델을 제안합니다."
+            ... )
         """
-        text = self.embed_article(title, content, summary)
+        text = self.prepare_article_text(title, content, summary)
         return await self.embed(text)
 
+    async def embed_articles_batch(
+        self,
+        articles: list[dict[str, Any]],
+        batch_size: int = 10,
+    ) -> list[list[float]]:
+        """Generate embeddings for multiple articles in batches.
+
+        Args:
+            articles: List of article dicts with 'title', 'content', 'summary' keys
+            batch_size: Number of articles to process concurrently
+
+        Returns:
+            List of embedding vectors
+
+        Examples:
+            >>> articles = [
+            ...     {"title": "Paper 1", "content": "...", "summary": "..."},
+            ...     {"title": "Paper 2", "content": "...", "summary": "..."},
+            ... ]
+            >>> embeddings = await embedder.embed_articles_batch(articles)
+        """
+        texts = [
+            self.prepare_article_text(
+                article.get("title", ""),
+                article.get("content", ""),
+                article.get("summary"),
+            )
+            for article in articles
+        ]
+
+        return await self.batch_embed(texts, batch_size=batch_size)
+
     def clear_cache(self) -> None:
-        """캐시 초기화"""
+        """Clear embedding cache."""
         self._cache.clear()
-        logger.info("Cache cleared")
+        logger.info("Embedding cache cleared")
 
     def get_cache_size(self) -> int:
-        """캐시 크기 반환"""
+        """Get number of cached embeddings.
+
+        Returns:
+            Number of cached items
+        """
         return len(self._cache)
 
+    def get_cache_stats(self) -> dict[str, Any]:
+        """Get cache statistics.
+
+        Returns:
+            Dictionary with cache statistics
+        """
+        return {
+            "size": len(self._cache),
+            "enabled": self.use_cache,
+            "model": self.model,
+        }
+
     def get_embedding_dimension(self) -> int:
-        """임베딩 차원 반환"""
-        # OpenAI text-embedding-3-small: 1536
-        # 추후 모델에 따라 동적으로 변경 가능
-        return 1536
+        """Get embedding vector dimension.
+
+        Returns:
+            Dimension of embedding vectors (1536 for text-embedding-3-small)
+        """
+        return settings.QDRANT_VECTOR_SIZE
 
 
-# 사용 예시
+# Global embedder instance
+_embedder: TextEmbedder | None = None
+
+
+def get_embedder() -> TextEmbedder:
+    """Get or create global embedder instance.
+
+    Returns:
+        Singleton TextEmbedder instance
+    """
+    global _embedder
+    if _embedder is None:
+        _embedder = TextEmbedder()
+    return _embedder
+
+
+# Example usage
 if __name__ == "__main__":
     import sys
 
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s - %(message)s")
 
     sample_texts = [
         "Attention Is All You Need",
@@ -229,55 +445,87 @@ if __name__ == "__main__":
         embedder = TextEmbedder(use_cache=True)
 
         print("=" * 60)
-        print("단일 임베딩 테스트")
+        print("1. Single Embedding Test")
         print("=" * 60)
 
-        embedding = await embedder.embed(sample_texts[0])
-        print(f"\n텍스트: {sample_texts[0]}")
-        print(f"임베딩 차원: {len(embedding)}")
-        print(f"첫 5개 값: {embedding[:5]}")
+        text = sample_texts[0]
+        token_count = embedder.count_tokens(text)
+        embedding = await embedder.embed(text)
+
+        print(f"\nText: {text}")
+        print(f"Tokens: {token_count}")
+        print(f"Embedding dimension: {len(embedding)}")
+        print(f"First 5 values: {embedding[:5]}")
 
         print("\n" + "=" * 60)
-        print("배치 임베딩 테스트")
+        print("2. Batch Embedding Test")
         print("=" * 60)
 
-        embeddings = await embedder.batch_embed(sample_texts)
-        print(f"\n임베딩 개수: {len(embeddings)}")
-        for i, (text, emb) in enumerate(zip(sample_texts, embeddings, strict=False), 1):
-            print(f"[{i}] {text[:50]}: {len(emb)} dims")
+        embeddings = await embedder.batch_embed(sample_texts, batch_size=3)
+        print(f"\nTotal embeddings: {len(embeddings)}")
+        for i, (t, emb) in enumerate(zip(sample_texts, embeddings, strict=False), 1):
+            tokens = embedder.count_tokens(t)
+            print(f"[{i}] {t[:50]}... ({tokens} tokens): {len(emb)} dims")
 
         print("\n" + "=" * 60)
-        print("아티클 임베딩 테스트")
+        print("3. Article Embedding Test")
         print("=" * 60)
 
-        article_embedding = await embedder.embed_article_async(
+        article_text = embedder.prepare_article_text(
             title=sample_article["title"],
             content=sample_article["content"],
             summary=sample_article["summary"],
         )
 
-        print(f"\n제목: {sample_article['title']}")
-        print(f"임베딩 차원: {len(article_embedding)}")
+        article_tokens = embedder.count_tokens(article_text)
+        article_embedding = await embedder.embed_article(
+            title=sample_article["title"],
+            content=sample_article["content"],
+            summary=sample_article["summary"],
+        )
+
+        print(f"\nTitle: {sample_article['title']}")
+        print(f"Prepared text tokens: {article_tokens}")
+        print(f"Embedding dimension: {len(article_embedding)}")
 
         print("\n" + "=" * 60)
-        print("캐시 테스트")
+        print("4. Cache Test")
         print("=" * 60)
 
-        # 같은 텍스트 다시 임베딩 (캐시 히트)
+        # Same text should hit cache
         embedding2 = await embedder.embed(sample_texts[0])
-        print(f"\n캐시 크기: {embedder.get_cache_size()}")
-        print(f"캐시된 임베딩 동일: {embedding == embedding2}")
+        stats = embedder.get_cache_stats()
 
-        # 캐시 초기화
+        print(f"\nCache stats: {stats}")
+        print(f"Cache hit (identical embeddings): {embedding == embedding2}")
+
+        # Clear cache
         embedder.clear_cache()
-        print(f"캐시 초기화 후 크기: {embedder.get_cache_size()}")
+        print(f"Cache size after clearing: {embedder.get_cache_size()}")
+
+        print("\n" + "=" * 60)
+        print("5. Token Truncation Test")
+        print("=" * 60)
+
+        # Create very long text
+        long_text = "AI research " * 10000
+        token_count_before = embedder.count_tokens(long_text)
+        print(f"\nOriginal text tokens: {token_count_before}")
+
+        truncated = embedder.truncate_text(long_text, max_tokens=1000)
+        token_count_after = embedder.count_tokens(truncated)
+        print(f"Truncated text tokens: {token_count_after}")
+        print(f"Truncated successfully: {token_count_after <= 1000}")
 
     try:
         asyncio.run(test())
+        print("\n" + "=" * 60)
+        print("✅ All tests passed!")
+        print("=" * 60)
     except KeyboardInterrupt:
-        print("\n테스트 중단됨")
+        print("\nTest interrupted")
     except Exception as e:
-        print(f"\n에러 발생: {e}")
+        print(f"\n❌ Error: {e}")
         import traceback
 
         traceback.print_exc()

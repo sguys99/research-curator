@@ -22,7 +22,9 @@
       "Bash(lsof:*)",
       "Bash(kill:*)",
       "Bash(tree:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(mv:*)",
+      "Bash(.venv/bin/python:*)"
     ],
     "deny": [],
     "ask": []
