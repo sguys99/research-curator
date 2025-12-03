@@ -940,3 +940,667 @@ curl -X POST http://localhost:8000/api/collectors/arxiv \
 - 모든 수집 작업은 로그 기록
 - 재시도 시도 및 실패 정보 포함
 - 디버깅 및 모니터링 용이
+
+---
+
+## Day 4: LLM 통합 및 데이터 처리 파이프라인 구축 (2025-12-03)
+
+### 작업 계획
+
+Day 4의 목표는 수집된 아티클을 LLM으로 자동 처리하는 완전한 파이프라인을 구축하는 것입니다.
+
+**핵심 작업:**
+1. 프롬프트 관리 시스템 구현
+2. 4개 프로세서 모듈 구현
+   - ArticleSummarizer (요약 생성)
+   - ImportanceEvaluator (중요도 평가)
+   - ContentClassifier (카테고리 분류)
+   - TextEmbedder (임베딩 생성)
+3. 통합 파이프라인 구현
+4. API 엔드포인트 구현
+5. 통합 테스트 작성
+6. 문서화 및 검증
+
+---
+
+### 작업 결과
+
+#### 1. 프롬프트 관리 시스템
+
+**`configs/prompts.yaml`** - 중앙 집중식 프롬프트 관리
+
+**프롬프트 카테고리 (6개):**
+
+1. **summarize**: 요약 생성 프롬프트
+   - 언어별 (korean, english)
+   - 길이별 (short, medium, long)
+   ```yaml
+   summarize:
+     korean:
+       medium:
+         system: "당신은 AI 연구 분야의 전문 리서처입니다..."
+         user_template: "다음 내용을 3-5문장으로 요약해주세요..."
+   ```
+
+2. **evaluate_importance**: 중요도 평가
+   - 4가지 기준 평가 (혁신성, 관련성, 영향력, 시의성)
+   - JSON 응답 형식
+
+3. **classify_category**: 카테고리 분류
+   - 5개 카테고리 (paper, news, report, blog, other)
+   - 키워드 및 연구 분야 추출
+
+4. **extract_metadata**: 메타데이터 추출
+   - 저자, 출판일, 기관 등
+
+5. **onboarding**: 온보딩 챗봇
+   - 사용자 설정 수집
+
+6. **common**: 공통 지시사항
+   - 응답 형식 가이드라인
+
+**`src/app/core/prompts.py`** - PromptManager 클래스
+
+**주요 기능:**
+- YAML 파일에서 프롬프트 로드
+- 템플릿 변수 치환
+- 메시지 빌드 (system + user)
+- 싱글톤 패턴 (`get_prompt_manager()`)
+
+**사용 예시:**
+```python
+pm = get_prompt_manager()
+messages = pm.build_messages(
+    "summarize",
+    "korean.medium",
+    title="GPT-4",
+    content="..."
+)
+```
+
+---
+
+#### 2. 프로세서 모듈 구현
+
+**`src/app/processors/`** - 데이터 처리 모듈
+
+##### 2.1 ArticleSummarizer
+
+**`src/app/processors/summarizer.py`**
+
+**주요 기능:**
+- 한국어/영어 요약 생성
+- 3가지 길이 옵션 (short: 2-3문장, medium: 3-5문장, long: 6-8문장)
+- 배치 처리 지원
+
+**API:**
+```python
+summarizer = ArticleSummarizer(provider="openai")
+summary = await summarizer.summarize(
+    title="Attention Is All You Need",
+    content="We propose the Transformer...",
+    language="ko",
+    length="medium"
+)
+```
+
+**특징:**
+- LiteLLM 통합 (OpenAI, Claude 선택 가능)
+- 비동기 처리
+- 배치 처리로 성능 최적화
+
+---
+
+##### 2.2 ImportanceEvaluator
+
+**`src/app/processors/evaluator.py`**
+
+**평가 방식:**
+- **LLM 평가 (70%)**: 4가지 기준
+  - Innovation (혁신성): 0.0-1.0
+  - Relevance (관련성): 0.0-1.0
+  - Impact (영향력): 0.0-1.0
+  - Timeliness (시의성): 0.0-1.0
+
+- **메타데이터 평가 (30%)**: 인용수, 연도 등
+  - 인용수 점수: log scale
+  - 시간 점수: 최근일수록 높음
+
+**최종 점수:**
+```
+final_score = 0.7 × llm_score + 0.3 × metadata_score
+```
+
+**API:**
+```python
+evaluator = ImportanceEvaluator()
+result = await evaluator.evaluate(
+    title="GPT-4 Technical Report",
+    content="...",
+    metadata={"year": 2023, "citations": 5000}
+)
+# {
+#   "innovation": 0.9,
+#   "relevance": 0.85,
+#   "impact": 0.9,
+#   "timeliness": 0.8,
+#   "final_score": 0.86,
+#   "llm_score": 0.88,
+#   "metadata_score": 0.8,
+#   "reasoning": "..."
+# }
+```
+
+---
+
+##### 2.3 ContentClassifier
+
+**`src/app/processors/classifier.py`**
+
+**분류 기능:**
+- **카테고리 분류**: paper, news, report, blog, other
+- **키워드 추출**: 핵심 키워드 5-10개
+- **연구 분야 식별**: Machine Learning, NLP, Computer Vision 등
+- **세부 분야 추출**: Deep Learning, Transformer 등
+
+**폴백 로직:**
+- LLM 실패 시 URL/소스 기반 분류
+- arXiv → paper
+- 뉴스 도메인 → news
+
+**API:**
+```python
+classifier = ContentClassifier()
+result = await classifier.classify(
+    title="Attention Is All You Need",
+    content="We propose the Transformer...",
+    source_name="arXiv",
+    url="https://arxiv.org/abs/1706.03762"
+)
+# {
+#   "category": "paper",
+#   "confidence": 1.0,
+#   "keywords": ["Transformer", "Attention", "NLP"],
+#   "research_field": "Machine Learning",
+#   "sub_fields": ["Deep Learning", "NLP"]
+# }
+```
+
+---
+
+##### 2.4 TextEmbedder
+
+**`src/app/processors/embedder.py`**
+
+**임베딩 생성:**
+- OpenAI text-embedding-3-small (1536 차원)
+- SHA-256 기반 캐싱
+- 배치 처리 지원
+
+**아티클 임베딩 최적화:**
+```python
+text = f"""
+제목: {title}
+요약: {summary}
+내용: {content[:1000]}
+"""
+```
+
+**API:**
+```python
+embedder = TextEmbedder(use_cache=True)
+
+# 단일 텍스트
+embedding = await embedder.embed("Attention Is All You Need")
+# [0.01, -0.02, ...] (1536 dims)
+
+# 아티클 전용
+embedding = await embedder.embed_article_async(
+    title="GPT-4",
+    content="...",
+    summary="..."
+)
+```
+
+**캐시 관리:**
+- `clear_cache()`: 캐시 초기화
+- `get_cache_size()`: 캐시 크기 확인
+
+---
+
+#### 3. 통합 처리 파이프라인
+
+**`src/app/processors/pipeline.py`** - ProcessingPipeline
+
+**ProcessedArticle 데이터클래스:**
+```python
+@dataclass
+class ProcessedArticle:
+    # 원본
+    title: str
+    content: str
+    url: str
+    source_name: str
+    source_type: str
+
+    # 처리 결과
+    summary: str                    # 요약
+    importance_score: float         # 최종 중요도 (0.0-1.0)
+    category: str                   # 카테고리
+    keywords: list[str]             # 키워드
+    research_field: str             # 연구 분야
+    embedding: list[float]          # 1536차원 벡터
+
+    # 상세 평가
+    innovation_score: float
+    relevance_score: float
+    impact_score: float
+    timeliness_score: float
+
+    # 메타데이터
+    metadata: dict
+    processed_at: datetime
+```
+
+**처리 순서 (최적화):**
+1. **병렬 실행** (asyncio.gather):
+   - 요약 생성
+   - 중요도 평가
+   - 카테고리 분류
+2. **순차 실행**:
+   - 임베딩 생성 (요약 사용)
+
+**API:**
+```python
+pipeline = ProcessingPipeline(
+    provider="openai",
+    summary_language="ko",
+    summary_length="medium"
+)
+
+# 단일 아티클 처리
+result = await pipeline.process_article(
+    title="Attention Is All You Need",
+    content="...",
+    url="https://arxiv.org/abs/1706.03762",
+    metadata={"year": 2017, "citations": 50000}
+)
+
+# 배치 처리 (병렬)
+results = await pipeline.process_batch(
+    articles=[
+        {"title": "Paper 1", "content": "..."},
+        {"title": "Paper 2", "content": "..."}
+    ],
+    max_concurrent=5
+)
+```
+
+**성능:**
+- 단일 아티클: ~3.7초
+- 배치 5개: ~8.6초 (평균 1.7초/개, 53% 성능 향상)
+
+**유틸리티 함수:**
+- `get_top_articles()`: 중요도 순 정렬
+- `filter_by_category()`: 카테고리 필터링
+- `filter_by_score()`: 점수 기준 필터링
+- `get_statistics()`: 통계 정보
+
+---
+
+#### 4. API 엔드포인트 구현
+
+**`src/app/api/schemas/processors.py`** - Pydantic 스키마
+
+**10개 스키마 정의:**
+1. `SummarizeRequest/Response` - 요약 생성
+2. `EvaluateRequest/Response` - 중요도 평가
+3. `ClassifyRequest/Response` - 카테고리 분류
+4. `ProcessArticleRequest/Response` - 단일 처리
+5. `BatchProcessRequest/Response` - 배치 처리
+6. `StatisticsResponse` - 통계
+
+**모든 스키마에 포함:**
+- Field 설명 (description)
+- 예제 데이터 (json_schema_extra)
+- 타입 검증
+
+**`src/app/api/routers/processors.py`** - API 라우터
+
+**6개 엔드포인트:**
+
+1. **POST `/api/processors/summarize`**
+   - 요약 생성
+   - 한국어/영어, short/medium/long
+
+2. **POST `/api/processors/evaluate`**
+   - 중요도 평가
+   - 4가지 점수 + 최종 점수 반환
+
+3. **POST `/api/processors/classify`**
+   - 카테고리 분류
+   - 키워드, 연구 분야 추출
+
+4. **POST `/api/processors/process`**
+   - 전체 파이프라인 처리
+   - 요약+평가+분류+임베딩 한 번에
+
+5. **POST `/api/processors/batch-process`**
+   - 배치 처리 (최대 10개 동시)
+   - 처리 시간, 성공/실패 개수 반환
+
+6. **POST `/api/processors/statistics`**
+   - 처리 결과 통계
+   - 카테고리 분포, 평균 점수 등
+
+**에러 핸들링:**
+- HTTPException 사용
+- 상세한 에러 메시지
+- 500 에러 자동 처리
+
+---
+
+#### 5. 통합 테스트
+
+**`tests/test_processors.py`** - 프로세서 단위 테스트 (5개)
+- `test_summarizer`: 요약 생성 테스트
+- `test_evaluator`: 중요도 평가 테스트
+- `test_classifier`: 카테고리 분류 테스트
+- `test_embedder`: 임베딩 생성 테스트
+- `test_all_processors_integration`: 통합 테스트
+
+**`tests/test_pipeline.py`** - 파이프라인 테스트 (4개)
+- `test_single_article_processing`: 단일 처리
+- `test_batch_processing`: 배치 처리
+- `test_pipeline_utilities`: 유틸리티 함수
+- `test_processed_article_to_dict`: 데이터 변환
+
+**`tests/test_api_processors.py`** - API 통합 테스트 (21개)
+
+**8개 테스트 클래스:**
+1. `TestSummarizeEndpoint` (3개)
+2. `TestEvaluateEndpoint` (2개)
+3. `TestClassifyEndpoint` (2개)
+4. `TestProcessEndpoint` (2개)
+5. `TestBatchProcessEndpoint` (3개)
+6. `TestStatisticsEndpoint` (2개)
+7. `TestEndToEndWorkflow` (1개)
+8. `TestErrorHandling` (4개)
+9. `TestHealthCheck` (2개)
+
+**테스트 커버리지:**
+- 정상 케이스 (Happy Path)
+- 에러 케이스 (Error Handling)
+- 엣지 케이스 (Edge Cases)
+- End-to-End 워크플로우
+- 입력 검증 (Pydantic)
+
+**테스트 결과:**
+```
+================== 30 passed in 61.92s ==================
+```
+- ✅ 30개 테스트 모두 통과 (100%)
+- ✅ 프로세서, 파이프라인, API 모두 검증
+- ✅ 에러 핸들링 정상 작동
+
+---
+
+#### 6. 문서화
+
+**`docs/PROMPTS.md`** - 프롬프트 시스템 가이드
+- 프롬프트 구조 설명
+- 사용 예제
+- 커스터마이징 방법
+
+**`docs/PROCESSORS.md`** - 프로세서 사용 가이드
+- 5개 프로세서 상세 설명
+- API 레퍼런스
+- 성능 최적화 팁
+- 파이프라인 사용법
+
+**`docs/reports/`** - 검증 리포트
+- `day4_checkpoint4.md`: API 엔드포인트 검증
+- `day4_checkpoint5.md`: 통합 테스트 검증
+- `README.md`: 리포트 디렉토리 안내
+
+**`notebooks/03.test_day4.ipynb`** - 대화형 테스트 노트북
+- 모든 Checkpoint 검증 (1-5)
+- 프로세서 개별 테스트
+- 파이프라인 테스트
+- API 엔드포인트 테스트
+
+---
+
+### 최종 디렉토리 구조
+
+```
+research-curator/
+├── src/app/
+│   ├── processors/              # 신규 추가 ⭐
+│   │   ├── __init__.py
+│   │   ├── summarizer.py       # 요약 생성
+│   │   ├── evaluator.py        # 중요도 평가
+│   │   ├── classifier.py       # 카테고리 분류
+│   │   ├── embedder.py         # 임베딩 생성
+│   │   └── pipeline.py         # 통합 파이프라인
+│   │
+│   ├── core/
+│   │   ├── config.py
+│   │   ├── security.py
+│   │   ├── retry.py
+│   │   └── prompts.py          # 신규 추가 ⭐
+│   │
+│   └── api/
+│       ├── schemas/
+│       │   ├── llm.py
+│       │   ├── collectors.py
+│       │   └── processors.py   # 신규 추가 ⭐
+│       │
+│       └── routers/
+│           ├── llm.py
+│           ├── collectors.py
+│           └── processors.py   # 신규 추가 ⭐
+│
+├── configs/
+│   └── prompts.yaml            # 신규 추가 ⭐
+│
+├── docs/
+│   ├── PROMPTS.md              # 신규 추가 ⭐
+│   ├── PROCESSORS.md           # 신규 추가 ⭐
+│   ├── LLM_INTEGRATION.md
+│   └── reports/                # 신규 추가 ⭐
+│       ├── README.md
+│       ├── day4_checkpoint4.md
+│       └── day4_checkpoint5.md
+│
+├── notebooks/
+│   ├── 01.test_llm_client.ipynb
+│   ├── 02.test_day3_collectors.ipynb
+│   ├── 03.test_day4.ipynb      # 신규 추가 ⭐
+│   └── test_prompts.ipynb
+│
+└── tests/
+    ├── test_llm_client.py
+    ├── test_processors.py      # 신규 추가 ⭐
+    ├── test_pipeline.py        # 신규 추가 ⭐
+    └── test_api_processors.py  # 신규 추가 ⭐
+```
+
+---
+
+### 설치된 패키지
+
+```bash
+# 기존 패키지 유지
+# 추가 패키지 없음 (기존 litellm, openai 사용)
+```
+
+---
+
+### 주요 성과
+
+#### 1. 완전한 LLM 처리 파이프라인 구축 ✅
+- **4개 프로세서**: 요약, 평가, 분류, 임베딩
+- **통합 파이프라인**: 병렬 처리로 성능 최적화 (53% 향상)
+- **배치 처리**: 여러 아티클 동시 처리
+
+#### 2. 프롬프트 관리 시스템 ✅
+- **중앙 집중식 관리**: YAML 기반
+- **다국어/다양한 길이 지원**: 한국어/영어, short/medium/long
+- **재사용 가능**: 템플릿 변수 치환
+
+#### 3. RESTful API 구현 ✅
+- **6개 엔드포인트**: 모든 처리 기능 API화
+- **Pydantic 스키마**: 타입 안전성
+- **OpenAPI 문서**: Swagger UI 자동 생성
+
+#### 4. 완전한 테스트 커버리지 ✅
+- **30개 테스트**: 100% 통과
+- **3가지 레벨**: 단위, 통합, API
+- **End-to-End**: 전체 워크플로우 검증
+
+#### 5. 상세한 문서화 ✅
+- **사용 가이드**: PROMPTS.md, PROCESSORS.md
+- **검증 리포트**: Checkpoint 4, 5
+- **대화형 테스트**: Jupyter 노트북
+
+---
+
+### 성능 벤치마크
+
+| 작업 | 시간 | 비고 |
+|-----|------|------|
+| 단일 아티클 처리 | 3.7초 | 요약+평가+분류+임베딩 |
+| 배치 5개 처리 | 8.6초 | 병렬 처리 (평균 1.7초/개) |
+| 프로세서 테스트 | ~5초 | pytest 5개 테스트 |
+| 파이프라인 테스트 | ~15초 | pytest 4개 테스트 |
+| API 통합 테스트 | 36초 | pytest 21개 테스트 |
+| **전체 테스트** | **62초** | **30개 테스트 모두 통과** |
+
+---
+
+### Checkpoint 검증 결과
+
+**✅ Checkpoint 1**: 프롬프트 시스템 정상 작동
+- 6개 카테고리 로드 성공
+- 메시지 빌드 정상 작동
+
+**✅ Checkpoint 2**: 4개 프로세서 정상 작동
+- ArticleSummarizer: 한국어/영어 요약 생성
+- ImportanceEvaluator: 점수 0.0-1.0 범위 내
+- ContentClassifier: 카테고리 정확히 분류
+- TextEmbedder: 1536차원 임베딩 생성
+
+**✅ Checkpoint 3**: 파이프라인 정상 작동
+- 단일 아티클 처리: 3.7초
+- 배치 5개 처리: 8.6초 (53% 성능 향상)
+- 유틸리티 함수 모두 작동
+
+**✅ Checkpoint 4**: API 엔드포인트 정상 작동
+- 6개 엔드포인트 모두 200 OK
+- Swagger UI 정상 접근
+- 요청/응답 스키마 검증 통과
+
+**✅ Checkpoint 5**: 통합 테스트 완료
+- 30개 테스트 모두 통과 (100%)
+- 에러 핸들링 검증
+- End-to-End 워크플로우 검증
+
+---
+
+### API 엔드포인트 예시
+
+#### 1. 요약 생성
+```bash
+curl -X POST http://localhost:8000/api/processors/summarize \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Attention Is All You Need",
+    "content": "We propose the Transformer...",
+    "language": "ko",
+    "length": "medium"
+  }'
+
+# 응답
+{
+  "summary": "트랜스포머 아키텍처를 제안하는 논문...",
+  "language": "ko",
+  "length": "medium"
+}
+```
+
+#### 2. 전체 처리
+```bash
+curl -X POST http://localhost:8000/api/processors/process \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "GPT-4 Technical Report",
+    "content": "GPT-4 is a large multimodal model...",
+    "url": "https://openai.com/research/gpt-4",
+    "metadata": {"year": 2023, "citations": 5000}
+  }'
+
+# 응답
+{
+  "summary": "GPT-4는 대규모 멀티모달 모델...",
+  "importance_score": 0.92,
+  "category": "paper",
+  "keywords": ["GPT-4", "multimodal", "AI"],
+  "embedding": [0.01, -0.02, ...],  // 1536 dims
+  "innovation_score": 0.95,
+  ...
+}
+```
+
+---
+
+### 다음 단계 (Day 5)
+
+**Day 5 목표: Vector DB 통합 및 검색 기능**
+
+1. **Qdrant 통합**
+   - Collection 생성 및 관리
+   - 벡터 저장 및 검색
+   - 메타데이터 필터링
+
+2. **검색 API**
+   - 시맨틱 검색 엔드포인트
+   - 하이브리드 검색 (벡터 + 키워드)
+   - 유사 논문 추천
+
+3. **데이터베이스 연동**
+   - PostgreSQL에 처리 결과 저장
+   - Qdrant와 PostgreSQL 동기화
+   - CRUD API 구현
+
+4. **스케줄러**
+   - 자동 수집 및 처리
+   - 배치 작업 관리
+
+---
+
+### 참고 사항
+
+**실행 방법:**
+```bash
+# FastAPI 서버 시작
+uvicorn src.app.api.main:app --reload
+
+# API 문서
+open http://localhost:8000/docs
+
+# 테스트 실행
+pytest tests/ -v
+```
+
+**환경 변수:**
+```bash
+# .env 파일
+OPENAI_API_KEY=sk-xxx
+ANTHROPIC_API_KEY=sk-ant-xxx  # Optional
+```
+
+**Jupyter 노트북 테스트:**
+```bash
+jupyter notebook notebooks/03.test_day4.ipynb
+```
