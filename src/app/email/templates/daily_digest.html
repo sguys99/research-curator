@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>{{ service_name }} - 오늘의 AI 연구 동향</title>
+    <style>
+        /* Reset styles */
+        body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+
+        /* Body styles */
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            background-color: #f4f4f4;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+        }
+
+        /* Container styles */
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+        }
+
+        /* Header styles */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px 20px;
+            text-align: center;
+            color: #ffffff;
+        }
+
+        .header h1 {
+            margin: 0 0 10px 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .header .date {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        /* Content styles */
+        .content {
+            padding: 20px;
+        }
+
+        .greeting {
+            font-size: 16px;
+            color: #333333;
+            margin-bottom: 20px;
+        }
+
+        /* Section styles */
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            background-color: #f8f9fa;
+            border-left: 4px solid #667eea;
+            margin-bottom: 15px;
+        }
+
+        .section-header .icon {
+            font-size: 20px;
+            margin-right: 8px;
+        }
+
+        .section-header .title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333333;
+            margin: 0;
+        }
+
+        .section-header .count {
+            font-size: 14px;
+            color: #666666;
+            margin-left: 8px;
+        }
+
+        /* Article card styles */
+        .article {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 15px;
+            background-color: #ffffff;
+        }
+
+        .article-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .article-number {
+            font-size: 14px;
+            font-weight: 600;
+            color: #667eea;
+            margin-right: 8px;
+        }
+
+        .importance {
+            display: inline-flex;
+            align-items: center;
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-left: auto;
+        }
+
+        .importance.high {
+            background-color: #fee;
+            color: #c00;
+        }
+
+        .importance.medium {
+            background-color: #fef3cd;
+            color: #856404;
+        }
+
+        .importance.low {
+            background-color: #e7f3ff;
+            color: #004085;
+        }
+
+        .article-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333333;
+            margin: 0 0 10px 0;
+            line-height: 1.4;
+        }
+
+        .article-summary {
+            font-size: 14px;
+            color: #666666;
+            line-height: 1.6;
+            margin: 0 0 12px 0;
+        }
+
+        .article-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            font-size: 12px;
+            color: #999999;
+        }
+
+        .article-meta-item {
+            display: flex;
+            align-items: center;
+        }
+
+        .article-link {
+            display: inline-block;
+            padding: 8px 16px;
+            background-color: #667eea;
+            color: #ffffff !important;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 500;
+            margin-top: 8px;
+        }
+
+        .article-link:hover {
+            background-color: #5568d3;
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999999;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        /* Footer styles */
+        .footer {
+            background-color: #f8f9fa;
+            padding: 30px 20px;
+            text-align: center;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .footer-actions {
+            margin-bottom: 20px;
+        }
+
+        .footer-button {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 0 5px;
+            background-color: #ffffff;
+            color: #667eea !important;
+            text-decoration: none;
+            border: 1px solid #667eea;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .footer-button:hover {
+            background-color: #667eea;
+            color: #ffffff !important;
+        }
+
+        .footer-text {
+            font-size: 12px;
+            color: #999999;
+            line-height: 1.6;
+        }
+
+        /* Responsive styles */
+        @media only screen and (max-width: 600px) {
+            .email-container {
+                width: 100% !important;
+            }
+
+            .header h1 {
+                font-size: 20px;
+            }
+
+            .content {
+                padding: 15px;
+            }
+
+            .article {
+                padding: 12px;
+            }
+
+            .footer-button {
+                display: block;
+                margin: 5px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+        <tr>
+            <td align="center" style="padding: 20px 0;">
+                <table role="presentation" class="email-container" cellspacing="0" cellpadding="0" border="0">
+                    <!-- Header -->
+                    <tr>
+                        <td class="header">
+                            <h1>🔬 {{ service_name }}</h1>
+                            <div class="date">📅 {{ date }}</div>
+                        </td>
+                    </tr>
+
+                    <!-- Content -->
+                    <tr>
+                        <td class="content">
+                            <!-- Greeting -->
+                            <div class="greeting">
+                                안녕하세요, {{ user_name }}님! 👋<br>
+                                오늘의 AI 연구 동향을 전해드립니다.
+                            </div>
+
+                            {% if papers and papers|length > 0 %}
+                            <!-- Papers Section -->
+                            <div class="section">
+                                <div class="section-header">
+                                    <span class="icon">📚</span>
+                                    <h2 class="title">논문</h2>
+                                    <span class="count">({{ papers|length }}건)</span>
+                                </div>
+
+                                {% for article in papers %}
+                                <div class="article">
+                                    <div class="article-header">
+                                        <span class="article-number">[{{ loop.index }}]</span>
+                                        <span class="importance {{ article.importance_level }}">
+                                            {{ article.importance_stars }} {{ article.importance_label }}
+                                        </span>
+                                    </div>
+                                    <h3 class="article-title">{{ article.title }}</h3>
+                                    <p class="article-summary">{{ article.summary }}</p>
+                                    <div class="article-meta">
+                                        {% if article.authors %}
+                                        <span class="article-meta-item">✍️ {{ article.authors }}</span>
+                                        {% endif %}
+                                        {% if article.published_date %}
+                                        <span class="article-meta-item">📅 {{ article.published_date }}</span>
+                                        {% endif %}
+                                        {% if article.citations %}
+                                        <span class="article-meta-item">📊 인용 {{ article.citations }}회</span>
+                                        {% endif %}
+                                    </div>
+                                    <a href="{{ article.source_url }}" class="article-link" target="_blank">🔗 원문 보기</a>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+
+                            {% if news and news|length > 0 %}
+                            <!-- News Section -->
+                            <div class="section">
+                                <div class="section-header">
+                                    <span class="icon">📰</span>
+                                    <h2 class="title">뉴스</h2>
+                                    <span class="count">({{ news|length }}건)</span>
+                                </div>
+
+                                {% for article in news %}
+                                <div class="article">
+                                    <div class="article-header">
+                                        <span class="article-number">[{{ loop.index }}]</span>
+                                        <span class="importance {{ article.importance_level }}">
+                                            {{ article.importance_stars }} {{ article.importance_label }}
+                                        </span>
+                                    </div>
+                                    <h3 class="article-title">{{ article.title }}</h3>
+                                    <p class="article-summary">{{ article.summary }}</p>
+                                    <div class="article-meta">
+                                        {% if article.source %}
+                                        <span class="article-meta-item">📰 {{ article.source }}</span>
+                                        {% endif %}
+                                        {% if article.published_date %}
+                                        <span class="article-meta-item">📅 {{ article.published_date }}</span>
+                                        {% endif %}
+                                    </div>
+                                    <a href="{{ article.source_url }}" class="article-link" target="_blank">🔗 원문 보기</a>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+
+                            {% if reports and reports|length > 0 %}
+                            <!-- Reports Section -->
+                            <div class="section">
+                                <div class="section-header">
+                                    <span class="icon">📊</span>
+                                    <h2 class="title">리포트</h2>
+                                    <span class="count">({{ reports|length }}건)</span>
+                                </div>
+
+                                {% for article in reports %}
+                                <div class="article">
+                                    <div class="article-header">
+                                        <span class="article-number">[{{ loop.index }}]</span>
+                                        <span class="importance {{ article.importance_level }}">
+                                            {{ article.importance_stars }} {{ article.importance_label }}
+                                        </span>
+                                    </div>
+                                    <h3 class="article-title">{{ article.title }}</h3>
+                                    <p class="article-summary">{{ article.summary }}</p>
+                                    <div class="article-meta">
+                                        {% if article.organization %}
+                                        <span class="article-meta-item">🏢 {{ article.organization }}</span>
+                                        {% endif %}
+                                        {% if article.published_date %}
+                                        <span class="article-meta-item">📅 {{ article.published_date }}</span>
+                                        {% endif %}
+                                    </div>
+                                    <a href="{{ article.source_url }}" class="article-link" target="_blank">🔗 원문 보기</a>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+
+                            {% if (not papers or papers|length == 0) and (not news or news|length == 0) and (not reports or reports|length == 0) %}
+                            <!-- Empty State -->
+                            <div class="empty-state">
+                                <div class="empty-state-icon">📭</div>
+                                <p>오늘은 새로운 자료가 없습니다.<br>내일 다시 찾아뵙겠습니다!</p>
+                            </div>
+                            {% endif %}
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td class="footer">
+                            <div class="footer-actions">
+                                <a href="{{ settings_url }}" class="footer-button">⚙️ 설정 변경</a>
+                                <a href="{{ feedback_url }}" class="footer-button">💬 피드백</a>
+                            </div>
+                            <div class="footer-text">
+                                이 이메일은 {{ user_email }}로 발송되었습니다.<br>
+                                수신을 원하지 않으시면 <a href="{{ unsubscribe_url }}" style="color: #667eea;">구독 취소</a>를 클릭해주세요.<br>
+                                <br>
+                                © 2025 {{ service_name }}. All rights reserved.
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
