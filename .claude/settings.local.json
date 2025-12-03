@@ -18,7 +18,9 @@
       "Bash(uv pip list:*)",
       "Bash(source:*)",
       "Bash(python3:*)",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "Bash(lsof:*)",
+      "Bash(kill:*)"
     ],
     "deny": [],
     "ask": []

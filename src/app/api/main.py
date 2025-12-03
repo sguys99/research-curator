@@ -3,7 +3,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routers import collectors, llm
+from app.api.routers import collectors, llm, processors
 from app.core.config import settings
 
 # Create FastAPI app
@@ -43,6 +43,7 @@ async def health_check():
 # Include routers
 app.include_router(llm.router, prefix="/api")
 app.include_router(collectors.router, prefix="/api")
+app.include_router(processors.router, prefix="/api")
 
 # TODO: Add more routers
 # from app.api.routers import auth, users, articles, search, feedback
