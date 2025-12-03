@@ -27,5 +27,6 @@ exclude: |
   (?x)^(
     uv\.lock|
     data/|
-    \.venv/
+    \.venv/|
+    notebooks/
   )
