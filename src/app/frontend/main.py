@@ -66,19 +66,10 @@ def _navigate_to_page(page_name: str) -> None:
 
 
 def _show_onboarding_page() -> None:
-    """Display onboarding page (placeholder)."""
-    st.title("🎯 온보딩")
-    st.markdown("AI 챗봇과 대화하며 초기 설정을 완료해보세요!")
+    """Display onboarding page."""
+    from app.frontend.pages.onboarding import show_onboarding_page
 
-    st.info("⚠️ 온보딩 페이지는 Checkpoint 2에서 구현됩니다.")
-
-    # Temporary skip button for testing
-    if st.button("온보딩 건너뛰기 (개발용)", type="primary"):
-        from app.frontend.utils.session import mark_onboarding_completed
-
-        mark_onboarding_completed()
-        st.success("온보딩이 완료되었습니다!")
-        st.rerun()
+    show_onboarding_page()
 
 
 def _show_dashboard_page() -> None:
