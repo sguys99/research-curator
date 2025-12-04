@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from src.app.db.models import CollectedArticle
-from src.app.email.builder import EmailBuilder, build_daily_digest_email
+from app.db.models import CollectedArticle
+from app.email.builder import EmailBuilder, build_daily_digest_email
 
 
 @pytest.fixture
@@ -22,7 +22,7 @@ def sample_articles():
             source_type="paper",
             category="Deep Learning",
             importance_score=0.95,
-            metadata={
+            article_metadata={
                 "authors": ["Vaswani", "Shazeer", "Parmar", "Uszkoreit"],
                 "citations": 50000,
             },
@@ -37,7 +37,7 @@ def sample_articles():
             source_type="news",
             category="AI News",
             importance_score=0.88,
-            metadata={"source": "TechCrunch"},
+            article_metadata={"source": "TechCrunch"},
             collected_at=datetime(2024, 3, 14),
         ),
         CollectedArticle(
@@ -49,7 +49,7 @@ def sample_articles():
             source_type="report",
             category="Industry Report",
             importance_score=0.82,
-            metadata={"organization": "State of AI"},
+            article_metadata={"organization": "State of AI"},
             collected_at=datetime(2024, 10, 1),
         ),
         CollectedArticle(
@@ -61,7 +61,7 @@ def sample_articles():
             source_type="paper",
             category="Machine Learning",
             importance_score=0.45,
-            metadata={"authors": ["Smith", "Jones"], "citations": 5},
+            article_metadata={"authors": ["Smith", "Jones"], "citations": 5},
             collected_at=datetime(2024, 11, 20),
         ),
         CollectedArticle(
@@ -73,7 +73,7 @@ def sample_articles():
             source_type="news",
             category="Funding",
             importance_score=0.65,
-            metadata={"source": "VentureBeat"},
+            article_metadata={"source": "VentureBeat"},
             collected_at=datetime(2024, 11, 22),
         ),
     ]

@@ -6,7 +6,7 @@ from typing import Any
 from sqlalchemy import JSON, Boolean, DateTime, Float, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from uuid7 import uuid7
+from uuid_extensions import uuid7
 
 
 def utcnow() -> datetime:
@@ -95,8 +95,8 @@ class CollectedArticle(Base):
     category: Mapped[str] = mapped_column(String(100), nullable=True, index=True)
     importance_score: Mapped[float] = mapped_column(Float, nullable=True, index=True)
 
-    # Metadata (authors, publish_date, citations, etc.)
-    metadata: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    # Article metadata (authors, publish_date, citations, etc.)
+    article_metadata: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
 
     # Vector DB reference
     vector_id: Mapped[str] = mapped_column(String(255), nullable=True, unique=True)

@@ -7,7 +7,7 @@ from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from src.app.db.models import CollectedArticle
+from app.db.models import CollectedArticle
 
 
 class EmailBuilder:
@@ -150,7 +150,7 @@ class EmailBuilder:
             summary = summary[:197] + "..."
 
         # Extract metadata
-        metadata = article.metadata or {}
+        metadata = article.article_metadata or {}
 
         # Format published date
         published_date = None
