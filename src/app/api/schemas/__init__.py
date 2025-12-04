@@ -11,6 +11,15 @@ from src.app.api.schemas.llm import (
     EmbeddingRequest,
     EmbeddingResponse,
 )
+from src.app.api.schemas.scheduler import (
+    JobInfo,
+    JobListResponse,
+    SchedulerControlRequest,
+    SchedulerControlResponse,
+    SchedulerStatusResponse,
+    TriggerJobRequest,
+    TriggerJobResponse,
+)
 
 __all__ = [
     "ChatMessage",
@@ -22,4 +31,11 @@ __all__ = [
     "ArticleSummaryResponse",
     "ArticleAnalysisRequest",
     "ArticleAnalysisResponse",
+    "JobInfo",
+    "JobListResponse",
+    "SchedulerControlRequest",
+    "SchedulerControlResponse",
+    "SchedulerStatusResponse",
+    "TriggerJobRequest",
+    "TriggerJobResponse",
 ]

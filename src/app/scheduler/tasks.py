@@ -93,32 +93,28 @@ def collect_data_task() -> None:
         for field in all_fields:
             try:
                 articles = with_retry(
-                    lambda f=field: arxiv_collector.collect(query=f, max_results=5),
+                    lambda f=field: asyncio.run(arxiv_collector.collect(query=f, max_results=5)),
                     max_attempts=3,
                 )
 
                 for article_data in articles:
                     # Check if article already exists
-                    existing = crud.get_article_by_url(db, article_data["url"])
+                    existing = crud.get_article_by_url(db, article_data.url)
                     if existing:
-                        logger.debug(f"Article already exists: {article_data['title'][:50]}...")
+                        logger.debug(f"Article already exists: {article_data.title[:50]}...")
                         continue
 
                     # Create article
                     crud.create_article(
                         db=db,
-                        title=article_data["title"],
-                        content=article_data.get("abstract", ""),
-                        source_url=article_data["url"],
+                        title=article_data.title,
+                        content=article_data.content,
+                        source_url=article_data.url,
                         source_type="paper",
-                        article_metadata={
-                            "authors": article_data.get("authors", []),
-                            "published": article_data.get("published", ""),
-                        },
-                        published_at=article_data.get("published_date"),
+                        article_metadata=article_data.metadata,
                     )
                     collected_count += 1
-                    logger.info(f"✅ Collected from arXiv: {article_data['title'][:60]}...")
+                    logger.info(f"✅ Collected from arXiv: {article_data.title[:60]}...")
 
             except Exception as e:
                 logger.error(f"Error collecting from arXiv for field '{field}': {e}")
@@ -131,28 +127,25 @@ def collect_data_task() -> None:
         for keyword in list(all_keywords)[:5]:  # Limit to 5 keywords to avoid rate limits
             try:
                 articles = with_retry(
-                    lambda k=keyword: news_collector.collect(query=k, max_results=3),
+                    lambda k=keyword: asyncio.run(news_collector.collect(query=k, max_results=3)),
                     max_attempts=3,
                 )
 
                 for article_data in articles:
-                    existing = crud.get_article_by_url(db, article_data["url"])
+                    existing = crud.get_article_by_url(db, article_data.url)
                     if existing:
                         continue
 
                     crud.create_article(
                         db=db,
-                        title=article_data["title"],
-                        content=article_data.get("snippet", ""),
-                        source_url=article_data["url"],
+                        title=article_data.title,
+                        content=article_data.content,
+                        source_url=article_data.url,
                         source_type="news",
-                        article_metadata={
-                            "source": article_data.get("source", ""),
-                        },
-                        published_at=article_data.get("date"),
+                        article_metadata=article_data.metadata,
                     )
                     collected_count += 1
-                    logger.info(f"✅ Collected from News: {article_data['title'][:60]}...")
+                    logger.info(f"✅ Collected from News: {article_data.title[:60]}...")
 
             except Exception as e:
                 logger.error(f"Error collecting news for keyword '{keyword}': {e}")
