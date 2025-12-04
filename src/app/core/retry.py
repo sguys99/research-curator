@@ -2,11 +2,14 @@
 
 import asyncio
 import logging
+import time
 from collections.abc import Callable
 from functools import wraps
-from typing import Any
+from typing import Any, TypeVar
 
 logger = logging.getLogger(__name__)
+
+T = TypeVar("T")
 
 
 def retry_with_backoff(
@@ -93,6 +96,56 @@ def retry_with_backoff(
             return sync_wrapper
 
     return decorator
+
+
+def with_retry(
+    func: Callable[[], T],
+    max_attempts: int = 3,
+    initial_delay: float = 1.0,
+    backoff_factor: float = 2.0,
+    exceptions: tuple[type[Exception], ...] = (Exception,),
+) -> T:
+    """
+    Execute a function with retry logic.
+
+    Args:
+        func: Function to execute
+        max_attempts: Maximum number of attempts
+        initial_delay: Initial delay in seconds
+        backoff_factor: Multiplier for delay after each retry
+        exceptions: Tuple of exceptions to catch and retry
+
+    Returns:
+        Result from the function
+
+    Raises:
+        Last exception if all attempts fail
+    """
+    delay = initial_delay
+    last_exception: Exception | None = None
+
+    for attempt in range(max_attempts):
+        try:
+            return func()
+        except exceptions as e:
+            last_exception = e
+
+            if attempt == max_attempts - 1:
+                logger.error(f"Function failed after {max_attempts} attempts: {e}")
+                raise
+
+            logger.warning(
+                f"Attempt {attempt + 1}/{max_attempts} failed: {e}. " f"Retrying in {delay:.2f}s...",
+            )
+
+            time.sleep(delay)
+            delay = min(delay * backoff_factor, 60.0)
+
+    if last_exception:
+        raise last_exception
+
+    # This should never be reached, but for type safety
+    raise RuntimeError("with_retry completed without returning or raising")
 
 
 class RateLimiter:
