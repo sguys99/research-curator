@@ -24,7 +24,9 @@
       "Bash(tree:*)",
       "Bash(mkdir:*)",
       "Bash(mv:*)",
-      "Bash(.venv/bin/python:*)"
+      "Bash(.venv/bin/python:*)",
+      "Bash(alembic revision:*)",
+      "Bash(alembic upgrade:*)"
     ],
     "deny": [],
     "ask": []

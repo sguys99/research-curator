@@ -3,9 +3,9 @@
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import JSON, Boolean, DateTime, Float, Integer, String, Text
+from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from uuid_extensions import uuid7
 
 
@@ -35,6 +35,24 @@ class User(Base):
         onupdate=utcnow,
     )
 
+    # Relationships
+    preference: Mapped["UserPreference"] = relationship(
+        "UserPreference",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+    digests: Mapped[list["SentDigest"]] = relationship(
+        "SentDigest",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+    feedbacks: Mapped[list["Feedback"]] = relationship(
+        "Feedback",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email={self.email})>"
 
@@ -45,7 +63,13 @@ class UserPreference(Base):
     __tablename__ = "user_preferences"
 
     id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
-    user_id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), nullable=False, unique=True, index=True)
+    user_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
 
     # Research interests
     research_fields: Mapped[list[str]] = mapped_column(JSON, default=list)
@@ -72,6 +96,9 @@ class UserPreference(Base):
         default=utcnow,
         onupdate=utcnow,
     )
+
+    # Relationships
+    user: Mapped["User"] = relationship("User", back_populates="preference")
 
     def __repr__(self) -> str:
         return f"<UserPreference(user_id={self.user_id})>"
@@ -105,6 +132,13 @@ class CollectedArticle(Base):
     collected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
     published_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    # Relationships
+    feedbacks: Mapped[list["Feedback"]] = relationship(
+        "Feedback",
+        back_populates="article",
+        cascade="all, delete-orphan",
+    )
+
     def __repr__(self) -> str:
         return f"<CollectedArticle(id={self.id}, title={self.title[:50]})>"
 
@@ -115,7 +149,12 @@ class SentDigest(Base):
     __tablename__ = "sent_digests"
 
     id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
-    user_id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
+    user_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
 
     # Articles included in this digest
     article_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
@@ -124,6 +163,9 @@ class SentDigest(Base):
     sent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
     email_opened: Mapped[bool] = mapped_column(Boolean, default=False)
     opened_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # Relationships
+    user: Mapped["User"] = relationship("User", back_populates="digests")
 
     def __repr__(self) -> str:
         return f"<SentDigest(id={self.id}, user_id={self.user_id}, sent_at={self.sent_at})>"
@@ -135,8 +177,18 @@ class Feedback(Base):
     __tablename__ = "feedback"
 
     id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
-    user_id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
-    article_id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
+    user_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    article_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("collected_articles.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
 
     # Rating (1-5 stars)
     rating: Mapped[int] = mapped_column(Integer, nullable=True)
@@ -146,6 +198,10 @@ class Feedback(Base):
 
     # Timestamp
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    # Relationships
+    user: Mapped["User"] = relationship("User", back_populates="feedbacks")
+    article: Mapped["CollectedArticle"] = relationship("CollectedArticle", back_populates="feedbacks")
 
     def __repr__(self) -> str:
         return f"<Feedback(id={self.id}, user_id={self.user_id}, rating={self.rating})>"
