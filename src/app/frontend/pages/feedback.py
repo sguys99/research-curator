@@ -19,13 +19,16 @@ def show_feedback_page():
     user_id = get_user_id()
 
     # Tab selection
-    tab1, tab2 = st.tabs(["📝 피드백 제출", "📊 피드백 이력"])
+    tab1, tab2, tab3 = st.tabs(["📝 피드백 제출", "📊 피드백 이력", "📈 아티클 통계"])
 
     with tab1:
         _show_feedback_submission(api, user_id)
 
     with tab2:
         _show_feedback_history(api, user_id)
+
+    with tab3:
+        _show_article_stats(api)
 
 
 def _show_feedback_submission(api, user_id: str):
@@ -80,17 +83,16 @@ def _show_feedback_submission(api, user_id: str):
                     st.info("이 다이제스트에는 아티클이 없습니다.")
                     return
 
-                # Load articles
-                articles = []
-                for aid in article_ids:
-                    try:
-                        article = api.get_article(aid)
-                        articles.append(article)
-                    except Exception:
-                        continue
+                # Load articles using batch API
+                try:
+                    batch_response = api.get_articles_batch(article_ids)
+                    articles = batch_response.get("articles", [])
 
-                if not articles:
-                    st.warning("아티클을 불러올 수 없습니다.")
+                    if not articles:
+                        st.warning("아티클을 불러올 수 없습니다.")
+                        return
+                except Exception as e:
+                    st.error(f"아티클 로딩 오류: {str(e)}")
                     return
 
                 # Select article
@@ -184,11 +186,10 @@ def _show_feedback_submission(api, user_id: str):
             if st.button("📤 피드백 제출", type="primary", use_container_width=True):
                 with st.spinner("피드백을 제출하는 중..."):
                     try:
-                        result = api.submit_feedback(
-                            user_id=user_id,
+                        result = api.create_feedback(
                             article_id=article_id,
                             rating=rating,
-                            comment=comment,
+                            comment=comment if comment else None,
                         )
 
                         st.success("✅ 피드백이 제출되었습니다!")
@@ -210,7 +211,7 @@ def _show_feedback_history(api, user_id: str):
     with st.spinner("피드백 이력을 불러오는 중..."):
         try:
             feedback_response = api.get_user_feedback(user_id, skip=0, limit=50)
-            feedbacks = feedback_response.get("feedbacks", [])
+            feedbacks = feedback_response.get("feedback", [])
 
             if not feedbacks:
                 st.info("아직 제출한 피드백이 없습니다.")
@@ -313,15 +314,70 @@ def _show_feedback_history(api, user_id: str):
 
                     with col2:
                         st.caption(f"제출일: {feedback.get('created_at', 'N/A')[:10]}")
+                        st.caption(f"피드백 ID: `{str(feedback.get('id', 'N/A'))[:8]}...`")
 
-                        # Try to load article info
-                        try:
-                            article = api.get_article(feedback.get("article_id"))
-                            if st.button("📄 아티클 보기", key=f"view_article_{idx}"):
-                                st.markdown(f"**제목**: {article.get('title', 'N/A')}")
-                                st.markdown(f"**출처**: {article.get('source_url', 'N/A')}")
-                        except Exception:
-                            st.caption("(아티클 정보 없음)")
+                        # Action buttons
+                        action_col1, action_col2 = st.columns(2)
+
+                        with action_col1:
+                            if st.button("✏️ 수정", key=f"edit_{idx}", use_container_width=True):
+                                st.session_state[f"edit_feedback_{feedback.get('id')}"] = True
+                                st.rerun()
+
+                        with action_col2:
+                            if st.button("🗑️ 삭제", key=f"delete_{idx}", use_container_width=True):
+                                with st.spinner("삭제 중..."):
+                                    try:
+                                        api.delete_feedback(feedback.get("id"))
+                                        st.success("피드백이 삭제되었습니다.")
+                                        st.rerun()
+                                    except Exception as e:
+                                        st.error(f"삭제 실패: {str(e)}")
+
+                    # Edit mode
+                    if st.session_state.get(f"edit_feedback_{feedback.get('id')}"):
+                        st.markdown("---")
+                        st.markdown("**✏️ 피드백 수정**")
+
+                        new_rating = st.select_slider(
+                            "새 평점",
+                            options=[1, 2, 3, 4, 5],
+                            value=feedback.get("rating", 3),
+                            key=f"new_rating_{idx}",
+                        )
+
+                        new_comment = st.text_area(
+                            "새 코멘트",
+                            value=feedback.get("comment", ""),
+                            max_chars=1000,
+                            key=f"new_comment_{idx}",
+                        )
+
+                        update_col1, update_col2 = st.columns(2)
+
+                        with update_col1:
+                            if st.button("💾 저장", key=f"save_{idx}", use_container_width=True):
+                                with st.spinner("업데이트 중..."):
+                                    try:
+                                        api.update_feedback(
+                                            feedback_id=feedback.get("id"),
+                                            rating=new_rating,
+                                            comment=new_comment if new_comment else None,
+                                        )
+                                        st.success("피드백이 업데이트되었습니다.")
+                                        st.session_state.pop(f"edit_feedback_{feedback.get('id')}")
+                                        st.rerun()
+                                    except Exception as e:
+                                        st.error(f"업데이트 실패: {str(e)}")
+
+                        with update_col2:
+                            if st.button(
+                                "❌ 취소",
+                                key=f"cancel_{idx}",
+                                use_container_width=True,
+                            ):
+                                st.session_state.pop(f"edit_feedback_{feedback.get('id')}")
+                                st.rerun()
 
         except Exception as e:
             st.error(f"피드백 이력을 불러오는 중 오류가 발생했습니다: {str(e)}")
@@ -355,6 +411,145 @@ def _show_feedback_history(api, user_id: str):
             - 개인화 큐레이션 강화
             """,
         )
+
+
+def _show_article_stats(api):
+    """Show article feedback statistics."""
+    st.markdown("### 📈 아티클 피드백 통계")
+
+    st.markdown(
+        """
+        특정 아티클에 대한 전체 사용자의 피드백 통계를 확인할 수 있습니다.
+        """,
+    )
+
+    st.markdown("---")
+
+    # Article ID input
+    article_id = st.text_input(
+        "아티클 ID 입력",
+        placeholder="예: 123e4567-e89b-12d3-a456-426614174000",
+        help="통계를 확인하고 싶은 아티클의 ID를 입력하세요.",
+    )
+
+    if not article_id:
+        st.info("아티클 ID를 입력하여 통계를 조회하세요.")
+        return
+
+    # Load article info
+    col1, col2 = st.columns([2, 1])
+
+    with col1:
+        with st.spinner("아티클 정보를 불러오는 중..."):
+            try:
+                article = api.get_article(article_id)
+
+                st.markdown("#### 📄 아티클 정보")
+                st.markdown(f"**제목**: {article.get('title', 'N/A')}")
+                st.markdown(f"**요약**: {article.get('summary', 'N/A')[:200]}...")
+                st.markdown(f"**출처**: {article.get('source_type', 'N/A')}")
+                st.markdown(f"**카테고리**: {article.get('category', 'N/A')}")
+
+            except Exception as e:
+                st.error(f"아티클을 찾을 수 없습니다: {str(e)}")
+                return
+
+    with col2:
+        if article.get("source_url"):
+            st.markdown("#### 🔗 링크")
+            st.link_button("원문 보기", article.get("source_url"))
+
+    st.markdown("---")
+
+    # Load feedback statistics
+    with st.spinner("피드백 통계를 불러오는 중..."):
+        try:
+            stats = api.get_article_feedback_stats(article_id)
+
+            st.markdown("#### 📊 피드백 통계")
+
+            # Summary metrics
+            col1, col2, col3 = st.columns(3)
+
+            with col1:
+                st.metric("총 피드백 수", stats.get("count", 0))
+
+            with col2:
+                avg_rating = stats.get("average_rating", 0.0)
+                st.metric("평균 평점", f"{avg_rating:.2f} ⭐")
+
+            with col3:
+                rating_dist = stats.get("rating_distribution", {})
+                if rating_dist:
+                    most_common = max(rating_dist.items(), key=lambda x: x[1])
+                    st.metric("최다 평점", f"{most_common[0]} ⭐ ({most_common[1]}개)")
+                else:
+                    st.metric("최다 평점", "N/A")
+
+            st.markdown("---")
+
+            # Rating distribution
+            st.markdown("#### ⭐ 평점 분포")
+
+            rating_dist = stats.get("rating_distribution", {})
+            total = stats.get("count", 0)
+
+            if total > 0:
+                dist_cols = st.columns(5)
+                for i in range(1, 6):
+                    count = rating_dist.get(str(i), 0)  # API returns string keys
+                    pct = (count / total * 100) if total > 0 else 0
+
+                    with dist_cols[i - 1]:
+                        st.metric(f"{i}⭐", f"{count}개", f"{pct:.1f}%")
+
+                # Visual bar chart
+                st.markdown("---")
+                st.markdown("**분포 차트**")
+
+                for i in range(5, 0, -1):  # 5 to 1
+                    count = rating_dist.get(str(i), 0)
+                    pct = (count / total * 100) if total > 0 else 0
+                    bar_length = int(pct / 2)  # Scale to 50 chars max
+                    bar = "█" * bar_length
+                    st.text(f"{i}⭐ │{bar} {pct:.1f}% ({count}개)")
+
+            else:
+                st.info("아직 이 아티클에 대한 피드백이 없습니다.")
+
+            st.markdown("---")
+
+            # Load recent feedbacks for this article
+            st.markdown("#### 💬 최근 피드백")
+
+            try:
+                feedback_response = api.get_article_feedback(article_id, skip=0, limit=10)
+                feedbacks = feedback_response.get("feedback", [])
+
+                if feedbacks:
+                    st.caption(f"최근 {len(feedbacks)}개의 피드백")
+
+                    for idx, fb in enumerate(feedbacks):
+                        with st.expander(
+                            f"{'⭐' * fb.get('rating', 0)} - {fb.get('created_at', 'N/A')[:10]}",
+                            expanded=(idx < 3),
+                        ):
+                            st.markdown(f"**평점**: {'⭐' * fb.get('rating', 0)}")
+
+                            if fb.get("comment"):
+                                st.markdown(f"**코멘트**: {fb.get('comment')}")
+                            else:
+                                st.caption("(코멘트 없음)")
+
+                            st.caption(f"사용자 ID: `{str(fb.get('user_id', 'N/A'))[:8]}...`")
+                else:
+                    st.info("최근 피드백이 없습니다.")
+
+            except Exception as e:
+                st.warning(f"최근 피드백을 불러올 수 없습니다: {str(e)}")
+
+        except Exception as e:
+            st.error(f"통계를 불러오는 중 오류가 발생했습니다: {str(e)}")
 
 
 if __name__ == "__main__":
