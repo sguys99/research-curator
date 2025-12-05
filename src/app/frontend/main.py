@@ -73,42 +73,24 @@ def _show_onboarding_page() -> None:
 
 
 def _show_dashboard_page() -> None:
-    """Display dashboard page (placeholder)."""
-    from app.frontend.components.sidebar import show_page_header, show_stats_cards
+    """Display dashboard page."""
+    from app.frontend.pages.dashboard import show_dashboard_page
 
-    show_page_header("📊 대시보드", "최근 받은 연구 자료를 확인하세요")
-
-    # Placeholder stats
-    show_stats_cards(
-        [
-            ("총 아티클", "0", "📚"),
-            ("오늘 받은 이메일", "0", "📧"),
-            ("평균 피드백", "0.0", "⭐"),
-        ],
-    )
-
-    st.info("⚠️ 대시보드 페이지는 Checkpoint 3에서 구현됩니다.")
+    show_dashboard_page()
 
 
 def _show_search_page() -> None:
-    """Display search page (placeholder)."""
-    from app.frontend.components.sidebar import show_page_header
+    """Display search page."""
+    from app.frontend.pages.search import show_search_page
 
-    show_page_header("🔍 시맨틱 검색", "과거 자료를 자연어로 검색하세요")
-
-    st.text_input("검색어를 입력하세요", placeholder="예: transformer 모델 최적화")
-    st.button("검색", type="primary")
-
-    st.info("⚠️ 검색 페이지는 Checkpoint 3에서 구현됩니다.")
+    show_search_page()
 
 
 def _show_settings_page() -> None:
-    """Display settings page (placeholder)."""
-    from app.frontend.components.sidebar import show_page_header
+    """Display settings page."""
+    from app.frontend.pages.settings import show_settings_page
 
-    show_page_header("⚙️ 설정", "연구 분야, 키워드, 발송 시간 등을 변경하세요")
-
-    st.info("⚠️ 설정 페이지는 Checkpoint 3에서 구현됩니다.")
+    show_settings_page()
 
 
 def _show_feedback_page() -> None:
