@@ -1,5 +1,22 @@
 """CRUD operations package."""
 
+from app.db.crud.articles import (
+    create_article,
+    delete_article,
+    get_article_by_id,
+    get_article_by_url,
+    get_article_statistics,
+    get_articles,
+    get_articles_by_ids,
+    search_articles,
+    update_article,
+)
+from app.db.crud.digests import create_digest, get_latest_digest, get_user_digests
+from app.db.crud.preferences import (
+    create_user_preference,
+    get_user_preference,
+    update_user_preference,
+)
 from app.db.crud.users import (
     create_user,
     get_user_by_email,
@@ -8,8 +25,27 @@ from app.db.crud.users import (
 )
 
 __all__ = [
+    # Users
     "get_user_by_id",
     "get_user_by_email",
     "create_user",
     "update_user_last_login",
+    # Preferences
+    "get_user_preference",
+    "create_user_preference",
+    "update_user_preference",
+    # Digests
+    "get_user_digests",
+    "get_latest_digest",
+    "create_digest",
+    # Articles
+    "get_articles",
+    "get_article_by_id",
+    "get_article_by_url",
+    "get_articles_by_ids",
+    "create_article",
+    "update_article",
+    "delete_article",
+    "get_article_statistics",
+    "search_articles",
 ]

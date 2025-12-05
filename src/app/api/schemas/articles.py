@@ -167,3 +167,32 @@ class ArticleListResponse(BaseModel):
 
     articles: list[ArticleResponse] = Field(..., description="List of articles")
     total: int = Field(..., description="Total number of articles")
+    skip: int = Field(0, description="Number of items skipped")
+    limit: int = Field(10, description="Number of items returned")
+
+
+# ========== Batch Schemas ==========
+
+
+class BatchArticleRequest(BaseModel):
+    """Request schema for batch article retrieval."""
+
+    article_ids: list[UUID] = Field(..., min_length=1, max_length=50, description="Article IDs")
+
+
+# ========== Statistics Schemas ==========
+
+
+class ArticleStatisticsResponse(BaseModel):
+    """Response schema for article statistics."""
+
+    total: int = Field(..., description="Total number of articles")
+    by_source_type: dict[str, int] = Field(
+        default_factory=dict,
+        description="Article count by source type",
+    )
+    by_category: dict[str, int] = Field(
+        default_factory=dict,
+        description="Article count by category",
+    )
+    average_importance_score: float = Field(..., description="Average importance score")
