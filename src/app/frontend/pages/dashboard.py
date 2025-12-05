@@ -22,17 +22,18 @@ def show_dashboard_page():
     # Load statistics
     with st.spinner("데이터를 불러오는 중..."):
         try:
+            # Get article statistics
+            stats_response = api.get_article_statistics()
+            total_articles = stats_response.get("total", 0)
+
             # Get recent digests
             digests_response = api.get_user_digests(user_id, skip=0, limit=3)
             digests = digests_response.get("digests", [])
+            total_digests = digests_response.get("total", 0)
 
             # Get user feedback stats
             feedback_response = api.get_user_feedback(user_id, skip=0, limit=100)
-            feedbacks = feedback_response.get("feedbacks", [])
-
-            # Calculate stats
-            total_articles = sum(len(d.get("article_ids", [])) for d in digests)
-            total_digests = len(digests)
+            feedbacks = feedback_response.get("feedback", [])  # 변경: feedbacks → feedback
             avg_rating = (
                 sum(f.get("rating", 0) for f in feedbacks) / len(feedbacks) if feedbacks else 0.0
             )
@@ -75,20 +76,18 @@ def show_dashboard_page():
 
                 st.markdown(f"**포함된 아티클: {len(article_ids)}개**")
 
-                # Load articles
-                articles = []
-                for article_id in article_ids:
-                    try:
-                        article = api.get_article(article_id)
-                        articles.append(article)
-                    except Exception:
-                        continue
+                # Load articles using batch API
+                try:
+                    batch_response = api.get_articles_batch(article_ids)
+                    articles = batch_response.get("articles", [])
 
-                # Display articles
-                if articles:
-                    show_article_list(articles, show_similar_button=True)
-                else:
-                    st.warning("아티클을 불러올 수 없습니다.")
+                    # Display articles
+                    if articles:
+                        show_article_list(articles, show_similar_button=True)
+                    else:
+                        st.warning("아티클을 불러올 수 없습니다.")
+                except Exception as e:
+                    st.error(f"아티클 로딩 오류: {str(e)}")
 
     st.markdown("---")
 

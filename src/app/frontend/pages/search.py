@@ -23,14 +23,35 @@ def show_search_page():
         _show_similar_search(api)
         return
 
-    # Search input
+    # Search mode tabs
     st.markdown("### 🔎 검색")
 
-    query = st.text_input(
-        "검색어를 입력하세요",
-        placeholder="예: transformer 모델 최적화 기법",
-        key="search_query",
-    )
+    search_tab1, search_tab2 = st.tabs(["🧠 시맨틱 검색", "🔤 키워드 검색"])
+
+    # Tab 1: Semantic Search
+    with search_tab1:
+        query = st.text_input(
+            "검색어를 입력하세요 (자연어)",
+            placeholder="예: transformer 모델 최적화 기법",
+            key="semantic_search_query",
+        )
+        search_mode = "semantic"
+
+    # Tab 2: Keyword Search
+    with search_tab2:
+        query = st.text_input(
+            "키워드를 입력하세요",
+            placeholder="예: GPT-4, BERT, attention mechanism",
+            key="keyword_search_query",
+            help="제목, 요약, 내용에서 키워드를 검색합니다",
+        )
+        search_mode = "keyword"
+
+    # Get active query based on selected tab
+    if search_mode == "semantic":
+        query = st.session_state.get("semantic_search_query", "")
+    else:
+        query = st.session_state.get("keyword_search_query", "")
 
     # Filters in expander
     with st.expander("🔧 필터 옵션", expanded=False):
@@ -96,39 +117,49 @@ def show_search_page():
 
     with col2:
         if st.button("🔄 초기화", use_container_width=True):
-            st.session_state.search_query = ""
+            st.session_state.semantic_search_query = ""
+            st.session_state.keyword_search_query = ""
             st.rerun()
 
     # Perform search
     if search_button and query:
         with st.spinner("검색 중..."):
             try:
-                # Prepare search parameters
-                search_params = {
-                    "query": query,
-                    "limit": limit,
-                    "score_threshold": score_threshold,
-                }
+                if search_mode == "semantic":
+                    # Prepare semantic search parameters
+                    search_params = {
+                        "query": query,
+                        "limit": limit,
+                        "score_threshold": score_threshold,
+                    }
 
-                if source_types:
-                    search_params["source_type"] = source_types
+                    if source_types:
+                        search_params["source_type"] = source_types
 
-                if categories:
-                    search_params["category"] = categories
+                    if categories:
+                        search_params["category"] = categories
 
-                if min_importance > 0:
-                    search_params["min_importance_score"] = min_importance
+                    if min_importance > 0:
+                        search_params["min_importance_score"] = min_importance
 
-                if date_from:
-                    search_params["date_from"] = date_from.isoformat()
+                    if date_from:
+                        search_params["date_from"] = date_from.isoformat()
 
-                if date_to:
-                    search_params["date_to"] = date_to.isoformat()
+                    if date_to:
+                        search_params["date_to"] = date_to.isoformat()
 
-                # Call search API
-                response = api.search_articles(**search_params)
+                    # Call semantic search API
+                    response = api.search_articles_semantic(**search_params)
+                    articles = response.get("results", [])
 
-                articles = response.get("results", [])
+                else:  # keyword search
+                    # Call keyword search API (simpler, no advanced filters)
+                    response = api.search_articles_keyword(
+                        query=query,
+                        skip=0,
+                        limit=limit,
+                    )
+                    articles = response.get("articles", [])
 
                 st.markdown("---")
                 st.markdown("### 📋 검색 결과")
@@ -166,7 +197,7 @@ def show_search_page():
     for idx, example in enumerate(example_queries):
         with cols[idx]:
             if st.button(f"💬 {example}", key=f"example_{idx}", use_container_width=True):
-                st.session_state.search_query = example
+                st.session_state.semantic_search_query = example
                 st.rerun()
 
 
@@ -184,21 +215,14 @@ def _show_similar_search(api):
     st.markdown(f"**참조 아티클 ID:** `{article_id}`")
 
     # Search parameters
-    col1, col2 = st.columns(2)
-
-    with col1:
-        limit = st.number_input("최대 결과 수", min_value=1, max_value=20, value=5)
-
-    with col2:
-        score_threshold = st.slider("유사도 임계값", 0.0, 1.0, 0.7, 0.05)
+    limit = st.number_input("최대 결과 수", min_value=1, max_value=20, value=5)
 
     if st.button("🔍 유사 문서 검색", type="primary"):
         with st.spinner("유사 문서를 찾는 중..."):
             try:
-                response = api.find_similar_articles(
+                response = api.get_similar_articles(
                     article_id=article_id,
                     limit=limit,
-                    score_threshold=score_threshold,
                 )
 
                 articles = response.get("results", [])
