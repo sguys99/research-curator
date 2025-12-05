@@ -227,6 +227,26 @@ uv add <package>  # Adds to pyproject.toml and syncs
 4. Start the backend: `uvicorn src.app.api.main:app --reload`
 5. Start the frontend: `streamlit run src/app/frontend/main.py`
 
+### Git Commit Policy
+
+**CRITICAL**: NEVER create git commits automatically without explicit user request.
+
+- Only run `git commit` when the user explicitly asks to commit
+- Do NOT commit after completing tasks
+- Do NOT commit when finishing checkpoints
+- Do NOT commit when writing documentation
+- Always wait for user's explicit instruction to commit
+
+Examples of when NOT to commit:
+- ❌ "작업 완료했습니다" → DO NOT commit
+- ❌ "Checkpoint 완료" → DO NOT commit
+- ❌ "문서 작성 완료" → DO NOT commit
+
+Only commit when user says:
+- ✅ "커밋해줘"
+- ✅ "commit"
+- ✅ "git commit 해줘"
+
 ### Testing
 ```bash
 pytest tests/                    # Run all tests
