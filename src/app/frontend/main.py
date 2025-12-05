@@ -94,12 +94,10 @@ def _show_settings_page() -> None:
 
 
 def _show_feedback_page() -> None:
-    """Display feedback page (placeholder)."""
-    from app.frontend.components.sidebar import show_page_header
+    """Display feedback page."""
+    from app.frontend.pages.feedback import show_feedback_page
 
-    show_page_header("💬 피드백", "받은 아티클을 평가해주세요")
-
-    st.info("⚠️ 피드백 페이지는 Checkpoint 4에서 구현됩니다.")
+    show_feedback_page()
 
 
 if __name__ == "__main__":
