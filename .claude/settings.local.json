@@ -27,7 +27,8 @@
       "Bash(.venv/bin/python:*)",
       "Bash(alembic revision:*)",
       "Bash(alembic upgrade:*)",
-      "Bash(UV_HTTP_TIMEOUT=120 uv add:*)"
+      "Bash(UV_HTTP_TIMEOUT=120 uv add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
