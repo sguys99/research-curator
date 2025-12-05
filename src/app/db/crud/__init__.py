@@ -12,6 +12,15 @@ from app.db.crud.articles import (
     update_article,
 )
 from app.db.crud.digests import create_digest, get_latest_digest, get_user_digests
+from app.db.crud.feedback import (
+    create_feedback,
+    delete_feedback,
+    get_article_feedback,
+    get_article_feedback_stats,
+    get_feedback_by_id,
+    get_user_feedback,
+    update_feedback,
+)
 from app.db.crud.preferences import (
     create_user_preference,
     get_user_preference,
@@ -48,4 +57,12 @@ __all__ = [
     "delete_article",
     "get_article_statistics",
     "search_articles",
+    # Feedback
+    "get_feedback_by_id",
+    "get_user_feedback",
+    "get_article_feedback",
+    "create_feedback",
+    "update_feedback",
+    "delete_feedback",
+    "get_article_feedback_stats",
 ]
