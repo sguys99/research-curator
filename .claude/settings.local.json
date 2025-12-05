@@ -30,7 +30,8 @@
       "Bash(UV_HTTP_TIMEOUT=120 uv add:*)",
       "Bash(git commit:*)",
       "Bash(timeout 5 python:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(timeout 10 python:*)"
     ],
     "deny": [],
     "ask": []
