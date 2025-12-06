@@ -81,19 +81,15 @@ def _handle_token_login(token: str) -> None:
         try:
             api = get_api_client()
 
-            # Verify token (this would actually call verify endpoint)
-            # For now, we'll set the token and try to get user info
-            st.session_state.access_token = token
-
-            # Get user info
-            user_data = api.get_current_user()
+            # Verify magic link token and get access token
+            result = api.verify_magic_link(token)
 
             # Set session
             set_user_session(
-                user_id=user_data["id"],
-                user_email=user_data["email"],
-                user_name=user_data.get("name", "User"),
-                access_token=token,
+                user_id=result["user"]["id"],
+                user_email=result["user"]["email"],
+                user_name=result["user"].get("name", "User"),
+                access_token=result["access_token"],
             )
 
             st.success("✅ 로그인 성공!")
