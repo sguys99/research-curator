@@ -1,4 +1,4 @@
-"""SQLAlchemy database models."""
+"""SQLAlchemy database models.(ORM 데이터베이스 모델을 정의)"""
 
 from datetime import UTC, datetime
 from typing import Any
@@ -14,6 +14,7 @@ def utcnow() -> datetime:
     return datetime.now(UTC)
 
 
+# SQLAlchemy ORM 데이터베이스 모델의 공통 부모 클래스
 class Base(DeclarativeBase):
     """Base class for all database models."""
 
@@ -23,7 +24,7 @@ class Base(DeclarativeBase):
 class User(Base):
     """User account model."""
 
-    __tablename__ = "users"
+    __tablename__ = "users"  # Base를 상속 받은 모델은 자동 등록됨
 
     id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
