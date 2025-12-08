@@ -37,24 +37,28 @@ class User(Base):
     )
 
     # Relationships
+    # 1:1 관계
     preference: Mapped["UserPreference"] = relationship(
         "UserPreference",
-        back_populates="user",
+        back_populates="user",  # 양방향 관계 설정, UserPreference의 user 속성과 연결
         uselist=False,
-        cascade="all, delete-orphan",
+        cascade="all, delete-orphan",  # User 삭제시 관련 데이터 자동삭제(다른 테이블)
     )
+    # 1:N 관계
     digests: Mapped[list["SentDigest"]] = relationship(
         "SentDigest",
         back_populates="user",
         cascade="all, delete-orphan",
     )
+    # 1:N 관계
     feedbacks: Mapped[list["Feedback"]] = relationship(
         "Feedback",
         back_populates="user",
         cascade="all, delete-orphan",
     )
+    #
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> str:  # 디버깅용 문자열 표현
         return f"<User(id={self.id}, email={self.email})>"
 
 
@@ -72,20 +76,27 @@ class UserPreference(Base):
         index=True,
     )
 
-    # Research interests
+    # Research interests: 논문/ 뉴스 수집 시 아래 키워드로 필터링
     research_fields: Mapped[list[str]] = mapped_column(JSON, default=list)
     keywords: Mapped[list[str]] = mapped_column(JSON, default=list)
 
-    # Source configuration
+    # Source configuration(소스 설정), 사용자마다 다른 소스에서 데이터를 수집하도록 함
+    # 저장 예시
+    #     preference.sources = {
+    #     "arxiv": {"enabled": True, "categories": ["cs.AI", "cs.CL"]},
+    #     "google_scholar": {"enabled": True, "max_results": 10},
+    #     "techcrunch": {"enabled": False},
+    #     "github": {"enabled": True, "topics": ["machine-learning", "nlp"]}
+    #      }
     sources: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
 
-    # Content preferences
+    # Content preferences(컨텐츠 선호도, 비율)
     info_types: Mapped[dict[str, int]] = mapped_column(
         JSON,
         default={"paper": 40, "news": 40, "report": 20},
     )
 
-    # Email settings
+    # Email settings: 발송시간, 일일아티클수 제한, 이메일 활성화
     email_time: Mapped[str] = mapped_column(String(5), default="08:00")  # HH:MM format
     daily_limit: Mapped[int] = mapped_column(Integer, default=5)
     email_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -99,6 +110,11 @@ class UserPreference(Base):
     )
 
     # Relationships
+    # 양방향 접근이 가능(아래 예시)
+    # UserPreference → User
+    # preference.user.email  # "user@example.com"
+    # # User → UserPreference
+    # user.preference.research_fields  # ["NLP", "CV"]
     user: Mapped["User"] = relationship("User", back_populates="preference")
 
     def __repr__(self) -> str:
