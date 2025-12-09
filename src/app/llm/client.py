@@ -56,7 +56,7 @@ class LLMClient:
         messages: list[dict[str, str]],
         temperature: float | None = None,
         max_tokens: int | None = None,
-        response_format: Literal["text", "json"] = "text",
+        response_format: Literal["text", "json"] = "text",  # 응답 형식
         **kwargs: Any,
     ) -> str:
         """
@@ -93,16 +93,17 @@ class LLMClient:
         }
 
         # Add response format for JSON mode
+        # openai 만 json 모드를 지원한다. claude의 경우 프롬프트에 json 요청으로 유도해야함
         if response_format == "json":
             if self.provider == "openai":
                 completion_params["response_format"] = {"type": "json_object"}
             # Claude doesn't have native JSON mode, but we can add instructions
 
         try:
-            response = completion(**completion_params)
+            response = completion(**completion_params)  # litellm 함수임
             content = response.choices[0].message.content
 
-            # Validate JSON if requested
+            # Validate JSON if requested, json 응답 검증 및 복구
             if response_format == "json":
                 try:
                     json.loads(content)
@@ -110,6 +111,7 @@ class LLMClient:
                     # If not valid JSON, try to extract JSON from the response
                     import re
 
+                    # json이 아니면 정규 식으로 추출 시도
                     json_match = re.search(r"\{.*\}", content, re.DOTALL)
                     if json_match:
                         content = json_match.group(0)
@@ -118,6 +120,27 @@ class LLMClient:
 
         except Exception as e:
             raise RuntimeError(f"LLM completion failed: {e}") from e
+
+    # json형식 사용 예시
+    # # OpenAI로 일반 텍스트 요약
+    # client = LLMClient(provider="openai")
+    # messages = [
+    #     {"role": "system", "content": "You are a helpful assistant."},
+    #     {"role": "user", "content": "Summarize this article about AI..."}
+    # ]
+    # summary = client.chat_completion(messages)
+
+    # # JSON 형식으로 분류 결과 받기
+    # messages = [
+    #     {"role": "system", "content": "Classify articles and return JSON"},
+    #     {"role": "user", "content": "Classify: 'GPT-4 paper released'"}
+    # ]
+    # result = client.chat_completion(
+    #     messages,
+    #     response_format="json",
+    #     temperature=0.0  # 결정적인 응답
+    # )
+    # # result: '{"category": "paper", "confidence": 0.95}'
 
     def generate_embedding(self, text: str, model: str | None = None) -> list[float]:
         """
