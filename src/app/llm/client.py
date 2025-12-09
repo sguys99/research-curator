@@ -164,6 +164,17 @@ class LLMClient:
         try:
             response = embedding(model=embedding_model, input=text)
             return response.data[0]["embedding"]
+        # response 답변 구조가 다음과 같기 때문이다.
+        # response = {
+        #     "data": [
+        #         {
+        #             "embedding": [0.123, -0.456, 0.789, ...],  # 1536개의 float
+        #             "index": 0
+        #         }
+        #     ],
+        #     "model": "text-embedding-3-small",
+        #     "usage": {"prompt_tokens": 10, "total_tokens": 10}
+        # }
 
         except Exception as e:
             raise RuntimeError(f"Embedding generation failed: {e}") from e
@@ -243,6 +254,7 @@ class LLMClient:
             raise RuntimeError(f"Async embedding generation failed: {e}") from e
 
 
+# @lru_cache 데코레이터를 사용하기 위해 함수로 만듬, 인스턴스 재사용
 @lru_cache
 def get_llm_client(
     provider: Literal["openai", "claude"] = "openai",
@@ -259,3 +271,20 @@ def get_llm_client(
         Cached LLMClient instance
     """
     return LLMClient(provider=provider, model=model)
+
+
+# @lru_cache 데코레이터 활용
+# 핵심 목적: 인스턴스 재사용
+# # 첫 번째 호출: 새 인스턴스 생성
+# client1 = get_llm_client(provider="openai")  # LLMClient 객체 생성
+
+# # 두 번째 호출: 캐시된 인스턴스 반환 (같은 객체!)
+# client2 = get_llm_client(provider="openai")  # 새로 생성 안함, 캐시 반환
+
+# # 동일한 객체인지 확인
+# print(client1 is client2)  # True ✅
+# 만약 함수 없이 직접 생성한다면:
+# # 매번 새 인스턴스 생성 (비효율적)
+# client1 = LLMClient(provider="openai")
+# client2 = LLMClient(provider="openai")
+# print(client1 is client2)  # False ❌
