@@ -12,6 +12,15 @@ class Settings(BaseSettings):
 
     # pydantic v2에서 제공하는 설정 딕셔너리, extra="ignore"는 정의되지 않은 필드는 무시하겠다는 의미
     # 설정 정보 자체를 담는 것이 아니라 설정을 어떻게 로드하고 처리할지에 대한 메타설정을 담은 딕셔너리
+    # Settings 클래스가 인스턴스화 될때, .env를 읽고 이 안에 정보가 각 변수에 저장됨(예: OPENAI_API_KEY)
+
+    # Pydantic Settings는 다음 순서로 값을 찾는다.
+    # 환경변수 (실제 OS 환경변수)
+    # .env 파일 (model_config에서 지정한 파일)
+    # 기본값 (Field의 default)
+    # 따라서:
+    # 아래 줄이 없다면 → .env 파일을 읽지 못하고 default="" 사용
+    # 아래 줄이 있으면 → .env 파일의 실제 API 키 값 자동 로드 ✅
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     # Application
