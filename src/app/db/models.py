@@ -121,6 +121,7 @@ class UserPreference(Base):
         return f"<UserPreference(user_id={self.user_id})>"
 
 
+# 수집된 논문, 뉴스, 리포트를 저장하는 핵심 테이블
 class CollectedArticle(Base):
     """Collected research articles, news, and reports."""
 
@@ -128,29 +129,51 @@ class CollectedArticle(Base):
 
     id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     title: Mapped[str] = mapped_column(String(512), nullable=False)
-    content: Mapped[str] = mapped_column(Text, nullable=True)
-    summary: Mapped[str] = mapped_column(Text, nullable=True)
-    source_url: Mapped[str] = mapped_column(String(1024), nullable=False, unique=True)
+    content: Mapped[str] = mapped_column(Text, nullable=True)  # 길이 제한 없음
+    summary: Mapped[str] = mapped_column(Text, nullable=True)  # LLM이 생성한 요약
+    source_url: Mapped[str] = mapped_column(
+        String(1024),
+        nullable=False,
+        unique=True,
+    )  # 같은 아티클 중복 방지
     source_type: Mapped[str] = mapped_column(
         String(50),
         nullable=False,
         index=True,
-    )  # paper, news, report
+    )  # paper, news, report 세종류 값만 가능
+    # LLM이 분류한 카테고리: 예) "NLP", "Computer Vision", "Reinforcement Learning"
     category: Mapped[str] = mapped_column(String(100), nullable=True, index=True)
-    importance_score: Mapped[float] = mapped_column(Float, nullable=True, index=True)
+    importance_score: Mapped[float] = mapped_column(Float, nullable=True, index=True)  # 0.0~1.0
 
     # Article metadata (authors, publish_date, citations, etc.)
+    # 추가 정보를 유연하게 저장. 아래 예시
+    # article.article_metadata = {
+    #     "authors": ["Vaswani", "Shazeer", "Parmar"],
+    #     "publish_date": "2017-06-12",
+    #     "citations": 50000,
+    #     "arxiv_id": "1706.03762",
+    #     "conference": "NeurIPS 2017",
+    #     "pdf_url": "https://arxiv.org/pdf/1706.03762.pdf"
+    # }
+
+    # # 뉴스의 경우
+    # article.article_metadata = {
+    #     "author": "John Doe",
+    #     "media_outlet": "TechCrunch",
+    #     "tags": ["AI", "Startup", "Funding"]
+    # }
     article_metadata: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
 
-    # Vector DB reference
+    # Vector DB reference: Qdrant 참조 ID
     vector_id: Mapped[str] = mapped_column(String(255), nullable=True, unique=True)
 
-    # Timestamps
+    # 아티클 수집 시간
     collected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+    # 원본 발행 시간: 예) 논문 발표일
     published_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Relationships
-    feedbacks: Mapped[list["Feedback"]] = relationship(
+    feedbacks: Mapped[list["Feedback"]] = relationship(  # 사용자 피드백
         "Feedback",
         back_populates="article",
         cascade="all, delete-orphan",
@@ -160,20 +183,69 @@ class CollectedArticle(Base):
         return f"<CollectedArticle(id={self.id}, title={self.title[:50]})>"
 
 
+# CollectedArticle을 포함한 전체 사용 예시
+# # 1. 논문 수집
+# article = CollectedArticle(
+#     title="Attention Is All You Need",
+#     content="Abstract: The dominant sequence...",
+#     source_url="https://arxiv.org/abs/1706.03762",
+#     source_type="paper",
+#     article_metadata={
+#         "authors": ["Vaswani", "Shazeer"],
+#         "arxiv_id": "1706.03762",
+#         "citations": 50000
+#     },
+#     published_at=datetime(2017, 6, 12, tzinfo=UTC)
+# )
+# db.add(article)
+# db.commit()
+
+# # 2. LLM으로 요약 및 평가
+# article.summary = llm.summarize(article.content)
+# article.importance_score = llm.evaluate_importance(article.content)
+# article.category = llm.classify_category(article.content)
+# db.commit()
+
+# # 3. 임베딩 생성 및 Vector DB 저장
+# embedding = openai.embeddings.create(input=article.content)
+# qdrant_client.upsert(
+#     collection_name="research_articles",
+#     points=[{"id": str(article.id), "vector": embedding}]
+# )
+# article.vector_id = str(article.id)
+# db.commit()
+
+# # 4. 상위 아티클 선택하여 이메일 발송
+# top_articles = db.query(CollectedArticle)\
+#     .filter(CollectedArticle.importance_score >= 0.7)\
+#     .order_by(CollectedArticle.importance_score.desc())\
+#     .limit(5)\
+#     .all()
+
+# for article in top_articles:
+#     send_email(
+#         subject=article.title,
+#         body=article.summary,
+#         url=article.source_url
+#     )
+
+
+# 이메일 발송 기록(히스토리)을 추적하는 테이블
+# 누구에게, 언제, 어떤 아티클들을 보냈는지, 이메일을 열어봤는지
 class SentDigest(Base):
     """Email digest sending history."""
 
     __tablename__ = "sent_digests"
 
     id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
-    user_id: Mapped[UUID] = mapped_column(
+    user_id: Mapped[UUID] = mapped_column(  # 수신자 아이디
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
 
-    # Articles included in this digest
+    # Articles included in this digest: 이메일에 포함된 아티클 목록, ID, JSON 배열로 저장됨
     article_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
 
     # Email tracking
@@ -181,7 +253,7 @@ class SentDigest(Base):
     email_opened: Mapped[bool] = mapped_column(Boolean, default=False)
     opened_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    # Relationships
+    # Relationships, 발송 대상 사용자 테이블과 연결
     user: Mapped["User"] = relationship("User", back_populates="digests")
 
     def __repr__(self) -> str:
@@ -200,25 +272,32 @@ class Feedback(Base):
         nullable=False,
         index=True,
     )
+    # 피드백 대상 아티클
     article_id: Mapped[UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("collected_articles.id", ondelete="CASCADE"),
+        ForeignKey(
+            "collected_articles.id",
+            ondelete="CASCADE",
+        ),  # 아티클이 삭제되면, 관련 피드백도 삭제됨
         nullable=False,
         index=True,
     )
 
-    # Rating (1-5 stars)
+    # Rating (1-5 stars), 별점 없이 코멘트만 잠길수도 있음
     rating: Mapped[int] = mapped_column(Integer, nullable=True)
 
-    # Optional comment
+    # Optional comment, 코멘트 없이 별점만 남길수도 있음
     comment: Mapped[str] = mapped_column(Text, nullable=True)
 
     # Timestamp
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     # Relationships
-    user: Mapped["User"] = relationship("User", back_populates="feedbacks")
-    article: Mapped["CollectedArticle"] = relationship("CollectedArticle", back_populates="feedbacks")
+    user: Mapped["User"] = relationship("User", back_populates="feedbacks")  # 피드백 작성자
+    article: Mapped["CollectedArticle"] = relationship(
+        "CollectedArticle",
+        back_populates="feedbacks",
+    )  # 피드백 대상 아티클
 
     def __repr__(self) -> str:
         return f"<Feedback(id={self.id}, user_id={self.user_id}, rating={self.rating})>"
