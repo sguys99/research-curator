@@ -57,8 +57,9 @@ class LLMClient:
         temperature: float | None = None,
         max_tokens: int | None = None,
         response_format: Literal["text", "json"] = "text",  # 응답 형식
+        stream: bool = False,  # 스트리밍 모드
         **kwargs: Any,
-    ) -> str:
+    ) -> str | Any:
         """
         Generate chat completion using the configured LLM.
 
@@ -67,10 +68,11 @@ class LLMClient:
             temperature: Override default temperature
             max_tokens: Override default max_tokens
             response_format: Response format (text or json)
+            stream: Enable streaming mode (yields chunks instead of full response)
             **kwargs: Additional parameters to pass to LiteLLM
 
         Returns:
-            Generated text response
+            Generated text response (str) or generator if stream=True
 
         Example:
             >>> client = LLMClient(provider="openai")
@@ -79,6 +81,9 @@ class LLMClient:
             ...     {"role": "user", "content": "Summarize this article."}
             ... ]
             >>> response = client.chat_completion(messages)
+            >>> # Streaming mode
+            >>> for chunk in client.chat_completion(messages, stream=True):
+            ...     print(chunk, end="", flush=True)
         """
         temp = temperature if temperature is not None else self.temperature
         max_tok = max_tokens if max_tokens is not None else self.max_tokens
@@ -89,6 +94,7 @@ class LLMClient:
             "messages": messages,
             "temperature": temp,
             "max_tokens": max_tok,
+            "stream": stream,
             **kwargs,
         }
 
@@ -101,6 +107,12 @@ class LLMClient:
 
         try:
             response = completion(**completion_params)  # litellm 함수임
+
+            # stream=True면 generator를 그대로 반환 (사용자가 직접 처리)
+            if stream:
+                return response
+
+            # stream=False면 일반 텍스트 응답 반환
             content = response.choices[0].message.content
 
             # Validate JSON if requested, json 응답 검증 및 복구
@@ -185,8 +197,9 @@ class LLMClient:
         temperature: float | None = None,
         max_tokens: int | None = None,
         response_format: Literal["text", "json"] = "text",
+        stream: bool = False,  # 스트리밍 모드
         **kwargs: Any,
-    ) -> str:
+    ) -> str | Any:
         """
         Async version of chat_completion.
 
@@ -195,10 +208,16 @@ class LLMClient:
             temperature: Override default temperature
             max_tokens: Override default max_tokens
             response_format: Response format (text or json)
+            stream: Enable streaming mode (yields chunks instead of full response)
             **kwargs: Additional parameters to pass to LiteLLM
 
         Returns:
-            Generated text response
+            Generated text response (str) or async generator if stream=True
+
+        Example:
+            >>> # Streaming mode
+            >>> async for chunk in client.achat_completion(messages, stream=True):
+            ...     print(chunk, end="", flush=True)
         """
         temp = temperature if temperature is not None else self.temperature
         max_tok = max_tokens if max_tokens is not None else self.max_tokens
@@ -208,6 +227,7 @@ class LLMClient:
             "messages": messages,
             "temperature": temp,
             "max_tokens": max_tok,
+            "stream": stream,
             **kwargs,
         }
 
@@ -216,6 +236,12 @@ class LLMClient:
 
         try:
             response = await litellm.acompletion(**completion_params)
+
+            # stream=True면 async generator를 그대로 반환 (사용자가 직접 처리)
+            if stream:
+                return response
+
+            # stream=False면 일반 텍스트 응답 반환
             content = response.choices[0].message.content
 
             if response_format == "json":
