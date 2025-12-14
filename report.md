@@ -382,6 +382,33 @@ curl -X POST http://localhost:8000/llm/summarize \
 
 ---
 
+## Day 2: 인증 시스템 (2025-11-30)
+
+**Note**: Day 2로 계획되었던 인증 시스템 작업은 **Day 1에 통합 완료**되었습니다.
+
+### Day 1에 포함된 인증 시스템 구현 내용:
+
+#### 구현된 모듈
+- **`src/app/core/security.py`**: JWT 기반 인증 모듈
+  - 매직 링크 토큰 생성 및 검증
+  - 액세스 토큰 생성 및 검증
+  - 비밀번호 해싱 (passlib + bcrypt)
+
+#### 환경 설정
+- **JWT_SECRET_KEY**: JWT 토큰 서명용 시크릿 키
+- **JWT_ALGORITHM**: HS256 알고리즘 사용
+- **ACCESS_TOKEN_EXPIRE_MINUTES**: 액세스 토큰 만료 시간 설정
+
+#### 테스트 및 문서화
+- **`tests/test_auth.py`**: 인증 시스템 단위 테스트
+- **`notebooks/01.test_security.ipynb`**: Jupyter 노트북 기반 대화형 테스트
+
+---
+
+**결과**: 인증 시스템은 Day 1에 완료되어 별도의 Day 2 작업이 불필요했습니다.
+
+---
+
 ## Day 3: 데이터 수집 파이프라인 구현 (2025-12-01)
 
 ### 작업 계획
