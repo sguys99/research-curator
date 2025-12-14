@@ -470,9 +470,9 @@ Day 3의 목표는 다양한 소스(arXiv, 뉴스 등)에서 AI 관련 콘텐츠
 
 ---
 
-#### 2. 재시도 로직 및 에러 핸들링
+#### 2. 재시도 로직 및 에러 핸들링(추후 검토할 것)
 
-**`src/app/core/retry.py`** - 재시도 유틸리티
+**`src/app/core/retry.py`** - 재시도 유틸리티(추후 검토할 것)
 
 **retry_with_backoff 데코레이터:**
 ```python
