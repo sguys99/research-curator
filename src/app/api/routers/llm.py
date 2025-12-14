@@ -3,6 +3,7 @@
 import json
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 
 from src.app.api.schemas import (
     ArticleAnalysisRequest,
@@ -19,12 +20,13 @@ from src.app.llm import LLMClient
 router = APIRouter(prefix="/llm", tags=["LLM"])
 
 
-@router.post("/chat/completions", response_model=ChatCompletionResponse)
-async def chat_completion(request: ChatCompletionRequest) -> ChatCompletionResponse:
+@router.post("/chat/completions")
+async def chat_completion(request: ChatCompletionRequest):
     """
     Generate chat completion using specified LLM provider.
 
     Supports both OpenAI and Claude with a unified interface.
+    Supports streaming mode when stream=True.
     """
     try:
         # Create LLM client
@@ -38,7 +40,36 @@ async def chat_completion(request: ChatCompletionRequest) -> ChatCompletionRespo
         # Convert messages to dict format
         messages = [msg.model_dump() for msg in request.messages]
 
-        # Generate completion
+        # Streaming mode
+        if request.stream:
+
+            async def stream_generator():
+                """Generate SSE stream from LLM response."""
+                try:
+                    response_stream = await client.achat_completion(
+                        messages=messages,
+                        temperature=request.temperature,
+                        max_tokens=request.max_tokens,
+                        response_format=request.response_format,
+                        stream=True,
+                    )
+
+                    async for chunk in response_stream:
+                        if chunk.choices[0].delta.content:
+                            content = chunk.choices[0].delta.content
+                            # SSE format: "data: {json}\n\n"
+                            yield f"data: {json.dumps({'content': content})}\n\n"
+
+                    # Send completion signal
+                    yield f"data: {json.dumps({'done': True})}\n\n"
+
+                except Exception as e:
+                    # Send error in SSE format
+                    yield f"data: {json.dumps({'error': str(e)})}\n\n"
+
+            return StreamingResponse(stream_generator(), media_type="text/event-stream")
+
+        # Non-streaming mode
         content = await client.achat_completion(
             messages=messages,
             temperature=request.temperature,

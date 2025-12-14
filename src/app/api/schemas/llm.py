@@ -26,6 +26,7 @@ class ChatCompletionRequest(BaseModel):
     )
     max_tokens: int = Field(default=2000, ge=1, le=4096, description="Maximum tokens in response")
     response_format: Literal["text", "json"] = Field(default="text", description="Response format")
+    stream: bool = Field(default=False, description="Enable streaming mode")
 
     class Config:
         json_schema_extra = {
