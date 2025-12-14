@@ -795,11 +795,6 @@ $ curl -X POST http://localhost:8000/api/collectors/search \
 # 결과: 2개의 GPT-4 관련 논문 수집 성공
 ```
 
-**5. Swagger UI**
-- URL: `http://localhost:8000/docs`
-- 모든 엔드포인트 정상 작동
-- 대화형 API 테스트 가능
-
 ---
 
 ### 최종 디렉토리 구조
@@ -892,36 +887,6 @@ dependencies = [
 4. **테스트**
    - 수집된 데이터로 LLM 처리 테스트
    - 품질 검증
-
----
-
-### 참고 사항
-
-**API 키 설정:**
-```bash
-# .env 파일에 추가 필요
-SERPER_API_KEY=your-serper-api-key-here
-BRAVE_API_KEY=your-brave-api-key-here
-```
-
-**실행 방법:**
-```bash
-# 서버 시작
-uvicorn app.api.main:app --reload
-
-# API 문서 확인
-open http://localhost:8000/docs
-
-# 테스트 요청
-curl -X POST http://localhost:8000/api/collectors/arxiv \
-  -H "Content-Type: application/json" \
-  -d '{"query": "GPT", "limit": 5}'
-```
-
-**로깅:**
-- 모든 수집 작업은 로그 기록
-- 재시도 시도 및 실패 정보 포함
-- 디버깅 및 모니터링 용이
 
 ---
 
