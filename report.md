@@ -191,9 +191,10 @@ JWT_SECRET_KEY=your-secret-key-change-in-production
 
 #### 8. 문서화
 
-- **`docs/LLM_INTEGRATION.md`**: LLM 통합 가이드
-- **`examples/llm_usage_example.py`**: LLMClient 사용 예제
-- **`notebooks/test_llm_client.ipynb`**: Jupyter 노트북 기반 대화형 테스트
+- **`docs/0l.llm_integration.md`**: LLM 통합 가이드
+- **`notebooks/01.test_llm_client.ipynb`**: Jupyter 노트북 기반 대화형 테스트
+- **`notebooks/01.test_llm_api.ipynb`**: Jupyter 노트북 기반 llm api 테스트
+- **`notebooks/01.test_security.ipynb`**: Jupyter 노트북 기반 인증 테스트
 
 #### 9. 테스트
 
@@ -202,6 +203,8 @@ JWT_SECRET_KEY=your-secret-key-change-in-production
 - pytest 기반 비동기 테스트
 - Mock을 사용한 외부 API 격리
 
+**`tests/test_llm_api.py`**
+**`tests/test_auth.py`**
 ---
 
 ### 설치된 주요 패키지
@@ -230,54 +233,6 @@ dependencies = [
     "pydantic-settings>=2.12.0",
     "uuid7>=0.1.0",
 ]
-```
-
----
-
-### 최종 디렉토리 구조
-
-```
-research-curator/
-├── src/app/
-│   ├── __init__.py
-│   ├── core/
-│   │   ├── __init__.py
-│   │   ├── config.py          # 환경 설정
-│   │   └── security.py        # 인증 로직
-│   ├── db/
-│   │   ├── __init__.py
-│   │   ├── models.py          # SQLAlchemy 모델
-│   │   └── session.py         # DB 세션 관리
-│   ├── llm/                   # 신규 추가
-│   │   ├── __init__.py
-│   │   └── client.py          # LLM 통합 클라이언트
-│   └── api/
-│       ├── __init__.py
-│       ├── main.py            # FastAPI 앱
-│       ├── schemas/           # 신규 추가
-│       │   ├── __init__.py
-│       │   └── llm.py         # LLM 스키마
-│       └── routers/
-│           ├── __init__.py
-│           └── llm.py         # LLM 라우터
-│
-├── docs/
-│   └── LLM_INTEGRATION.md     # 신규 추가
-│
-├── examples/
-│   └── llm_usage_example.py   # 신규 추가
-│
-├── notebooks/
-│   └── test_llm_client.ipynb  # 신규 추가
-│
-├── tests/
-│   └── test_llm_client.py     # 신규 추가
-│
-├── alembic/                   # DB 마이그레이션
-├── docker-compose.yml         # Docker 서비스
-├── .env                       # 환경 변수 (개발)
-├── .env.example              # 환경 변수 템플릿
-└── pyproject.toml            # 프로젝트 설정
 ```
 
 ---
