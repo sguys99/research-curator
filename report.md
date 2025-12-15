@@ -1601,12 +1601,6 @@ def initialize_vector_db(recreate: bool = False) -> bool:
     # 4. 스키마 검증
 ```
 
-**테스트 결과:**
-- ✅ 7/7 테스트 통과
-- 클라이언트 초기화, 연결, health check 정상
-- Collection 생성/삭제 정상
-- Payload index 생성 정상
-
 ---
 
 #### 2. Embedding Generation Pipeline (Checkpoint 2)
