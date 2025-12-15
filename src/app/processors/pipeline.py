@@ -153,7 +153,7 @@ class ProcessingPipeline:
             )
 
             # Step 2: 임베딩 생성 (요약 사용)
-            embedding = await self.embedder.embed_article_async(
+            embedding = await self.embedder.embed_article(
                 title=title,
                 content=content,
                 summary=summary,
