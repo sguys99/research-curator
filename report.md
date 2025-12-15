@@ -1295,20 +1295,11 @@ results = await pipeline.process_batch(
 #### 6. 문서화
 
 **`docs/PROMPTS.md`** - 프롬프트 시스템 가이드
-- 프롬프트 구조 설명
-- 사용 예제
-- 커스터마이징 방법
-
 **`docs/PROCESSORS.md`** - 프로세서 사용 가이드
-- 5개 프로세서 상세 설명
-- API 레퍼런스
-- 성능 최적화 팁
-- 파이프라인 사용법
 
 **`docs/reports/`** - 검증 리포트
 - `day4_checkpoint4.md`: API 엔드포인트 검증
 - `day4_checkpoint5.md`: 통합 테스트 검증
-- `README.md`: 리포트 디렉토리 안내
 
 **`notebooks/03.test_day4.ipynb`** - 대화형 테스트 노트북
 - 모든 Checkpoint 검증 (1-5)
