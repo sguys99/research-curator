@@ -56,7 +56,7 @@ class CollectionSchema:
     ]
 
     @classmethod
-    def get_schema_info(cls) -> dict[str, Any]:
+    def get_schema_info(cls) -> dict[str, Any]:  # 스키마 정보를 딕셔너리로 반환
         """Get complete schema information.
 
         Returns:
@@ -74,6 +74,7 @@ class CollectionSchema:
         }
 
 
+# 컬렉션을 생성하고 인덱스를 설정
 def setup_collection(
     client: QdrantClientWrapper | None = None,
     recreate: bool = False,
@@ -91,7 +92,7 @@ def setup_collection(
         ConnectionError: If unable to connect to Qdrant server
     """
     if client is None:
-        client = get_qdrant_client()
+        client = get_qdrant_client()  # 전역 싱글턴 클라이언트
 
     collection_name = CollectionSchema.COLLECTION_NAME
 
@@ -154,6 +155,7 @@ def setup_collection(
         return False
 
 
+# 컬렉션이 올바르게 생성되었는지 검증
 def verify_collection_schema(client: QdrantClientWrapper | None = None) -> dict[str, Any]:
     """Verify that the collection exists and has the correct schema.
 
@@ -205,6 +207,8 @@ def verify_collection_schema(client: QdrantClientWrapper | None = None) -> dict[
     return result
 
 
+# 어플리케이션 시작시 호출하는 메인 진입점
+# src/app/api/main.py에 @app.on_event("startup") 구문에 호출함
 def initialize_vector_db(recreate: bool = False) -> bool:
     """Initialize the vector database (main entry point).
 

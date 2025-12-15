@@ -11,6 +11,7 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 
+# DB 연결, 컬렉션(RDB의 테이블과 유사) 관리를 담당
 class QdrantClientWrapper:
     """Wrapper for Qdrant client with connection management and utility methods."""
 
@@ -29,10 +30,10 @@ class QdrantClientWrapper:
         """
         self.host = host or settings.QDRANT_HOST
         self.port = port or settings.QDRANT_PORT
-        self.collection_name = collection_name or settings.QDRANT_COLLECTION_NAME
+        self.collection_name = collection_name or settings.QDRANT_COLLECTION_NAME  # research_articles
         self._client: QdrantClient | None = None
 
-    @property
+    @property  # 메서드를 속성처럼 접근(예: .client), Lazy initialization(지연 초기화, 사용할 때 연결)
     def client(self) -> QdrantClient:
         """Get or create Qdrant client instance.
 
@@ -65,7 +66,7 @@ class QdrantClientWrapper:
         """
         try:
             # Try to get collections list to verify connection
-            collections = self.client.get_collections()
+            collections = self.client.get_collections()  # QdrantClient의 메서드
             collection_names = [col.name for col in collections.collections]
 
             return {
@@ -256,7 +257,7 @@ class QdrantClientWrapper:
         )
 
 
-# Global client instance
+# Global client instance, 싱글턴 패턴, 전역 단일 인스턴스, 어플리케이션 전역에서 동일한 연결 재사용
 _qdrant_client: QdrantClientWrapper | None = None
 
 
