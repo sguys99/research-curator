@@ -1294,19 +1294,16 @@ results = await pipeline.process_batch(
 
 #### 6. 문서화
 
-**`docs/PROMPTS.md`** - 프롬프트 시스템 가이드
-**`docs/PROCESSORS.md`** - 프로세서 사용 가이드
+**`docs/04.prompts.md`** - 프롬프트 시스템 가이드
+**`docs/04.processors.md`** - 프로세서 사용 가이드
 
 **`docs/reports/`** - 검증 리포트
 - `day4_checkpoint4.md`: API 엔드포인트 검증
 - `day4_checkpoint5.md`: 통합 테스트 검증
 
-**`notebooks/03.test_day4.ipynb`** - 대화형 테스트 노트북
-- 모든 Checkpoint 검증 (1-5)
-- 프로세서 개별 테스트
-- 파이프라인 테스트
-- API 엔드포인트 테스트
-
+**`notebooks/04.test_prompt.ipynb`** - 프롬프트 테스트 노트북
+**`notebooks/04.test_collect_engine.ipynb`** - processor 테스트 노트북
+**`notebooks/04.test_collectors_api.ipynb`** - api 테스트 노트북
 ---
 
 ### 최종 디렉토리 구조
@@ -1396,11 +1393,6 @@ research-curator/
 - **30개 테스트**: 100% 통과
 - **3가지 레벨**: 단위, 통합, API
 - **End-to-End**: 전체 워크플로우 검증
-
-#### 5. 상세한 문서화 ✅
-- **사용 가이드**: PROMPTS.md, PROCESSORS.md
-- **검증 리포트**: Checkpoint 4, 5
-- **대화형 테스트**: Jupyter 노트북
 
 ---
 
@@ -1514,34 +1506,6 @@ curl -X POST http://localhost:8000/api/processors/process \
 4. **스케줄러**
    - 자동 수집 및 처리
    - 배치 작업 관리
-
----
-
-### 참고 사항
-
-**실행 방법:**
-```bash
-# FastAPI 서버 시작
-uvicorn src.app.api.main:app --reload
-
-# API 문서
-open http://localhost:8000/docs
-
-# 테스트 실행
-pytest tests/ -v
-```
-
-**환경 변수:**
-```bash
-# .env 파일
-OPENAI_API_KEY=sk-xxx
-ANTHROPIC_API_KEY=sk-ant-xxx  # Optional
-```
-
-**Jupyter 노트북 테스트:**
-```bash
-jupyter notebook notebooks/03.test_day4.ipynb
-```
 
 ---
 
