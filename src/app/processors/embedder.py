@@ -29,7 +29,7 @@ class TextEmbedder:
     """Text embedding generator with caching and retry logic."""
 
     # OpenAI embedding model token limits
-    MAX_TOKENS = 8191  # text-embedding-3-small max tokens
+    MAX_TOKENS = 8191  # text-embedding-3-small max tokens, 해당 모델의 최대 토큰수
 
     def __init__(
         self,
@@ -69,6 +69,7 @@ class TextEmbedder:
 
         logger.info(f"TextEmbedder initialized with model: {self.model}")
 
+    # 동일한 텍스트에 대해 중복 API 호출 방지
     def _get_cache_key(self, text: str) -> str:
         """Generate cache key for text using SHA-256 hash.
 
@@ -97,6 +98,7 @@ class TextEmbedder:
             # Fallback: rough estimate (1 token ≈ 4 characters)
             return len(text) // 4
 
+    # 텍스트가 최대 토큰을 초과하면 자름
     def truncate_text(self, text: str, max_tokens: int | None = None) -> str:
         """Truncate text to fit within token limit.
 
@@ -128,6 +130,7 @@ class TextEmbedder:
             char_limit = max_tokens * 4
             return text[:char_limit]
 
+    # API 호출 실패시 자동 재시도
     @retry(
         retry=retry_if_exception_type((RuntimeError, ConnectionError)),
         stop=stop_after_attempt(3),
@@ -177,13 +180,13 @@ class TextEmbedder:
             raise ValueError("Empty text provided for embedding")
 
         # Check cache
-        if self.use_cache:
+        if self.use_cache:  # 캐시가 있으면 캐시에 있는 것 리턴
             cache_key = self._get_cache_key(text)
             if cache_key in self._cache:
                 logger.debug(f"Cache hit for text: {text[:50]}...")
                 return self._cache[cache_key]
 
-        # Truncate if needed
+        # Truncate if needed, 토큰 제한 초과시 문서 텍스트 자름
         if truncate:
             token_count = self.count_tokens(text)
             if token_count > self.MAX_TOKENS:
@@ -193,7 +196,7 @@ class TextEmbedder:
         try:
             embedding = await self._embed_with_retry(text)
 
-            # Cache result
+            # Cache result, 결과를 캐시에 저장
             if self.use_cache:
                 cache_key = self._get_cache_key(text)
                 self._cache[cache_key] = embedding
@@ -271,7 +274,7 @@ class TextEmbedder:
 
         return all_embeddings
 
-    def prepare_article_text(
+    def prepare_article_text(  # 텍스트를 제목, 요약, 본문의 구조화된 형태로 결합
         self,
         title: str,
         content: str,
@@ -301,16 +304,17 @@ class TextEmbedder:
         if summary:
             parts.append(f"Summary: {summary}")
 
-        # Use first 2000 characters of content
+        # Use first 2000 characters of content, 본문은 2000자만 사용
         content_snippet = content[:2000] if content else ""
         if content_snippet:
             parts.append(f"Content: {content_snippet}")
 
         combined_text = "\n\n".join(parts)
 
-        # Ensure within token limit
+        # Ensure within token limit, 최종적으로 토큰 제한내로 다시 자름
         return self.truncate_text(combined_text)
 
+    # 기사를 정리하고 임베딩까지
     async def embed_article(
         self,
         title: str,
@@ -403,6 +407,7 @@ class TextEmbedder:
         return settings.QDRANT_VECTOR_SIZE
 
 
+# 싱글턴 패턴, lazy initialization(get_embedder 첫 호출시 생성, 리소스 절약, 로딩시간 절약)
 # Global embedder instance
 _embedder: TextEmbedder | None = None
 
