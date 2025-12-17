@@ -43,7 +43,7 @@ class VectorOperations:
 
         logger.info(f"VectorOperations initialized for collection: {self.collection_name}")
 
-    # 단일 아티클 삽입
+    # 단일 아티클 삽입: Create
     async def insert_article(
         self,
         article_id: str,
@@ -227,6 +227,7 @@ class VectorOperations:
             logger.error(f"Failed to batch insert articles: {e}")
             raise RuntimeError(f"Batch insertion failed: {e}") from e
 
+    # 아티클 업데이트: Update
     async def update_article(
         self,
         vector_id: str,
@@ -237,7 +238,7 @@ class VectorOperations:
         category: str | None = None,
         importance_score: float | None = None,
         metadata: dict[str, Any] | None = None,
-        regenerate_embedding: bool = False,
+        regenerate_embedding: bool = False,  # False이면 메타 데이터만 업데이트
     ) -> bool:
         """Update article in Qdrant.
 
@@ -331,6 +332,7 @@ class VectorOperations:
             logger.error(f"Failed to update article: {e}")
             return False
 
+    # 단일 삭제: Delete
     def delete_article(self, vector_id: str) -> bool:
         """Delete article from Qdrant.
 
@@ -470,6 +472,7 @@ class VectorOperations:
             logger.error(f"Failed to count articles: {e}")
             return 0
 
+    # 자연어 기반 유사 아티클 찾기: 예를 들어 트랜스포머 검색, 임베딩 필요함
     async def search_similar_articles(
         self,
         query: str,
@@ -551,6 +554,8 @@ class VectorOperations:
             logger.error(f"Failed to search articles: {e}")
             return []
 
+    # ID 기반 유사 아티클 찾기: 예를 들어 이 논문과 비슷한 논문 찾아줘, 임베딩 필요해서 빠름
+    # 검색 방법은 두가지: vector_id로 찾기, article_id로 찾기)
     async def find_similar_articles(
         self,
         article_id: str | None = None,
@@ -668,6 +673,7 @@ class VectorOperations:
             logger.error(f"Failed to find similar articles: {e}")
             return []
 
+    # SQL처러 검색 필터 조건을 생성
     def _build_search_filter(
         self,
         source_type: list[str] | None = None,
@@ -753,3 +759,53 @@ def get_vector_operations() -> VectorOperations:
     if _vector_ops is None:
         _vector_ops = VectorOperations()
     return _vector_ops
+
+
+# # 전체 워크플로우 예시
+# # 1. VectorOperations 인스턴스 가져오기
+# ops = get_vector_operations()
+
+# # 2. 새 논문 수집 (PostgreSQL에 먼저 저장했다고 가정)
+# article_id = "123e4567-e89b-12d3-a456-426614174000"  # PostgreSQL UUID
+
+# # 3. Vector DB에 삽입
+# vector_id = await ops.insert_article(
+#     article_id=article_id,
+#     title="Attention Is All You Need",
+#     content="We propose a new simple network architecture...",
+#     summary="Transformer 아키텍처를 제안하는 논문입니다.",
+#     source_type="paper",
+#     category="NLP",
+#     importance_score=0.95,
+#     metadata={"authors": ["Vaswani et al."], "year": 2017}
+# )
+# # Returns: "550e8400-e29b-41d4-a716-446655440000"
+
+# # 4. 사용자 검색
+# search_results = await ops.search_similar_articles(
+#     query="자연어 처리를 위한 attention 메커니즘",
+#     limit=10,
+#     score_threshold=0.8,
+#     source_type=["paper"],
+#     category=["NLP", "AI"],
+#     min_importance_score=0.9
+# )
+
+# # 5. 유사 논문 추천
+# similar_papers = await ops.find_similar_articles(
+#     vector_id=vector_id,
+#     limit=5,
+#     score_threshold=0.85,
+#     category=["NLP"]
+# )
+
+# # 6. 중요도 점수 업데이트 (사용자 피드백 반영)
+# await ops.update_article(
+#     vector_id=vector_id,
+#     importance_score=0.98,  # 피드백 후 점수 상승
+#     regenerate_embedding=False
+# )
+
+# # 7. 아티클 개수 확인
+# total = ops.count_articles()
+# print(f"Total papers in DB: {total}")
