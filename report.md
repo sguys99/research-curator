@@ -2035,18 +2035,6 @@ Ranked Results [{title, score, ...}, ...]
 
 ---
 
-#### 5. 통합 테스트 & 문서화
-
-**테스트 스크립트:**
-- `test_checkpoint1.py` - 7개 테스트 (Qdrant client, collection)
-- `test_checkpoint2.py` - 8개 테스트 (Embedding pipeline)
-- `test_checkpoint3.py` - 9개 테스트 (Vector CRUD)
-- `test_checkpoint4.py` - 9개 테스트 (Semantic search)
-
-**전체 테스트 결과:**
-- ✅ **35개 테스트 모두 통과** (100%)
-- 실행 시간: ~20-30초 (API 호출 포함)
-
 **Jupyter Notebook:**
 - `notebooks/04.test_day5.ipynb` - 포괄적인 통합 테스트
   - Setup & Initialization
@@ -2080,14 +2068,10 @@ research-curator/
 │   └── processors/
 │       └── embedder.py        # 완전 재작성 ⭐
 │
-├── tests/
-│   ├── test_checkpoint1.py    # 신규 추가 ⭐
-│   ├── test_checkpoint2.py    # 신규 추가 ⭐
-│   ├── test_checkpoint3.py    # 신규 추가 ⭐
-│   └── test_checkpoint4.py    # 신규 추가 ⭐
-│
 ├── notebooks/
-│   └── 04.test_day5.ipynb     # 신규 추가 ⭐
+│   ├── 05.embedder.ipynb                      # 신규 추가 ⭐
+│   ├── 05.test_vector_db.ipynb                # 신규 추가 ⭐
+│   └── 05.test_vector_db_operations.ipynb     # 신규 추가 ⭐
 │
 └── docs/reports/               # 신규 추가 ⭐
     ├── day5_checkpoint1.md
