@@ -203,7 +203,7 @@ async def search_semantic(
                         source_type=article.source_type,
                         category=article.category,
                         importance_score=article.importance_score,
-                        article_metadata=article.metadata,
+                        article_metadata=article.metadata if isinstance(article.metadata, dict) else {},
                         collected_at=article.collected_at,
                         vector_id=article.vector_id,
                         published_at=None,
@@ -294,7 +294,9 @@ async def get_similar_articles(
                         source_type=similar_article.source_type,
                         category=similar_article.category,
                         importance_score=similar_article.importance_score,
-                        article_metadata=similar_article.metadata,
+                        article_metadata=similar_article.metadata
+                        if isinstance(similar_article.metadata, dict)
+                        else {},
                         collected_at=similar_article.collected_at,
                         vector_id=similar_article.vector_id,
                         published_at=None,
