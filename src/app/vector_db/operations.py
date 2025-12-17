@@ -6,7 +6,7 @@ article embeddings in Qdrant vector database.
 
 import logging
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from qdrant_client.http import models
@@ -18,6 +18,8 @@ from app.vector_db.schema import CollectionSchema
 logger = logging.getLogger(__name__)
 
 
+# Vector DB에 대한 CRUD 작업 수행:
+# - 아티클 임베딩 삽입/수정/삭제, 시맨틱 검색, 유사 아티클, 필터링 및 메타데이터 관리
 class VectorOperations:
     """Vector database operations for article embeddings."""
 
@@ -34,12 +36,14 @@ class VectorOperations:
             embedder: Text embedder instance (defaults to global embedder)
             collection_name: Collection name (defaults to CollectionSchema.COLLECTION_NAME)
         """
+        # 싱글톤 의존성 주입
         self.qdrant_client = qdrant_client or get_qdrant_client()
         self.embedder = embedder or get_embedder()
         self.collection_name = collection_name or CollectionSchema.COLLECTION_NAME
 
         logger.info(f"VectorOperations initialized for collection: {self.collection_name}")
 
+    # 단일 아티클 삽입
     async def insert_article(
         self,
         article_id: str,
@@ -100,7 +104,7 @@ class VectorOperations:
                 "source_type": source_type,
                 "category": category,
                 "importance_score": importance_score,
-                "collected_at": datetime.utcnow().isoformat(),
+                "collected_at": datetime.now(UTC).isoformat(),
                 "metadata": metadata or {},
             }
 
@@ -197,7 +201,7 @@ class VectorOperations:
                     "source_type": article.get("source_type", "paper"),
                     "category": article.get("category", "AI"),
                     "importance_score": article.get("importance_score", 0.5),
-                    "collected_at": datetime.utcnow().isoformat(),
+                    "collected_at": datetime.now(UTC).isoformat(),
                     "metadata": article.get("metadata", {}),
                 }
 
