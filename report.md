@@ -2182,25 +2182,6 @@ models.Filter(
     ]
 )
 ```
-
----
-
-### 이슈 & 해결
-
-#### Issue 1: QdrantClient.search() 메서드 없음
-**문제**: `AttributeError: 'QdrantClient' object has no attribute 'search'`
-**원인**: Qdrant 최신 버전에서 `search()` 메서드 제거
-**해결**: `query_points()` API로 변경
-
-#### Issue 2: 검색 결과 없음 (threshold 문제)
-**문제**: 기본 threshold 0.7이 너무 높아 결과 없음
-**원인**: Cosine similarity는 일반적으로 0.5-0.9 범위
-**해결**: Test threshold를 0.5로 조정
-
-#### Issue 3: pyyaml 의존성 누락
-**문제**: `ModuleNotFoundError: No module named 'yaml'`
-**해결**: `uv add pyyaml` 설치
-
 ---
 
 ### 성능 벤치마크
@@ -2215,25 +2196,6 @@ models.Filter(
 | Semantic Search | < 100ms | Qdrant query_points |
 | **전체 테스트 (35개)** | **~30초** | **API 호출 포함** |
 
----
-
-### Checkpoint 검증 결과
-
-**✅ Checkpoint 1**: Qdrant 클라이언트 정상 작동
-- 7/7 테스트 통과
-- 연결, health check, collection 관리 정상
-
-**✅ Checkpoint 2**: 임베딩 파이프라인 정상 작동
-- 8/8 테스트 통과
-- Token 관리, 캐싱, 배치 처리 정상
-
-**✅ Checkpoint 3**: Vector CRUD 연산 정상 작동
-- 9/9 테스트 통과
-- 삽입, 조회, 업데이트, 삭제 모두 정상
-
-**✅ Checkpoint 4**: Semantic Search 정상 작동
-- 9/9 테스트 통과
-- 자연어 검색, 필터링, 유사 문서 검색 정상
 
 ---
 
@@ -2288,30 +2250,105 @@ results = await ops.search_similar_articles(
 
 ---
 
+#### 5. Vector Search API 라우터 (Day 5에 함께 구현 완료) ✅
+
+**`src/app/api/routers/articles.py`** - Vector 검색 API 엔드포인트
+
+**구현된 엔드포인트 (8개):**
+
+1. **POST `/api/articles/search`** - Semantic search
+
+   ```python
+   # 자연어 쿼리로 시맨틱 검색
+   # VectorOperations.search_similar_articles() 사용
+   # 필터: source_type, category, importance, date range
+   ```
+
+2. **GET `/api/articles/{article_id}/similar`** - 유사 문서 추천
+
+   ```python
+   # 특정 아티클과 유사한 문서 찾기
+   # VectorOperations.find_similar_articles() 사용
+   # 자동 self-exclusion
+   ```
+
+3. **GET `/api/articles`** - 아티클 목록 조회
+
+   ```python
+   # 필터링, 정렬, 페이지네이션 지원
+   # PostgreSQL 기반 쿼리
+   ```
+
+4. **GET `/api/articles/{article_id}`** - 단일 아티클 조회
+
+5. **POST `/api/articles/batch`** - 배치 조회
+
+   ```python
+   # 여러 article ID로 일괄 조회
+   ```
+
+6. **GET `/api/articles/statistics/summary`** - 통계 정보
+
+   ```python
+   # 카테고리별, 소스별 집계
+   # 평균 importance score
+   ```
+
+7. **DELETE `/api/articles/{article_id}`** - 아티클 삭제
+
+8. **GET `/api/articles/keyword-search`** - 키워드 검색
+
+   ```python
+   # PostgreSQL full-text search
+   # title, content, summary 검색
+   ```
+
+**API 스키마:**
+
+- `src/app/api/schemas/articles.py` - Pydantic 모델
+  - `ArticleResponse`: 기본 응답
+  - `ArticleSearchRequest`: 검색 요청
+  - `ArticleSearchResponse`: 검색 응답
+  - `ArticleSearchResult`: 유사도 점수 포함
+  - `ArticleStatisticsResponse`: 통계 응답
+
+**통합 완료:**
+
+- FastAPI 라우터 등록 (`src/app/api/main.py`)
+- VectorOperations와 연동
+- PostgreSQL CRUD와 연동
+- 인증 미들웨어 적용 (JWT)
+
+**테스트:**
+
+- Swagger UI에서 모든 엔드포인트 테스트 가능
+- `http://localhost:8000/docs`
+
+---
+
 ### 다음 단계 (Day 6)
 
-**Day 6 목표: API 라우터 & PostgreSQL 동기화**
+**Day 6 목표: 이메일 시스템 구현**
 
-1. **API 라우터 구현**
-   - `POST /search`: Semantic search endpoint
-   - `GET /articles/:id/similar`: 유사 문서 추천
-   - `POST /articles`: 아티클 삽입 with auto-vectorization
-   - `GET /stats`: Vector DB 통계
+1. **이메일 템플릿 설계**
+   - 반응형 HTML 템플릿
+   - Jinja2 템플릿 엔진 통합
+   - 이메일 콘텐츠 빌더
 
-2. **PostgreSQL ↔ Qdrant 동기화**
-   - PostgreSQL trigger로 자동 벡터화
-   - 트랜잭션 일관성 보장
-   - Bulk sync script (초기 데이터 마이그레이션)
+2. **SMTP 연동 및 발송 로직**
+   - 비동기 SMTP 이메일 전송
+   - 재시도 로직 및 exponential backoff
+   - 이메일 발송 이력 관리
 
-3. **검색 기능 고도화**
-   - Hybrid search (키워드 + 벡터)
-   - Re-ranking 알고리즘
-   - Faceted search (카테고리별 집계)
+3. **콘텐츠 큐레이션 로직**
+   - 사용자 선호도 기반 아티클 선택
+   - 카테고리 균형 알고리즘
+   - 다이제스트 오케스트레이션
 
-4. **성능 최적화**
-   - Redis 캐싱 레이어
-   - Embedding queue (Celery)
-   - Connection pooling
+4. **테스트 및 검증**
+   - 포괄적인 테스트 스위트
+   - 통합 테스트 노트북
+   - 이메일 미리보기 생성
 
 ---
 
