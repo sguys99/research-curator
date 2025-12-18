@@ -13,6 +13,7 @@ from app.db.models import CollectedArticle
 class EmailBuilder:
     """Builder class for generating HTML email content from templates."""
 
+    # 진자 환경 초기화
     def __init__(self):
         """Initialize the email builder with Jinja2 environment."""
         template_dir = Path(__file__).parent / "templates"
@@ -21,6 +22,7 @@ class EmailBuilder:
             autoescape=select_autoescape(["html", "xml"]),
         )
 
+    # 일일 다이제스트 HTML 생성
     def build_daily_digest(
         self,
         user_name: str,
@@ -249,3 +251,24 @@ def build_daily_digest_email(
     """
     builder = EmailBuilder()
     return builder.build_daily_digest(user_name, user_email, articles, daily_limit)
+
+
+# 동작 구조
+# 입력: 아티클 리스트 (from Vector DB or PostgreSQL)
+#    ↓
+# [_select_top_articles] - importance_score 기준 정렬 및 상위 N개 선택
+#    ↓
+# [_group_by_category] - paper/news/report 그룹화
+#    ↓
+# [_format_article] - 각 아티클을 템플릿 포맷으로 변환
+#    - 중요도 별 stars 생성 (⭐⭐⭐)
+#    - 날짜 포맷팅
+#    - 요약문 길이 제한
+#    ↓
+# [render_template] - Jinja2로 HTML 렌더링
+#    - 사용자 이름 삽입
+#    - 날짜 삽입
+#    - 아티클 섹션 생성
+#    - Footer 링크 생성
+#    ↓
+# 출력: 완전한 HTML 이메일 (String)
