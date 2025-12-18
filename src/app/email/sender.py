@@ -12,6 +12,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 logger = logging.getLogger(__name__)
 
 
+# SMTP 이메일 발송을 담당하는 메인 클래스
 class EmailSender:
     """SMTP email sender with async support and retry logic."""
 
@@ -42,13 +43,13 @@ class EmailSender:
         self.from_email = from_email or os.getenv("SMTP_FROM_EMAIL", self.smtp_user)
         self.from_name = from_name or os.getenv("SMTP_FROM_NAME", "Research Curator")
 
-        # Validate configuration
+        # Validate configuration, 항목 누락 시 즉시 오류 발생
         if not all([self.smtp_host, self.smtp_user, self.smtp_password]):
             raise ValueError("SMTP configuration is incomplete. Check environment variables.")
 
     @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=2, max=10),
+        stop=stop_after_attempt(3),  # 최대 3회 시도
+        wait=wait_exponential(multiplier=1, min=2, max=10),  # 2, 4, 8초 대기
         reraise=True,
     )
     async def send_email(
@@ -89,7 +90,7 @@ class EmailSender:
             html_part = MIMEText(html_content, "html", "utf-8")
             message.attach(html_part)
 
-            # Send email
+            # Send email ,SMTP 전송
             await aiosmtplib.send(
                 message,
                 hostname=self.smtp_host,
