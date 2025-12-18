@@ -2651,16 +2651,6 @@ SentDigest (Database):
    - 이메일 이력 추적
    - 열람률 분석
 
----
-
-#### 📦 추가된 의존성
-
-```toml
-[dependencies]
-aiosmtplib = "^5.0.0"  # Async SMTP
-jinja2 = "^3.1.6"      # Template engine
-tenacity = "^9.1.2"    # Retry logic
-```
 
 ---
 
@@ -2740,26 +2730,6 @@ SMTP_FROM_NAME=Research Curator
 SERVICE_NAME=Research Curator
 FRONTEND_URL=http://localhost:8501
 ```
-
----
-
-#### 🐛 해결된 이슈
-
-1. **Import Path 문제**
-   - 문제: `from src.app` 경로 오류
-   - 해결: `from app`으로 변경 (uv editable install 사용)
-
-2. **SQLAlchemy Reserved Word**
-   - 문제: `metadata` 필드명 충돌
-   - 해결: `article_metadata`로 변경
-
-3. **uuid7 Import 오류**
-   - 문제: `ModuleNotFoundError: No module named 'uuid7'`
-   - 해결: `from uuid_extensions import uuid7`로 변경
-
-4. **Pre-commit 오류**
-   - 문제: `No module named pre_commit`
-   - 해결: dev dependency에 추가 및 `uv sync --group dev`
 
 ---
 
