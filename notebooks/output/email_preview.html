@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Research Curator - 오늘의 AI 연구 동향</title>
+    <style>
+        /* Reset styles */
+        body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+
+        /* Body styles */
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            background-color: #f4f4f4;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+        }
+
+        /* Container styles */
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+        }
+
+        /* Header styles */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px 20px;
+            text-align: center;
+            color: #ffffff;
+        }
+
+        .header h1 {
+            margin: 0 0 10px 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .header .date {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        /* Content styles */
+        .content {
+            padding: 20px;
+        }
+
+        .greeting {
+            font-size: 16px;
+            color: #333333;
+            margin-bottom: 20px;
+        }
+
+        /* Section styles */
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            background-color: #f8f9fa;
+            border-left: 4px solid #667eea;
+            margin-bottom: 15px;
+        }
+
+        .section-header .icon {
+            font-size: 20px;
+            margin-right: 8px;
+        }
+
+        .section-header .title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333333;
+            margin: 0;
+        }
+
+        .section-header .count {
+            font-size: 14px;
+            color: #666666;
+            margin-left: 8px;
+        }
+
+        /* Article card styles */
+        .article {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 15px;
+            background-color: #ffffff;
+        }
+
+        .article-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .article-number {
+            font-size: 14px;
+            font-weight: 600;
+            color: #667eea;
+            margin-right: 8px;
+        }
+
+        .importance {
+            display: inline-flex;
+            align-items: center;
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-left: auto;
+        }
+
+        .importance.high {
+            background-color: #fee;
+            color: #c00;
+        }
+
+        .importance.medium {
+            background-color: #fef3cd;
+            color: #856404;
+        }
+
+        .importance.low {
+            background-color: #e7f3ff;
+            color: #004085;
+        }
+
+        .article-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333333;
+            margin: 0 0 10px 0;
+            line-height: 1.4;
+        }
+
+        .article-summary {
+            font-size: 14px;
+            color: #666666;
+            line-height: 1.6;
+            margin: 0 0 12px 0;
+        }
+
+        .article-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            font-size: 12px;
+            color: #999999;
+        }
+
+        .article-meta-item {
+            display: flex;
+            align-items: center;
+        }
+
+        .article-link {
+            display: inline-block;
+            padding: 8px 16px;
+            background-color: #667eea;
+            color: #ffffff !important;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 500;
+            margin-top: 8px;
+        }
+
+        .article-link:hover {
+            background-color: #5568d3;
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999999;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        /* Footer styles */
+        .footer {
+            background-color: #f8f9fa;
+            padding: 30px 20px;
+            text-align: center;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .footer-actions {
+            margin-bottom: 20px;
+        }
+
+        .footer-button {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 0 5px;
+            background-color: #ffffff;
+            color: #667eea !important;
+            text-decoration: none;
+            border: 1px solid #667eea;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .footer-button:hover {
+            background-color: #667eea;
+            color: #ffffff !important;
+        }
+
+        .footer-text {
+            font-size: 12px;
+            color: #999999;
+            line-height: 1.6;
+        }
+
+        /* Responsive styles */
+        @media only screen and (max-width: 600px) {
+            .email-container {
+                width: 100% !important;
+            }
+
+            .header h1 {
+                font-size: 20px;
+            }
+
+            .content {
+                padding: 15px;
+            }
+
+            .article {
+                padding: 12px;
+            }
+
+            .footer-button {
+                display: block;
+                margin: 5px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+        <tr>
+            <td align="center" style="padding: 20px 0;">
+                <table role="presentation" class="email-container" cellspacing="0" cellpadding="0" border="0">
+                    <!-- Header -->
+                    <tr>
+                        <td class="header">
+                            <h1>🔬 Research Curator</h1>
+                            <div class="date">📅 2025년 12월 18일</div>
+                        </td>
+                    </tr>
+
+                    <!-- Content -->
+                    <tr>
+                        <td class="content">
+                            <!-- Greeting -->
+                            <div class="greeting">
+                                안녕하세요, 김연구님! 👋<br>
+                                오늘의 AI 연구 동향을 전해드립니다.
+                            </div>
+
+                            
+                            <!-- Papers Section -->
+                            <div class="section">
+                                <div class="section-header">
+                                    <span class="icon">📚</span>
+                                    <h2 class="title">논문</h2>
+                                    <span class="count">(2건)</span>
+                                </div>
+
+                                
+                                <div class="article">
+                                    <div class="article-header">
+                                        <span class="article-number">[1]</span>
+                                        <span class="importance high">
+                                            ⭐⭐⭐ 높음
+                                        </span>
+                                    </div>
+                                    <h3 class="article-title">Attention Is All You Need</h3>
+                                    <p class="article-summary">트랜스포머 아키텍처를 제안하는 획기적인 논문. 어텐션 메커니즘만으로 시퀀스 모델링을 수행합니다.</p>
+                                    <div class="article-meta">
+                                        
+                                        <span class="article-meta-item">✍️ Ashish Vaswani, Noam Shazeer, Niki Parmar 외 1명</span>
+                                        
+                                        
+                                        <span class="article-meta-item">📅 2025-12-18</span>
+                                        
+                                        
+                                        <span class="article-meta-item">📊 인용 50000회</span>
+                                        
+                                    </div>
+                                    <a href="https://arxiv.org/abs/1706.03762" class="article-link" target="_blank">🔗 원문 보기</a>
+                                </div>
+                                
+                                <div class="article">
+                                    <div class="article-header">
+                                        <span class="article-number">[2]</span>
+                                        <span class="importance high">
+                                            ⭐⭐⭐ 높음
+                                        </span>
+                                    </div>
+                                    <h3 class="article-title">BERT: Pre-training of Deep Bidirectional Transformers</h3>
+                                    <p class="article-summary">양방향 트랜스포머를 사용한 사전학습 언어 모델 BERT를 소개합니다.</p>
+                                    <div class="article-meta">
+                                        
+                                        <span class="article-meta-item">✍️ Jacob Devlin, Ming-Wei Chang, Kenton Lee</span>
+                                        
+                                        
+                                        <span class="article-meta-item">📅 2025-12-18</span>
+                                        
+                                        
+                                        <span class="article-meta-item">📊 인용 45000회</span>
+                                        
+                                    </div>
+                                    <a href="https://arxiv.org/abs/1810.04805" class="article-link" target="_blank">🔗 원문 보기</a>
+                                </div>
+                                
+                            </div>
+                            
+
+                            
+                            <!-- News Section -->
+                            <div class="section">
+                                <div class="section-header">
+                                    <span class="icon">📰</span>
+                                    <h2 class="title">뉴스</h2>
+                                    <span class="count">(2건)</span>
+                                </div>
+
+                                
+                                <div class="article">
+                                    <div class="article-header">
+                                        <span class="article-number">[1]</span>
+                                        <span class="importance high">
+                                            ⭐⭐⭐ 높음
+                                        </span>
+                                    </div>
+                                    <h3 class="article-title">OpenAI Announces GPT-5: Breaking New Ground in AI</h3>
+                                    <p class="article-summary">OpenAI가 GPT-5를 발표했습니다. 이전 모델보다 10배 향상된 성능을 보입니다.</p>
+                                    <div class="article-meta">
+                                        
+                                        <span class="article-meta-item">📰 TechCrunch</span>
+                                        
+                                        
+                                        <span class="article-meta-item">📅 2025-12-18</span>
+                                        
+                                    </div>
+                                    <a href="https://techcrunch.com/gpt5-announcement" class="article-link" target="_blank">🔗 원문 보기</a>
+                                </div>
+                                
+                                <div class="article">
+                                    <div class="article-header">
+                                        <span class="article-number">[2]</span>
+                                        <span class="importance high">
+                                            ⭐⭐⭐ 높음
+                                        </span>
+                                    </div>
+                                    <h3 class="article-title">Google DeepMind Achieves Breakthrough in Protein Folding</h3>
+                                    <p class="article-summary">구글 딥마인드의 AlphaFold 3가 단백질 구조 예측에서 획기적인 성과를 달성했습니다.</p>
+                                    <div class="article-meta">
+                                        
+                                        <span class="article-meta-item">📰 Nature</span>
+                                        
+                                        
+                                        <span class="article-meta-item">📅 2025-12-18</span>
+                                        
+                                    </div>
+                                    <a href="https://www.nature.com/alphafold3" class="article-link" target="_blank">🔗 원문 보기</a>
+                                </div>
+                                
+                            </div>
+                            
+
+                            
+                            <!-- Reports Section -->
+                            <div class="section">
+                                <div class="section-header">
+                                    <span class="icon">📊</span>
+                                    <h2 class="title">리포트</h2>
+                                    <span class="count">(1건)</span>
+                                </div>
+
+                                
+                                <div class="article">
+                                    <div class="article-header">
+                                        <span class="article-number">[1]</span>
+                                        <span class="importance high">
+                                            ⭐⭐⭐ 높음
+                                        </span>
+                                    </div>
+                                    <h3 class="article-title">Stanford AI Index Report 2024</h3>
+                                    <p class="article-summary">스탠포드 AI 인덱스 2024 리포트가 발표되었습니다. AI 산업 전반의 동향을 분석합니다.</p>
+                                    <div class="article-meta">
+                                        
+                                        <span class="article-meta-item">🏢 Stanford HAI</span>
+                                        
+                                        
+                                        <span class="article-meta-item">📅 2025-12-18</span>
+                                        
+                                    </div>
+                                    <a href="https://aiindex.stanford.edu/report/" class="article-link" target="_blank">🔗 원문 보기</a>
+                                </div>
+                                
+                            </div>
+                            
+
+                            
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td class="footer">
+                            <div class="footer-actions">
+                                <a href="http://localhost:8501/settings" class="footer-button">⚙️ 설정 변경</a>
+                                <a href="http://localhost:8501/feedback" class="footer-button">💬 피드백</a>
+                            </div>
+                            <div class="footer-text">
+                                이 이메일은 researcher.kim@example.com로 발송되었습니다.<br>
+                                수신을 원하지 않으시면 <a href="http://localhost:8501/unsubscribe?email=researcher.kim@example.com" style="color: #667eea;">구독 취소</a>를 클릭해주세요.<br>
+                                <br>
+                                © 2025 Research Curator. All rights reserved.
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
