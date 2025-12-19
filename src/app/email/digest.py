@@ -16,6 +16,7 @@ from app.email.sender import EmailSender
 logger = logging.getLogger(__name__)
 
 
+# Builder, Sender, History를 통합하여 실제 이메일 발송 워크플로우 관리
 class DigestOrchestrator:
     """Orchestrates the daily digest workflow."""
 
@@ -29,6 +30,7 @@ class DigestOrchestrator:
         self.builder = EmailBuilder()
         self.sender = email_sender or EmailSender()
 
+    # 단일 사용자 다이제스트 발송
     async def send_user_digest(
         self,
         session: AsyncSession,
@@ -56,7 +58,7 @@ class DigestOrchestrator:
             if isinstance(user_id, str):
                 user_id = UUID(user_id)
 
-            # Load user and preferences
+            # Load user and preferences, 1. 사용자 로드
             user = await self._load_user(session, user_id)
             if not user:
                 raise ValueError(f"User {user_id} not found")
@@ -68,7 +70,7 @@ class DigestOrchestrator:
             # Get daily limit from preferences
             daily_limit = preferences.daily_limit or 5
 
-            # Build email content
+            # Build email content, 2. HTML 빌드
             html_content = self.builder.build_daily_digest(
                 user_name=user.name,
                 user_email=user.email,
@@ -76,12 +78,12 @@ class DigestOrchestrator:
                 daily_limit=daily_limit,
             )
 
-            # Generate subject
+            # Generate subject, 3. 제목생성
             if not subject:
                 date_str = datetime.now().strftime("%Y년 %m월 %d일")
                 subject = f"🔬 Research Curator - {date_str} AI 연구 동향"
 
-            # Send email
+            # Send email, 4. 이메일 발송
             await self.sender.send_email(
                 to_email=user.email,
                 subject=subject,
@@ -169,6 +171,7 @@ class DigestOrchestrator:
         return result.scalar_one_or_none()
 
 
+# 간단한 케이스에서 오케스트레이터 인스턴스 없이 바로 사용
 async def send_daily_digest(
     session: AsyncSession,
     user_id: UUID | str,
