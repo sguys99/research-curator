@@ -8,6 +8,7 @@ from app.db.models import CollectedArticle, UserPreference
 logger = logging.getLogger(__name__)
 
 
+# 사용자 선호도에 맞는 최적의 아티클을 선택하는 로직
 def select_articles_for_user(
     articles: list[CollectedArticle],
     preferences: UserPreference,
@@ -35,20 +36,21 @@ def select_articles_for_user(
 
     limit = limit or preferences.daily_limit or 5
 
-    # Step 1: Filter by keywords and fields
+    # 4단계로 진행됨.
+    # Step 1: Filter by keywords and fields, 키워드, 연구분야/선호도로 필터링
     filtered = _filter_by_preferences(articles, preferences)
 
     if not filtered:
         logger.warning("No articles match user preferences, using all articles")
         filtered = articles
 
-    # Step 2: Apply category distribution
+    # Step 2: Apply category distribution, 논문: 뉴스: 리포트 비율
     distributed = _apply_category_distribution(filtered, preferences)
 
-    # Step 3: Sort by importance
+    # Step 3: Sort by importance, 중요도순 정렬
     sorted_articles = sorted(distributed, key=lambda x: x.importance_score or 0.0, reverse=True)
 
-    # Step 4: Select top N
+    # Step 4: Select top N, 상위 N개 선택
     selected = sorted_articles[:limit]
 
     logger.info(
