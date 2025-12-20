@@ -2769,26 +2769,7 @@ FRONTEND_URL=http://localhost:8501
 - `tests/test_email_builder.py`
 - `tests/test_email_sender.py`
 - `tests/test_email_digest.py`
-- `notebooks/06.test_day6.ipynb`
-- `docs/reports/day6_summary.md`
 
-**수정된 파일:**
-- `src/app/db/models.py` (metadata → article_metadata 변경)
-- `pyproject.toml` (aiosmtplib, jinja2, tenacity 추가)
-
----
-
-### 테스트 실행 방법
-
-```bash
-# 전체 이메일 테스트 실행
-pytest tests/test_email_builder.py -v   # 15 tests
-pytest tests/test_email_sender.py -v    # 11 tests
-pytest tests/test_email_digest.py -v    # 7 tests
-
-# 통합 테스트 노트북
-jupyter notebook notebooks/06.test_day6.ipynb
-```
 
 ---
 
@@ -3086,381 +3067,307 @@ python -m src.app.scheduler.main
 **상태**: ✅ Production Ready (Vector DB integration pending)
 
 ---
-  3200→
-  3201→---
-  3202→
-  3203→## Day 8: Streamlit 프론트엔드 구현 (2025-12-05)
-  3204→
-  3205→### 작업 계획
-  3206→
-  3207→**목표**: 사용자 친화적인 웹 대시보드 구축
-  3208→
-  3209→1. **Checkpoint 1: 기본 구조 & 인증**
-  3210→   - Streamlit 프로젝트 초기화
-  3211→   - 세션 관리 유틸리티
-  3212→   - FastAPI 클라이언트 래퍼
-  3213→   - 매직 링크 인증 컴포넌트
-  3214→   - 사이드바 네비게이션
-  3215→
-  3216→2. **Checkpoint 2: AI 챗봇 온보딩**
-  3217→   - 대화형 온보딩 챗봇 구현
-  3218→   - 5단계 질문 플로우
-  3219→   - 사용자 설정 수집 및 저장
-  3220→
-  3221→3. **Checkpoint 3: 주요 페이지**
-  3222→   - Dashboard: 다이제스트 이력 및 통계
-  3223→   - Search: 시맨틱 검색 및 필터링
-  3224→   - Settings: 사용자 설정 관리
-  3225→
-  3226→4. **Checkpoint 4: 피드백 & 통합**
-  3227→   - Feedback: 아티클 평가 및 코멘트
-  3228→   - 전체 통합 테스트
-  3229→   - 문서화
-  3230→
-  3231→---
-  3232→
-  3233→### 작업 내용
-  3234→
-  3235→#### Checkpoint 1: 기본 구조 & 인증 ✅
-  3236→
-  3237→**1. 프로젝트 초기화**
-  3238→- Streamlit & httpx 패키지 설치
-  3239→- 디렉토리 구조 생성:
-  3240→  ```
-  3241→  src/app/frontend/
-  3242→  ├── main.py              # 메인 앱
-  3243→  ├── components/          # 재사용 컴포넌트
-  3244→  │   ├── auth.py         # 인증 UI
-  3245→  │   └── sidebar.py      # 사이드바
-  3246→  ├── pages/               # 페이지 모듈
-  3247→  ├── utils/               # 유틸리티
-  3248→  │   ├── session.py      # 세션 관리
-  3249→  │   └── api_client.py   # API 클라이언트
-  3250→  └── .streamlit/
-  3251→      ├── config.toml
-  3252→      └── secrets.toml
-  3253→  ```
-  3254→
-  3255→**2. 세션 관리 (`utils/session.py`)**
-  3256→- 15개 함수 구현:
-  3257→  - `init_session_state()`: 세션 초기화
-  3258→  - `set_user_session()`: 사용자 정보 저장
-  3259→  - `is_authenticated()`: 인증 상태 확인
-  3260→  - `get_user_id()`, `get_user_email()`, `get_user_name()`: 정보 조회
-  3261→  - `is_onboarding_completed()`: 온보딩 완료 확인
-  3262→  - `clear_session()`: 로그아웃
-  3263→
-  3264→**3. API 클라이언트 (`utils/api_client.py`)**
-  3265→- 15+ API 메서드 구현:
-  3266→  - **Auth**: `request_magic_link()`, `verify_magic_link()`, `get_current_user()`
-  3267→  - **Preferences**: `get_user_preferences()`, `update_user_preferences()`
-  3268→  - **Articles**: `get_article()`, `search_articles()`, `find_similar_articles()`
-  3269→  - **Digests**: `get_user_digests()`, `send_test_digest()`
-  3270→  - **Feedback**: `submit_feedback()`, `get_user_feedback()`
-  3271→  - **LLM**: `chat_completion()`, `generate_embeddings()`
-  3272→
-  3273→**4. 인증 컴포넌트 (`components/auth.py`)**
-  3274→- 매직 링크 로그인 UI
-  3275→- 토큰 직접 입력 (개발용)
-  3276→- URL 파라미터 기반 자동 로그인
-  3277→- 로그아웃 버튼
-  3278→
-  3279→**5. 사이드바 (`components/sidebar.py`)**
-  3280→- 네비게이션 메뉴 (온보딩, 대시보드, 검색, 설정, 피드백)
-  3281→- 페이지 헤더 함수
-  3282→- 통계 카드 렌더링
-  3283→
-  3284→**6. 메인 앱 (`main.py`)**
-  3285→- 페이지 라우팅 로직
-  3286→- 인증 확인 및 온보딩 플로우
-  3287→- 동적 페이지 임포트
-  3288→
-  3289→**Linter 이슈 해결:**
-  3290→- B904: Exception chaining - `raise Exception(...) from e` 수정
-  3291→
-  3292→---
-  3293→
-  3294→#### Checkpoint 2: AI 챗봇 온보딩 ✅
-  3295→
-  3296→**1. 챗봇 컴포넌트 (`components/chatbot.py`)**
-  3297→- `OnboardingChatbot` 클래스 (19개 메서드)
-  3298→- 5단계 대화형 설정 수집:
-  3299→  1. 연구 분야 (Machine Learning, NLP, etc.)
-  3300→  2. 관심 키워드 (transformer, GPT, BERT, etc.)
-  3301→  3. 정보 유형 비율 (논문/뉴스/리포트)
-  3302→  4. 추가 소스 (웹사이트 URL)
-  3303→  5. 이메일 설정 (발송 시간, 일일 제공량)
-  3304→
-  3305→**2. 주요 기능:**
-  3306→- 대화 히스토리 관리
-  3307→- 옵션 버튼 기반 선택
-  3308→- 자연어 입력 파싱
-  3309→- 설정 확인 및 수정
-  3310→- API를 통한 설정 저장
-  3311→
-  3312→**3. 온보딩 페이지 (`pages/onboarding.py`)**
-  3313→- 환영 헤더 및 안내
-  3314→- 챗봇 인터페이스 통합
-  3315→- 도움말 섹션
-  3316→
-  3317→**Linter 이슈 해결:**
-  3318→- E501: Line too long - 긴 문자열 분리 (105자 제한)
-  3319→- 백분율 계산 변수 추출
-  3320→
-  3321→---
-  3322→
-  3323→#### Checkpoint 3: 주요 페이지 ✅
-  3324→
-  3325→**1. 아티클 카드 컴포넌트 (`components/article_card.py`)**
-  3326→- `show_article_card()`: 상세 아티클 카드
-  3327→  - 제목, 요약, 메타데이터
-  3328→  - Source type 배지 (📚 논문, 📰 뉴스, 📊 리포트)
-  3329→  - 중요도 별 표시 (⭐⭐⭐)
-  3330→  - "원문 보기", "유사 논문" 액션 버튼
-  3331→- `show_article_list()`: 아티클 목록 렌더링
-  3332→- `show_compact_article_card()`: 컴팩트 버전
-  3333→
-  3334→**2. Dashboard 페이지 (`pages/dashboard.py`)**
-  3335→- **통계 카드**: 총 아티클, 받은 이메일, 평균 피드백
-  3336→- **최근 다이제스트**: 최근 3개 expandable 표시
-  3337→- **빠른 작업**: 테스트 이메일 발송, 검색/설정 이동
-  3338→
-  3339→**3. Search 페이지 (`pages/search.py`)**
-  3340→- **시맨틱 검색**: 자연어 쿼리 입력
-  3341→- **고급 필터**:
-  3342→  - Source type, Category 멀티셀렉트
-  3343→  - 최소 중요도 슬라이더
-  3344→  - 날짜 범위 (시작일, 종료일)
-  3345→  - 유사도 임계값, 최대 결과 수
-  3346→- **유사 문서 검색**: 아티클 카드에서 "유사 논문" 버튼 클릭
-  3347→- **예시 쿼리**: 클릭 가능한 예시 버튼
-  3348→
-  3349→**4. Settings 페이지 (`pages/settings.py`)**
-  3350→- **연구 분야/키워드**: Text area (쉼표 구분)
-  3351→- **정보 유형 비율**: 슬라이더 (논문/뉴스/리포트)
-  3352→  - 실시간 합계 표시 (100% 자동 정규화)
-  3353→- **추가 소스**: 웹사이트 URL 입력
-  3354→- **이메일 설정**: 발송 시간, 일일 아티클 수, 수신 여부
-  3355→- **도움말**: 설정 가이드 및 현재 설정 요약
-  3356→
-  3357→**메인 앱 업데이트:**
-  3358→- Dashboard, Search, Settings 페이지 라우팅 완료
-  3359→- Placeholder 제거
-  3360→
-  3361→---
-  3362→
-  3363→#### Checkpoint 4: 피드백 & 통합 ✅
-  3364→
-  3365→**1. Feedback 페이지 (`pages/feedback.py`)**
-  3366→
-  3367→**Tab 1: 피드백 제출**
-  3368→- 아티클 선택 방법 (2가지):
-  3369→  - 최근 다이제스트에서 선택
-  3370→  - 아티클 ID 직접 입력
-  3371→- 평점 슬라이더 (1-5) + 시각적 별 표시
-  3372→- 코멘트 입력 (최대 500자, 실시간 글자 수)
-  3373→- 제출 시 풍선 애니메이션
-  3374→
-  3375→**Tab 2: 피드백 이력**
-  3376→- 통계 대시보드:
-  3377→  - 총 피드백 수, 평균 평점, 최다 평점
-  3378→  - 평점 분포 (1-5점별 개수 및 비율)
-  3379→- 필터 및 정렬:
-  3380→  - 평점 필터 (멀티셀렉트)
-  3381→  - 정렬 (최신순, 평점 높은/낮은 순)
-  3382→- 피드백 목록 (expandable)
-  3383→  - 아티클 정보 로딩 버튼
-  3384→
-  3385→**2. 통합 테스트 노트북 (`notebooks/08.test_day8_checkpoint4.ipynb`)**
-  3386→- 환경 설정 확인
-  3387→- API Client 테스트 (15+ 엔드포인트)
-  3388→- 컴포넌트/페이지 임포트 테스트
-  3389→- 수동 테스트 체크리스트
-  3390→
-  3391→**3. 문서화**
-  3392→- `docs/reports/day8_checkpoint[1-4].md`
-  3393→- 각 체크포인트별 상세 구현 내용
-  3394→- 코드 예시, UI 패턴, 학습 포인트
-  3395→
-  3396→---
-  3397→
-  3398→### 참고 사항
-  3399→
-  3400→**구현 완료 항목 (6개 페이지 + 4개 컴포넌트):**
-  3401→
-  3402→**페이지:**
-  3403→1. Authentication (매직 링크 로그인)
-  3404→2. Onboarding (AI 챗봇)
-  3405→3. Dashboard (다이제스트 & 통계)
-  3406→4. Search (시맨틱 검색)
-  3407→5. Settings (설정 관리)
-  3408→6. Feedback (평가 & 코멘트)
-  3409→
-  3410→**컴포넌트:**
-  3411→1. Sidebar (네비게이션)
-  3412→2. Auth (로그인 UI)
-  3413→3. Article Card (아티클 표시)
-  3414→4. Chatbot (온보딩 챗봇)
-  3415→
-  3416→**코드 통계:**
-  3417→- 총 ~2,328 lines of Python code
-  3418→- 15+ API 메서드
-  3419→- 6개 페이지, 4개 컴포넌트
-  3420→- 2개 유틸리티 모듈
-  3421→
-  3422→**기술 스택:**
-  3423→- **Frontend**: Streamlit 1.40.2
-  3424→- **HTTP Client**: httpx (비동기 미사용, 동기 호출)
-  3425→- **Session Management**: Streamlit session_state
-  3426→- **Styling**: Streamlit 기본 + 커스텀 markdown/HTML
-  3427→
-  3428→**주요 패턴:**
-  3429→
-  3430→1. **Session State 관리**
-  3431→   ```python
-  3432→   # 초기화
-  3433→   if "user_id" not in st.session_state:
-  3434→       st.session_state.user_id = None
-  3435→
-  3436→   # 저장
-  3437→   st.session_state.user_id = user_id
-  3438→
-  3439→   # 조회
-  3440→   user_id = st.session_state.get("user_id")
-  3441→   ```
-  3442→
-  3443→2. **API 호출 패턴**
-  3444→   ```python
-  3445→   with st.spinner("로딩 중..."):
-  3446→       try:
-  3447→           result = api.method()
-  3448→           st.success("✅ 성공!")
-  3449→       except Exception as e:
-  3450→           st.error(f"❌ 오류: {str(e)}")
-  3451→   ```
-  3452→
-  3453→3. **동적 페이지 임포트**
-  3454→   ```python
-  3455→   def _show_page():
-  3456→       from app.frontend.pages.page import show_page
-  3457→       show_page()
-  3458→   ```
-  3459→
-  3460→**Linter 이슈 해결 (3건):**
-  3461→1. B904: Exception chaining (`from e` 추가)
-  3462→2. E501: Line too long (문자열 분리)
-  3463→3. Trailing commas (자동 수정)
-  3464→
-  3465→**실행 방법:**
-  3466→```bash
-  3467→# 백엔드 실행
-  3468→uvicorn src.app.api.main:app --reload
-  3469→
-  3470→# 프론트엔드 실행
-  3471→streamlit run src/app/frontend/main.py
-  3472→
-  3473→# 브라우저 접속
-  3474→http://localhost:8501
-  3475→```
-  3476→
-  3477→**알려진 제약사항:**
-  3478→
-  3479→1. **백엔드 API 의존성**
-  3480→   - 모든 기능은 FastAPI 백엔드 필요
-  3481→   - Auth 라우터 미구현 시 매직 링크 작동 안함
-  3482→   - 임시 해결: JWT 토큰 직접 생성 후 "토큰으로 로그인" 사용
-  3483→
-  3484→2. **개발 환경 토큰 표시**
-  3485→   - `st.secrets.get("environment") == "development"` 조건
-  3486→   - `.streamlit/secrets.toml`에 `environment = "development"` 필요
-  3487→   - API 응답에 `token` 필드 필요
-  3488→
-  3489→3. **오프라인 모드 미지원**
-  3490→   - 모든 데이터는 API를 통해 로딩
-  3491→   - 캐싱 미구현
-  3492→
-  3493→4. **실시간 검증 부족**
-  3494→   - 키워드/URL 형식 검증 없음
-  3495→   - 이메일 형식만 기본 검증
-  3496→
-  3497→**향후 개선 계획:**
-  3498→
-  3499→1. **UX 개선**
-  3500→   - 검색 히스토리 저장
-  3501→   - 필터 프리셋 기능
-  3502→   - 다크 모드 지원
-  3503→   - 다국어 지원
-  3504→
-  3505→2. **성능 최적화**
-  3506→   - API 응답 캐싱 (st.cache_data)
-  3507→   - 페이지네이션
-  3508→   - Lazy loading
-  3509→
-  3510→3. **기능 추가**
-  3511→   - 설정 내보내기/가져오기
-  3512→   - 대량 키워드 업로드
-  3513→   - 피드백 통계 차트
-  3514→   - 알림 설정
-  3515→
-  3516→**테스트 방법:**
-  3517→
-  3518→1. **자동 테스트** (notebooks/08.test_day8_checkpoint4.ipynb)
-  3519→   - API 연결 확인
-  3520→   - Import 테스트
-  3521→   - 기본 기능 검증
-  3522→
-  3523→2. **수동 테스트 체크리스트**
-  3524→   - [ ] 매직 링크 로그인
-  3525→   - [ ] 온보딩 완료
-  3526→   - [ ] 대시보드 통계 확인
-  3527→   - [ ] 검색 및 필터 테스트
-  3528→   - [ ] 설정 변경 및 저장
-  3529→   - [ ] 피드백 제출 및 이력 확인
-  3530→   - [ ] 유사 문서 검색
-  3531→   - [ ] 페이지 네비게이션
-  3532→
-  3533→**파일 구조:**
-  3534→```
-  3535→src/app/frontend/
-  3536→├── main.py (104 lines)
-  3537→├── components/
-  3538→│   ├── auth.py (171 lines)
-  3539→│   ├── sidebar.py (92 lines)
-  3540→│   ├── article_card.py (179 lines)
-  3541→│   └── chatbot.py (376 lines)
-  3542→├── pages/
-  3543→│   ├── onboarding.py (77 lines)
-  3544→│   ├── dashboard.py (129 lines)
-  3545→│   ├── search.py (223 lines)
-  3546→│   ├── settings.py (233 lines)
-  3547→│   └── feedback.py (371 lines)
-  3548→└── utils/
-  3549→    ├── session.py (113 lines)
-  3550→    └── api_client.py (260 lines)
-  3551→
-  3552→.streamlit/
-  3553→├── config.toml (theme, server settings)
-  3554→└── secrets.toml (API URL, environment)
-  3555→
-  3556→docs/reports/
-  3557→├── day8_checkpoint1.md
-  3558→├── day8_checkpoint2.md
-  3559→├── day8_checkpoint3.md
-  3560→└── day8_checkpoint4.md
-  3561→
-  3562→notebooks/
-  3563→├── 08.test_day8_checkpoint1.ipynb
-  3564→└── 08.test_day8_checkpoint4.ipynb
-  3565→```
-  3566→
-  3567→**상태**: ✅ **Day 8 완료** (프론트엔드 구현 100%)
-  3568→
-  3569→**다음 단계 (Day 9):**
-  3570→- 백엔드 Auth 라우터 구현 (매직 링크 API)
-  3571→- Vector DB 통합 완성
-  3572→- 전체 파이프라인 통합 테스트
-  3573→- 성능 최적화 및 에러 핸들링 강화
-  3574→
+---
+## Day 8: Streamlit 프론트엔드 구현 (2025-12-05)
+### 작업 계획
+**목표**: 사용자 친화적인 웹 대시보드 구축
+1. **Checkpoint 1: 기본 구조 & 인증**
+   - Streamlit 프로젝트 초기화
+   - 세션 관리 유틸리티
+   - FastAPI 클라이언트 래퍼
+   - 매직 링크 인증 컴포넌트
+   - 사이드바 네비게이션
+2. **Checkpoint 2: AI 챗봇 온보딩**
+   - 대화형 온보딩 챗봇 구현
+   - 5단계 질문 플로우
+   - 사용자 설정 수집 및 저장
+3. **Checkpoint 3: 주요 페이지**
+   - Dashboard: 다이제스트 이력 및 통계
+   - Search: 시맨틱 검색 및 필터링
+   - Settings: 사용자 설정 관리
+4. **Checkpoint 4: 피드백 & 통합**
+   - Feedback: 아티클 평가 및 코멘트
+   - 전체 통합 테스트
+   - 문서화
+---
+### 작업 내용
+#### Checkpoint 1: 기본 구조 & 인증 ✅
+**1. 프로젝트 초기화**
+- Streamlit & httpx 패키지 설치
+- 디렉토리 구조 생성:
+  ```
+  src/app/frontend/
+  ├── main.py              # 메인 앱
+  ├── components/          # 재사용 컴포넌트
+  │   ├── auth.py         # 인증 UI
+  │   └── sidebar.py      # 사이드바
+  ├── pages/               # 페이지 모듈
+  ├── utils/               # 유틸리티
+  │   ├── session.py      # 세션 관리
+  │   └── api_client.py   # API 클라이언트
+  └── .streamlit/
+      ├── config.toml
+      └── secrets.toml
+  ```
+**2. 세션 관리 (`utils/session.py`)**
+- 15개 함수 구현:
+  - `init_session_state()`: 세션 초기화
+  - `set_user_session()`: 사용자 정보 저장
+  - `is_authenticated()`: 인증 상태 확인
+  - `get_user_id()`, `get_user_email()`, `get_user_name()`: 정보 조회
+  - `is_onboarding_completed()`: 온보딩 완료 확인
+  - `clear_session()`: 로그아웃
+**3. API 클라이언트 (`utils/api_client.py`)**
+- 15+ API 메서드 구현:
+  - **Auth**: `request_magic_link()`, `verify_magic_link()`, `get_current_user()`
+  - **Preferences**: `get_user_preferences()`, `update_user_preferences()`
+  - **Articles**: `get_article()`, `search_articles()`, `find_similar_articles()`
+  - **Digests**: `get_user_digests()`, `send_test_digest()`
+  - **Feedback**: `submit_feedback()`, `get_user_feedback()`
+  - **LLM**: `chat_completion()`, `generate_embeddings()`
+**4. 인증 컴포넌트 (`components/auth.py`)**
+- 매직 링크 로그인 UI
+- 토큰 직접 입력 (개발용)
+- URL 파라미터 기반 자동 로그인
+- 로그아웃 버튼
+**5. 사이드바 (`components/sidebar.py`)**
+- 네비게이션 메뉴 (온보딩, 대시보드, 검색, 설정, 피드백)
+- 페이지 헤더 함수
+- 통계 카드 렌더링
+**6. 메인 앱 (`main.py`)**
+- 페이지 라우팅 로직
+- 인증 확인 및 온보딩 플로우
+- 동적 페이지 임포트
+**Linter 이슈 해결:**
+- B904: Exception chaining - `raise Exception(...) from e` 수정
+---
+#### Checkpoint 2: AI 챗봇 온보딩 ✅
+**1. 챗봇 컴포넌트 (`components/chatbot.py`)**
+- `OnboardingChatbot` 클래스 (19개 메서드)
+- 5단계 대화형 설정 수집:
+  1. 연구 분야 (Machine Learning, NLP, etc.)
+  2. 관심 키워드 (transformer, GPT, BERT, etc.)
+  3. 정보 유형 비율 (논문/뉴스/리포트)
+  4. 추가 소스 (웹사이트 URL)
+  5. 이메일 설정 (발송 시간, 일일 제공량)
+**2. 주요 기능:**
+- 대화 히스토리 관리
+- 옵션 버튼 기반 선택
+- 자연어 입력 파싱
+- 설정 확인 및 수정
+- API를 통한 설정 저장
+**3. 온보딩 페이지 (`pages/onboarding.py`)**
+- 환영 헤더 및 안내
+- 챗봇 인터페이스 통합
+- 도움말 섹션
+**Linter 이슈 해결:**
+- E501: Line too long - 긴 문자열 분리 (105자 제한)
+- 백분율 계산 변수 추출
+---
+#### Checkpoint 3: 주요 페이지 ✅
+**1. 아티클 카드 컴포넌트 (`components/article_card.py`)**
+- `show_article_card()`: 상세 아티클 카드
+  - 제목, 요약, 메타데이터
+  - Source type 배지 (📚 논문, 📰 뉴스, 📊 리포트)
+  - 중요도 별 표시 (⭐⭐⭐)
+  - "원문 보기", "유사 논문" 액션 버튼
+- `show_article_list()`: 아티클 목록 렌더링
+- `show_compact_article_card()`: 컴팩트 버전
+**2. Dashboard 페이지 (`pages/dashboard.py`)**
+- **통계 카드**: 총 아티클, 받은 이메일, 평균 피드백
+- **최근 다이제스트**: 최근 3개 expandable 표시
+- **빠른 작업**: 테스트 이메일 발송, 검색/설정 이동
+**3. Search 페이지 (`pages/search.py`)**
+- **시맨틱 검색**: 자연어 쿼리 입력
+- **고급 필터**:
+  - Source type, Category 멀티셀렉트
+  - 최소 중요도 슬라이더
+  - 날짜 범위 (시작일, 종료일)
+  - 유사도 임계값, 최대 결과 수
+- **유사 문서 검색**: 아티클 카드에서 "유사 논문" 버튼 클릭
+- **예시 쿼리**: 클릭 가능한 예시 버튼
+**4. Settings 페이지 (`pages/settings.py`)**
+- **연구 분야/키워드**: Text area (쉼표 구분)
+- **정보 유형 비율**: 슬라이더 (논문/뉴스/리포트)
+  - 실시간 합계 표시 (100% 자동 정규화)
+- **추가 소스**: 웹사이트 URL 입력
+- **이메일 설정**: 발송 시간, 일일 아티클 수, 수신 여부
+- **도움말**: 설정 가이드 및 현재 설정 요약
+**메인 앱 업데이트:**
+- Dashboard, Search, Settings 페이지 라우팅 완료
+- Placeholder 제거
+---
+#### Checkpoint 4: 피드백 & 통합 ✅
+**1. Feedback 페이지 (`pages/feedback.py`)**
+**Tab 1: 피드백 제출**
+- 아티클 선택 방법 (2가지):
+  - 최근 다이제스트에서 선택
+  - 아티클 ID 직접 입력
+- 평점 슬라이더 (1-5) + 시각적 별 표시
+- 코멘트 입력 (최대 500자, 실시간 글자 수)
+- 제출 시 풍선 애니메이션
+**Tab 2: 피드백 이력**
+- 통계 대시보드:
+  - 총 피드백 수, 평균 평점, 최다 평점
+  - 평점 분포 (1-5점별 개수 및 비율)
+- 필터 및 정렬:
+  - 평점 필터 (멀티셀렉트)
+  - 정렬 (최신순, 평점 높은/낮은 순)
+- 피드백 목록 (expandable)
+  - 아티클 정보 로딩 버튼
+**2. 통합 테스트 노트북 (`notebooks/08.test_day8_checkpoint4.ipynb`)**
+- 환경 설정 확인
+- API Client 테스트 (15+ 엔드포인트)
+- 컴포넌트/페이지 임포트 테스트
+- 수동 테스트 체크리스트
+**3. 문서화**
+- `docs/reports/day8_checkpoint[1-4].md`
+- 각 체크포인트별 상세 구현 내용
+- 코드 예시, UI 패턴, 학습 포인트
+---
+### 참고 사항
+**구현 완료 항목 (6개 페이지 + 4개 컴포넌트):**
+**페이지:**
+1. Authentication (매직 링크 로그인)
+2. Onboarding (AI 챗봇)
+3. Dashboard (다이제스트 & 통계)
+4. Search (시맨틱 검색)
+5. Settings (설정 관리)
+6. Feedback (평가 & 코멘트)
+**컴포넌트:**
+1. Sidebar (네비게이션)
+2. Auth (로그인 UI)
+3. Article Card (아티클 표시)
+4. Chatbot (온보딩 챗봇)
+**코드 통계:**
+- 총 ~2,328 lines of Python code
+- 15+ API 메서드
+- 6개 페이지, 4개 컴포넌트
+- 2개 유틸리티 모듈
+**기술 스택:**
+- **Frontend**: Streamlit 1.40.2
+- **HTTP Client**: httpx (비동기 미사용, 동기 호출)
+- **Session Management**: Streamlit session_state
+- **Styling**: Streamlit 기본 + 커스텀 markdown/HTML
+**주요 패턴:**
+1. **Session State 관리**
+   ```python
+   # 초기화
+   if "user_id" not in st.session_state:
+       st.session_state.user_id = None
+   # 저장
+   st.session_state.user_id = user_id
+   # 조회
+   user_id = st.session_state.get("user_id")
+   ```
+2. **API 호출 패턴**
+   ```python
+   with st.spinner("로딩 중..."):
+       try:
+           result = api.method()
+           st.success("✅ 성공!")
+       except Exception as e:
+           st.error(f"❌ 오류: {str(e)}")
+   ```
+3. **동적 페이지 임포트**
+   ```python
+   def _show_page():
+       from app.frontend.pages.page import show_page
+       show_page()
+   ```
+**Linter 이슈 해결 (3건):**
+1. B904: Exception chaining (`from e` 추가)
+2. E501: Line too long (문자열 분리)
+3. Trailing commas (자동 수정)
+**실행 방법:**
+```bash
+# 백엔드 실행
+uvicorn src.app.api.main:app --reload
+# 프론트엔드 실행
+streamlit run src/app/frontend/main.py
+# 브라우저 접속
+http://localhost:8501
+```
+**알려진 제약사항:**
+1. **백엔드 API 의존성**
+   - 모든 기능은 FastAPI 백엔드 필요
+   - Auth 라우터 미구현 시 매직 링크 작동 안함
+   - 임시 해결: JWT 토큰 직접 생성 후 "토큰으로 로그인" 사용
+2. **개발 환경 토큰 표시**
+   - `st.secrets.get("environment") == "development"` 조건
+   - `.streamlit/secrets.toml`에 `environment = "development"` 필요
+   - API 응답에 `token` 필드 필요
+3. **오프라인 모드 미지원**
+   - 모든 데이터는 API를 통해 로딩
+   - 캐싱 미구현
+4. **실시간 검증 부족**
+   - 키워드/URL 형식 검증 없음
+   - 이메일 형식만 기본 검증
+**향후 개선 계획:**
+1. **UX 개선**
+   - 검색 히스토리 저장
+   - 필터 프리셋 기능
+   - 다크 모드 지원
+   - 다국어 지원
+2. **성능 최적화**
+   - API 응답 캐싱 (st.cache_data)
+   - 페이지네이션
+   - Lazy loading
+3. **기능 추가**
+   - 설정 내보내기/가져오기
+   - 대량 키워드 업로드
+   - 피드백 통계 차트
+   - 알림 설정
+**테스트 방법:**
+1. **자동 테스트** (notebooks/08.test_day8_checkpoint4.ipynb)
+   - API 연결 확인
+   - Import 테스트
+   - 기본 기능 검증
+2. **수동 테스트 체크리스트**
+   - [ ] 매직 링크 로그인
+   - [ ] 온보딩 완료
+   - [ ] 대시보드 통계 확인
+   - [ ] 검색 및 필터 테스트
+   - [ ] 설정 변경 및 저장
+   - [ ] 피드백 제출 및 이력 확인
+   - [ ] 유사 문서 검색
+   - [ ] 페이지 네비게이션
+**파일 구조:**
+```
+src/app/frontend/
+├── main.py (104 lines)
+├── components/
+│   ├── auth.py (171 lines)
+│   ├── sidebar.py (92 lines)
+│   ├── article_card.py (179 lines)
+│   └── chatbot.py (376 lines)
+├── pages/
+│   ├── onboarding.py (77 lines)
+│   ├── dashboard.py (129 lines)
+│   ├── search.py (223 lines)
+│   ├── settings.py (233 lines)
+│   └── feedback.py (371 lines)
+└── utils/
+    ├── session.py (113 lines)
+    └── api_client.py (260 lines)
+.streamlit/
+├── config.toml (theme, server settings)
+└── secrets.toml (API URL, environment)
+docs/reports/
+├── day8_checkpoint1.md
+├── day8_checkpoint2.md
+├── day8_checkpoint3.md
+└── day8_checkpoint4.md
+notebooks/
+├── 08.test_day8_checkpoint1.ipynb
+└── 08.test_day8_checkpoint4.ipynb
+```
+**상태**: ✅ **Day 8 완료** (프론트엔드 구현 100%)
+**다음 단계 (Day 9):**
+- 백엔드 Auth 라우터 구현 (매직 링크 API)
+- Vector DB 통합 완성
+- 전체 파이프라인 통합 테스트
+- 성능 최적화 및 에러 핸들링 강화
 
 ---
 
