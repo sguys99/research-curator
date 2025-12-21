@@ -2831,15 +2831,21 @@ Day 7에서는 Research Curator의 핵심 자동화 파이프라인을 구축했
 
 구현 파일:
 - `src/app/db/models.py` - ForeignKey 관계 추가
-- `src/app/db/crud.py` - 40+ CRUD 연산 (신규)
+- `src/app/db/crud/users.py` - User CRUD 연산 (6개 함수)
+- `src/app/db/crud/preferences.py` - UserPreference CRUD 연산 (3개 함수)
+- `src/app/db/crud/articles.py` - Article CRUD 연산 (15개 함수)
+- `src/app/db/crud/digests.py` - Digest CRUD 연산 (6개 함수)
+- `src/app/db/crud/feedback.py` - Feedback CRUD 연산 (11개 함수)
+- `src/app/db/crud/__init__.py` - 전체 CRUD 함수 export
 - `alembic/versions/69f38edcb7ac_*.py` - 데이터베이스 마이그레이션
-- `notebooks/07.test_day7_checkpoint1.ipynb` - 테스트 노트북
+- `notebooks/07.test_db_models_crud.ipynb` - CRUD 통합 테스트 노트북
 
 핵심 기능:
 - SQLAlchemy ORM 관계 설정 (1:1, 1:N)
 - CASCADE 삭제로 데이터 무결성 보장
 - 페이지네이션, 필터링, 정렬 지원
 - 40+ CRUD 연산 (User, UserPreference, CollectedArticle, SentDigest, Feedback)
+- CRUD 모듈 패키지 구조로 재구성 (단일 파일 → 5개 모듈 파일)
 
 기술 세부사항:
 ```python
@@ -2852,18 +2858,78 @@ users (id, email, name, created_at, last_login)
 collected_articles (id, title, content, summary, source_url, importance_score, ...)
     └── feedback (1:N)
 
-# CRUD Operations (40+)
-User: create, get_by_id, get_by_email, update, delete, list
-UserPreference: create, get, update, delete
-CollectedArticle: create, get_by_id, get_by_url, update, delete, list, count
-  - 고급 쿼리: filter_by_type/category, get_top_by_importance
-SentDigest: create, get_by_id, list_user_digests, get_latest, update_opened
-Feedback: create, get, update, delete, list, get_average_rating
+# CRUD Operations (41개 함수)
+
+## User CRUD (users.py - 6개)
+- get_user_by_id()
+- get_user_by_email()
+- create_user()
+- update_user_last_login()
+- update_user()               # ✨ 추가 구현
+- delete_user()               # ✨ 추가 구현
+- list_users()                # ✨ 추가 구현
+
+## UserPreference CRUD (preferences.py - 3개)
+- get_user_preference()
+- create_user_preference()
+- update_user_preference()
+
+## Article CRUD (articles.py - 15개)
+- get_articles()
+- get_article_by_id()
+- get_article_by_url()
+- get_articles_by_ids()
+- create_article()
+- update_article()
+- delete_article()
+- get_article_statistics()
+- search_articles()
+- list_articles()             # ✨ 추가 구현
+- count_articles()            # ✨ 추가 구현
+- get_top_articles_by_importance()  # ✨ 추가 구현
+
+## Digest CRUD (digests.py - 6개)
+- get_user_digests()
+- get_latest_digest()
+- create_digest()
+- get_digest_by_id()          # ✨ 추가 구현
+- update_digest_opened()      # ✨ 추가 구현
+- list_user_digests()         # ✨ 추가 구현
+
+## Feedback CRUD (feedback.py - 11개)
+- get_feedback_by_id()
+- get_user_feedback()
+- get_article_feedback()
+- create_feedback()
+- update_feedback()
+- delete_feedback()
+- get_article_feedback_stats()
+- get_user_feedback_for_article()    # ✨ 추가 구현
+- list_article_feedbacks()           # ✨ 추가 구현
+- list_user_feedbacks()              # ✨ 추가 구현
+- get_article_average_rating()       # ✨ 추가 구현
 ```
 
+추가 개발 내역:
+
+- 테스트 노트북 실행 중 13개 CRUD 함수 누락 발견
+- 모든 CRUD 모듈에 누락된 함수 추가 구현
+  - users.py: `update_user()`, `delete_user()`, `list_users()`
+  - articles.py: `list_articles()`, `count_articles()`, `get_top_articles_by_importance()`
+  - digests.py: `get_digest_by_id()`, `update_digest_opened()`, `list_user_digests()`
+  - feedback.py: `get_user_feedback_for_article()`, `list_article_feedbacks()`, `list_user_feedbacks()`, `get_article_average_rating()`
+- `__init__.py`에 13개 함수 export 추가
+- 테스트 노트북 수정사항:
+  - `create_user()` 함수가 자동으로 UserPreference 생성하므로, 노트북에서 `update_user_preference()` 사용으로 변경
+  - `create_article()` 함수 인자 수정 (`article_metadata` → `metadata`, `published_at` 제거, `summary` 필수 인자 추가)
+  - CASCADE 삭제 테스트에서 preference 중복 생성 방지
+
 테스트 결과: **모든 CRUD 연산 통과 ✅**
-- User, UserPreference, CollectedArticle, SentDigest, Feedback 전체 테스트
+
+- User, UserPreference, CollectedArticle, SentDigest, Feedback 전체 테스트 (8개 섹션)
 - CASCADE 삭제 및 관계 무결성 검증 완료
+- 총 41개 CRUD 함수 검증 완료
+- 노트북 전체 실행 성공 (모든 셀 에러 없이 실행)
 
 ---
 
