@@ -204,3 +204,100 @@ def get_article_feedback_stats(db: Session, article_id: UUID) -> dict:
         "average_rating": round(average_rating, 2),
         "rating_distribution": rating_distribution,
     }
+
+
+def get_user_feedback_for_article(
+    db: Session,
+    user_id: UUID,
+    article_id: UUID,
+) -> Feedback | None:
+    """
+    Get specific user's feedback for a specific article.
+
+    Args:
+        db: Database session
+        user_id: User UUID
+        article_id: Article UUID
+
+    Returns:
+        Feedback object or None if not found
+    """
+    return (
+        db.query(Feedback).filter(Feedback.user_id == user_id, Feedback.article_id == article_id).first()
+    )
+
+
+def list_article_feedbacks(
+    db: Session,
+    article_id: UUID,
+    skip: int = 0,
+    limit: int = 20,
+) -> list[Feedback]:
+    """
+    List feedbacks for an article (simplified version).
+
+    Args:
+        db: Database session
+        article_id: Article UUID
+        skip: Number of records to skip
+        limit: Maximum number of records to return
+
+    Returns:
+        List of Feedback objects
+    """
+    return (
+        db.query(Feedback)
+        .filter(Feedback.article_id == article_id)
+        .order_by(desc(Feedback.created_at))
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+
+
+def list_user_feedbacks(
+    db: Session,
+    user_id: UUID,
+    skip: int = 0,
+    limit: int = 20,
+) -> list[Feedback]:
+    """
+    List user's feedbacks (simplified version).
+
+    Args:
+        db: Database session
+        user_id: User UUID
+        skip: Number of records to skip
+        limit: Maximum number of records to return
+
+    Returns:
+        List of Feedback objects
+    """
+    return (
+        db.query(Feedback)
+        .filter(Feedback.user_id == user_id)
+        .order_by(desc(Feedback.created_at))
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+
+
+def get_article_average_rating(
+    db: Session,
+    article_id: UUID,
+) -> float | None:
+    """
+    Calculate average rating for an article.
+
+    Args:
+        db: Database session
+        article_id: Article UUID
+
+    Returns:
+        Average rating (float) or None if no ratings
+    """
+    stats = get_article_feedback_stats(db, article_id)
+    if stats["count"] == 0:
+        return None
+    return stats["average_rating"]

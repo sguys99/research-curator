@@ -335,3 +335,83 @@ def search_articles(
     articles = query.order_by(desc(CollectedArticle.importance_score)).offset(skip).limit(limit).all()
 
     return articles, total
+
+
+def list_articles(
+    db: Session,
+    skip: int = 0,
+    limit: int = 20,
+    source_type: str | None = None,
+    category: str | None = None,
+    min_importance: float | None = None,
+) -> list[CollectedArticle]:
+    """
+    List articles with filtering (simplified version of get_articles).
+
+    Args:
+        db: Database session
+        skip: Number of records to skip
+        limit: Maximum number of records to return
+        source_type: Filter by source type (optional)
+        category: Filter by category (optional)
+        min_importance: Minimum importance score (optional)
+
+    Returns:
+        List of CollectedArticle objects
+    """
+    query = db.query(CollectedArticle)
+
+    # Apply filters
+    if source_type:
+        query = query.filter(CollectedArticle.source_type == source_type)
+    if category:
+        query = query.filter(CollectedArticle.category == category)
+    if min_importance is not None:
+        query = query.filter(CollectedArticle.importance_score >= min_importance)
+
+    # Order by collection date (newest first)
+    query = query.order_by(desc(CollectedArticle.collected_at))
+
+    # Apply pagination
+    return query.offset(skip).limit(limit).all()
+
+
+def count_articles(
+    db: Session,
+    source_type: str | None = None,
+) -> int:
+    """
+    Count total articles with optional filtering.
+
+    Args:
+        db: Database session
+        source_type: Filter by source type (optional)
+
+    Returns:
+        Total count of articles
+    """
+    query = db.query(CollectedArticle)
+
+    if source_type:
+        query = query.filter(CollectedArticle.source_type == source_type)
+
+    return query.count()
+
+
+def get_top_articles_by_importance(
+    db: Session,
+    limit: int = 10,
+) -> list[CollectedArticle]:
+    """
+    Get top N articles ordered by importance score.
+
+    Args:
+        db: Database session
+        limit: Maximum number of articles to return
+
+    Returns:
+        List of top-rated articles
+    """
+    return (
+        db.query(CollectedArticle).order_by(desc(CollectedArticle.importance_score)).limit(limit).all()
+    )

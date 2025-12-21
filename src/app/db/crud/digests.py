@@ -73,3 +73,72 @@ def create_digest(
     db.commit()
     db.refresh(digest)
     return digest
+
+
+def get_digest_by_id(db: Session, digest_id: UUID) -> SentDigest | None:
+    """
+    Get digest by ID.
+
+    Args:
+        db: Database session
+        digest_id: Digest UUID
+
+    Returns:
+        SentDigest object or None if not found
+    """
+    return db.query(SentDigest).filter(SentDigest.id == digest_id).first()
+
+
+def update_digest_opened(
+    db: Session,
+    digest_id: UUID,
+    opened_at,
+) -> SentDigest | None:
+    """
+    Mark digest as opened and record timestamp.
+
+    Args:
+        db: Database session
+        digest_id: Digest UUID
+        opened_at: Timestamp when digest was opened
+
+    Returns:
+        Updated SentDigest object or None if not found
+    """
+    digest = get_digest_by_id(db, digest_id)
+    if not digest:
+        return None
+
+    digest.email_opened = True
+    digest.opened_at = opened_at
+    db.commit()
+    db.refresh(digest)
+    return digest
+
+
+def list_user_digests(
+    db: Session,
+    user_id: UUID,
+    skip: int = 0,
+    limit: int = 10,
+) -> list[SentDigest]:
+    """
+    List user's digests (simplified version of get_user_digests).
+
+    Args:
+        db: Database session
+        user_id: User UUID
+        skip: Number of records to skip
+        limit: Maximum number of records to return
+
+    Returns:
+        List of SentDigest objects
+    """
+    return (
+        db.query(SentDigest)
+        .filter(SentDigest.user_id == user_id)
+        .order_by(SentDigest.sent_at.desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )

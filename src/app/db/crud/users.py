@@ -78,3 +78,74 @@ def update_user_last_login(db: Session, user_id: UUID) -> User | None:
         db.commit()
         db.refresh(user)
     return user
+
+
+def update_user(
+    db: Session,
+    user_id: UUID,
+    email: str | None = None,
+    name: str | None = None,
+) -> User | None:
+    """
+    Update user information.
+
+    Args:
+        db: Database session
+        user_id: User UUID
+        email: New email (optional)
+        name: New name (optional)
+
+    Returns:
+        Updated User object or None if not found
+    """
+    user = get_user_by_id(db, user_id)
+    if not user:
+        return None
+
+    if email is not None:
+        user.email = email
+    if name is not None:
+        user.name = name
+
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def delete_user(db: Session, user_id: UUID) -> bool:
+    """
+    Delete user (CASCADE will delete related data).
+
+    Args:
+        db: Database session
+        user_id: User UUID
+
+    Returns:
+        True if deleted, False if not found
+    """
+    user = get_user_by_id(db, user_id)
+    if not user:
+        return False
+
+    db.delete(user)
+    db.commit()
+    return True
+
+
+def list_users(
+    db: Session,
+    skip: int = 0,
+    limit: int = 20,
+) -> list[User]:
+    """
+    List all users with pagination.
+
+    Args:
+        db: Database session
+        skip: Number of records to skip
+        limit: Maximum number of records to return
+
+    Returns:
+        List of User objects
+    """
+    return db.query(User).offset(skip).limit(limit).all()
