@@ -2966,8 +2966,6 @@ collected_articles (id, title, content, summary, source_url, importance_score, .
 
 **Checkpoint 3: Full Pipeline 통합 (완료)**
 
-구현 파일:
-- `notebooks/07.test_day7_checkpoint3.ipynb` - End-to-end 통합 테스트
 
 핵심 기능:
 - 전체 파이프라인 End-to-end 검증
