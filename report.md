@@ -2940,7 +2940,6 @@ collected_articles (id, title, content, summary, source_url, importance_score, .
 - `src/app/scheduler/main.py` - APScheduler 설정 및 라이프사이클
 - `src/app/scheduler/tasks.py` - Scheduled tasks (3개)
 - `src/app/core/retry.py` - `with_retry` 함수 추가
-- `notebooks/07.test_day7_checkpoint2.ipynb` - 테스트 노트북
 
 핵심 기능:
 - APScheduler 기반 백그라운드 작업 스케줄링
@@ -2963,12 +2962,6 @@ collected_articles (id, title, content, summary, source_url, importance_score, .
 - Manual job triggering
 - with_retry: 최대 3회 재시도, exponential backoff
 ```
-
-테스트 결과: **모든 기능 통과 ✅**
-- Scheduler initialization, job registration
-- Start/stop lifecycle, status monitoring
-- KST timezone handling
-
 ---
 
 **Checkpoint 3: Full Pipeline 통합 (완료)**
@@ -3012,11 +3005,6 @@ collected_articles (id, title, content, summary, source_url, importance_score, .
    - SMTP 발송
    - 발송 이력 기록
 ```
-
-테스트 결과: **전체 파이프라인 통과 ✅**
-- Data collection, LLM processing, Database persistence
-- Embedding generation, Digest curation, Email sending
-- Relationship integrity, Error handling
 
 ---
 
