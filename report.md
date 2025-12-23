@@ -3013,6 +3013,7 @@ collected_articles (id, title, content, summary, source_url, importance_score, .
 - `src/app/api/routers/scheduler.py` - 4개 REST API 엔드포인트
 - `src/app/api/main.py` - scheduler router 통합
 - `src/app/api/schemas/__init__.py` - scheduler schemas export
+- `notebooks/07.test_scheduler_api.ipynb` - Scheduler API 통합 테스트 노트북
 
 핵심 기능:
 - 스케줄러 상태 모니터링 REST API
@@ -3046,6 +3047,62 @@ curl -X POST http://localhost:8000/api/scheduler/jobs/trigger \
 - POST /jobs/trigger, /control - 200 OK
 - Error handling (404, 400, 422)
 - Swagger UI & ReDoc 자동 생성 확인
+
+**Jupyter Notebook 테스트:**
+
+- `notebooks/07.test_scheduler_api.ipynb` - 포괄적인 Scheduler API 테스트
+  - Section 1: GET /api/scheduler/status - 스케줄러 상태 조회
+  - Section 2: GET /api/scheduler/jobs - 작업 목록 조회
+  - Section 3: POST /api/scheduler/jobs/trigger - 작업 수동 실행 (3개 작업)
+  - Section 4: POST /api/scheduler/control - 스케줄러 시작/중지 제어
+  - Section 5: 통합 워크플로우 테스트 (6단계 E2E 테스트)
+  - Section 6: 에러 핸들링 테스트 (5개 에러 시나리오)
+  - Section 7: 응답 스키마 검증 (4개 스키마 타입)
+  - Section 8: 테스트 요약
+
+**테스트 세부 내용:**
+```python
+# 테스트된 엔드포인트 (4개)
+1. GET /api/scheduler/status
+   - 실행 상태, 타임존, 현재 시간, 작업 목록 확인
+   - SchedulerStatusResponse 스키마 검증
+
+2. GET /api/scheduler/jobs
+   - 등록된 작업 목록 조회
+   - JobInfo 스키마 검증
+   - 다음 실행까지 남은 시간 계산
+
+3. POST /api/scheduler/jobs/trigger
+   - collect_data, process_articles, send_digests 수동 실행
+   - 존재하지 않는 작업 ID 에러 처리 (404)
+   - 안전 플래그 (ENABLE_ALL_JOBS) 구현
+
+4. POST /api/scheduler/control
+   - 스케줄러 시작/중지 제어
+   - 잘못된 액션 에러 처리 (400)
+   - 상태 복원 로직
+
+# 에러 핸들링 테스트 (5개 시나리오)
+✅ Test 1: 존재하지 않는 작업 ID (404)
+✅ Test 2: job_id 필드 누락 (422)
+✅ Test 3: 잘못된 control action (400)
+✅ Test 4: 이미 실행 중인 스케줄러 시작 시도
+✅ Test 5: 이미 중지된 스케줄러 중지 시도
+
+# 응답 스키마 검증 (4개)
+✅ SchedulerStatusResponse (running, timezone, current_time, jobs)
+✅ JobListResponse (total, jobs)
+✅ TriggerJobResponse (success, message, job_id, triggered_at)
+✅ SchedulerControlResponse (success, message, running)
+```
+
+**주요 기능:**
+
+- 안전한 테스트 실행 (ENABLE_ALL_JOBS 플래그)
+- 스케줄러 상태 복원 로직
+- 종합적인 에러 처리 검증
+- 실시간 다음 실행 시간 계산
+- 명확한 테스트 문서화 및 경고 메시지
 
 ---
 
