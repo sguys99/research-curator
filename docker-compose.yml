@@ -27,11 +27,8 @@ services:
     environment:
       QDRANT__SERVICE__HTTP_PORT: 6333
       QDRANT__SERVICE__GRPC_PORT: 6334
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:6333/healthz"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    # Healthcheck removed - Qdrant image doesn't include curl/wget
+    # Service is ready when ports 6333/6334 are listening
 
 volumes:
   postgres_data:
