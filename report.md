@@ -3013,7 +3013,6 @@ collected_articles (id, title, content, summary, source_url, importance_score, .
 - `src/app/api/routers/scheduler.py` - 4개 REST API 엔드포인트
 - `src/app/api/main.py` - scheduler router 통합
 - `src/app/api/schemas/__init__.py` - scheduler schemas export
-- `notebooks/07.test_day7_checkpoint4.ipynb` - API 테스트 노트북
 
 핵심 기능:
 - 스케줄러 상태 모니터링 REST API
