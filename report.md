@@ -3089,24 +3089,7 @@ curl -X POST http://localhost:8000/api/scheduler/jobs/trigger \
 - pyproject.toml
 ```
 
-**테스트 실행:**
-```bash
-# Checkpoint 1-3
-jupyter notebook notebooks/07.test_day7_checkpoint[1-3].ipynb
 
-# Checkpoint 4 (FastAPI 서버 필요)
-uvicorn src.app.api.main:app --reload --port 8000
-jupyter notebook notebooks/07.test_day7_checkpoint4.ipynb
-
-# Standalone 실행
-python -m src.app.scheduler.main
-```
-
-**제약사항:**
-- Vector DB 저장 미완성 (embedding 생성만 완료)
-- SMTP 이메일 미테스트 (환경 변수 필요)
-- Rate limiting 미적용
-- 에러 알림 시스템 없음
 
 **향후 개선:**
 - Vector DB operations 완성
@@ -3117,7 +3100,6 @@ python -m src.app.scheduler.main
 
 **상태**: ✅ Production Ready (Vector DB integration pending)
 
----
 ---
 ## Day 8: Streamlit 프론트엔드 구현 (2025-12-05)
 ### 작업 계획
