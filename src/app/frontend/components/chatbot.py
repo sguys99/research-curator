@@ -159,8 +159,8 @@ class OnboardingChatbot:
 
     def _extract_research_fields(self, text: str):
         """Extract research fields from user input."""
-        # Simple extraction: split by comma
-        fields = [field.strip() for field in text.replace(",", " ").split() if len(field.strip()) > 2]
+        # Split by comma to preserve multi-word phrases (e.g., "vector db")
+        fields = [field.strip() for field in text.split(",") if len(field.strip()) > 2]
 
         if not fields:
             fields = ["AI", "Machine Learning"]  # Default
@@ -181,8 +181,8 @@ class OnboardingChatbot:
 
     def _extract_keywords(self, text: str):
         """Extract keywords from user input."""
-        # Simple extraction
-        keywords = [kw.strip() for kw in text.replace(",", " ").split() if len(kw.strip()) > 1]
+        # Split by comma to preserve multi-word phrases (e.g., "vector db")
+        keywords = [kw.strip() for kw in text.split(",") if len(kw.strip()) > 1]
 
         if not keywords:
             keywords = ["AI", "research"]

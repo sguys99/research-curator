@@ -38,21 +38,88 @@ def request_magic_link(
     # Create magic link token
     token = create_magic_link_token(request.email)
 
-    # In production, send email with magic link
-    # For now, we'll just log it or return it in development mode
-    if settings.ENVIRONMENT == "development":
-        return MagicLinkResponse(
-            message="Magic link generated. In production, this would be sent via email.",
-            token=token,
+    # Send email with magic link
+    try:
+        from app.email.sender import EmailSender
+
+        # Generate magic link URL
+        frontend_url = getattr(settings, "FRONTEND_URL", "http://localhost:8501")
+        magic_link = f"{frontend_url}/?token={token}"
+
+        # Build email content
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+                .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                .button {{
+                    display: inline-block;
+                    padding: 12px 24px;
+                    background-color: #007bff;
+                    color: white;
+                    text-decoration: none;
+                    border-radius: 5px;
+                    margin: 20px 0;
+                }}
+                .footer {{ margin-top: 30px; font-size: 12px; color: #666; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h2>🔬 Research Curator 로그인</h2>
+                <p>안녕하세요!</p>
+                <p>로그인을 위해 아래 버튼을 클릭해주세요:</p>
+                <a href="{magic_link}" class="button">로그인하기</a>
+                <p>또는 아래 링크를 복사하여 브라우저에 붙여넣으세요:</p>
+                <p style="word-break: break-all; background: #f5f5f5; padding: 10px;">{magic_link}</p>
+                <p>이 링크는 15분 동안 유효합니다.</p>
+                <div class="footer">
+                    <p>이 이메일은 Research Curator 로그인 요청에 따라 발송되었습니다.</p>
+                    <p>요청하지 않으셨다면 이 이메일을 무시하셔도 됩니다.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+
+        # Send email
+        sender = EmailSender()
+        import asyncio
+
+        asyncio.run(
+            sender.send_email(
+                to_email=request.email,
+                subject="🔬 Research Curator 로그인 링크",
+                html_content=html_content,
+            ),
         )
-    else:
-        # TODO: Send email with magic link
-        # magic_link = f"{settings.FRONTEND_URL}/auth/verify?token={token}"
-        # send_magic_link_email(user.email, magic_link)
-        return MagicLinkResponse(
-            message="Magic link sent to your email address.",
-            token=None,
-        )
+
+        # Return response based on environment
+        if settings.ENVIRONMENT == "development":
+            return MagicLinkResponse(
+                message="매직 링크가 이메일로 발송되었습니다!",
+                token=token,  # Show token in development for debugging
+            )
+        else:
+            return MagicLinkResponse(
+                message="매직 링크가 이메일로 발송되었습니다. 이메일을 확인해주세요.",
+                token=None,
+            )
+
+    except Exception as e:
+        # If email sending fails, still allow development mode to work
+        if settings.ENVIRONMENT == "development":
+            return MagicLinkResponse(
+                message=f"이메일 발송 실패 (개발 모드 - 토큰 직접 사용 가능): {str(e)}",
+                token=token,
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"이메일 발송에 실패했습니다: {str(e)}",
+            ) from e
 
 
 @router.get("/verify", response_model=TokenResponse)

@@ -115,11 +115,11 @@ def handle_magic_link_callback() -> None:
                 # Verify magic link token
                 result = api.verify_magic_link(token)
 
-                # Set session
+                # Set session (user data is inside 'user' object)
                 set_user_session(
-                    user_id=result["user_id"],
-                    user_email=result["email"],
-                    user_name=result.get("name", "User"),
+                    user_id=result["user"]["id"],
+                    user_email=result["user"]["email"],
+                    user_name=result["user"].get("name", "User"),
                     access_token=result["access_token"],
                 )
 

@@ -428,4 +428,6 @@ class APIClient:
 @st.cache_resource
 def get_api_client() -> APIClient:
     """Get cached API client instance."""
-    return APIClient()
+    # Get base URL from secrets or use default
+    base_url = st.secrets.get("api_base_url", "http://localhost:8000")
+    return APIClient(base_url=base_url)
