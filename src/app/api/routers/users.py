@@ -1,8 +1,11 @@
 """Users router for user management and preferences."""
 
+import logging
+from datetime import datetime, timedelta
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_user
@@ -15,8 +18,11 @@ from app.api.schemas.users import (
 )
 from app.db.crud.digests import get_user_digests
 from app.db.crud.preferences import get_user_preference, update_user_preference
-from app.db.models import User
+from app.db.models import CollectedArticle, User
 from app.db.session import get_db
+from app.email.selection import select_articles_for_user
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["users"])
 
@@ -198,3 +204,119 @@ def get_digests(
         digests=digest_responses,
         total=total,
     )
+
+
+@router.post("/{user_id}/digests/test")
+async def send_test_digest(
+    user_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    """
+    Send test digest email to user.
+
+    This endpoint sends a test email with recent articles based on user preferences.
+    It's useful for testing the email delivery and previewing the digest format.
+
+    Args:
+        user_id: User UUID
+        db: Database session
+        current_user: Current authenticated user
+
+    Returns:
+        dict: Success message with digest details
+
+    Raises:
+        HTTPException: If user not authorized, preferences not found, or no articles available
+    """
+    # Check authorization
+    if str(current_user.id) != str(user_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to send test digest for this user",
+        )
+
+    # Get user preferences
+    preferences = get_user_preference(db, user_id)
+    if not preferences:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User preferences not found. Please complete onboarding first.",
+        )
+
+    # Get recent articles (last 7 days)
+    try:
+        seven_days_ago = datetime.now() - timedelta(days=7)
+        stmt = (
+            select(CollectedArticle)
+            .where(CollectedArticle.collected_at >= seven_days_ago)
+            .order_by(CollectedArticle.importance_score.desc())
+            .limit(50)
+        )
+        result = db.execute(stmt)
+        all_articles = list(result.scalars().all())
+
+        if not all_articles:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No articles available for digest. Please collect articles first.",
+            )
+
+        # Select articles based on user preferences
+        selected_articles = select_articles_for_user(
+            articles=all_articles,
+            preferences=preferences,
+            limit=preferences.daily_limit or 5,
+        )
+
+        if not selected_articles:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=(
+                    "No articles match your preferences. "
+                    "Try adjusting your keywords or research fields."
+                ),
+            )
+
+        # Build email content
+        from app.email.builder import EmailBuilder
+        from app.email.sender import EmailSender
+
+        builder = EmailBuilder()
+        html_content = builder.build_daily_digest(
+            user_name=current_user.name,
+            user_email=current_user.email,
+            articles=selected_articles,
+            daily_limit=preferences.daily_limit or 5,
+        )
+
+        # Generate subject
+        date_str = datetime.now().strftime("%Y년 %m월 %d일")
+        subject = f"🔬 [테스트] Research Curator - {date_str} AI 연구 동향"
+
+        # Send email
+        sender = EmailSender()
+        await sender.send_email(
+            to_email=current_user.email,
+            subject=subject,
+            html_content=html_content,
+        )
+
+        logger.info(f"Test digest sent successfully to user {user_id}")
+
+        return {
+            "message": "Test digest sent successfully",
+            "user_id": str(user_id),
+            "user_email": current_user.email,
+            "article_count": len(selected_articles),
+            "total_available": len(all_articles),
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error sending test digest to user {user_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to send test digest: {str(e)}",
+        ) from e
