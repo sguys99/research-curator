@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
+from premailer import transform
 
 from app.db.models import CollectedArticle
 
@@ -63,7 +64,10 @@ class EmailBuilder:
         }
 
         # Render template
-        return self.render_template("daily_digest.html", context)
+        html = self.render_template("daily_digest.html", context)
+
+        # Convert CSS to inline styles for better email client compatibility (especially Naver)
+        return self._inline_css(html)
 
     def _select_top_articles(
         self,
@@ -228,6 +232,29 @@ class EmailBuilder:
         """
         template = self.env.get_template(template_name)
         return template.render(**context)
+
+    def _inline_css(self, html: str) -> str:
+        """
+        Convert CSS styles to inline styles for better email client compatibility.
+
+        This is especially important for email clients like Naver that strip <style> tags.
+        Uses premailer to automatically convert all CSS to inline style attributes.
+
+        Args:
+            html: HTML content with <style> tags
+
+        Returns:
+            str: HTML content with inline styles
+        """
+        try:
+            # Transform CSS to inline styles
+            return transform(html)
+        except Exception as e:
+            # If inlining fails, return original HTML
+            import logging
+
+            logging.warning(f"Failed to inline CSS: {e}")
+            return html
 
 
 # Convenience function for quick email building
