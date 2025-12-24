@@ -423,6 +423,47 @@ class APIClient:
             )
             return self._handle_response(response)
 
+    # ========== Scheduler ==========
+
+    def get_scheduler_status(self) -> dict[str, Any]:
+        """Get scheduler status."""
+        with httpx.Client(timeout=self.timeout) as client:
+            response = client.get(
+                f"{self.base_url}/api/scheduler/status",
+                headers=self._get_headers(),
+            )
+            return self._handle_response(response)
+
+    def start_scheduler(self) -> dict[str, Any]:
+        """Start the scheduler."""
+        with httpx.Client(timeout=self.timeout) as client:
+            response = client.post(
+                f"{self.base_url}/api/scheduler/control",
+                json={"action": "start"},
+                headers=self._get_headers(),
+            )
+            return self._handle_response(response)
+
+    def stop_scheduler(self) -> dict[str, Any]:
+        """Stop the scheduler."""
+        with httpx.Client(timeout=self.timeout) as client:
+            response = client.post(
+                f"{self.base_url}/api/scheduler/control",
+                json={"action": "stop"},
+                headers=self._get_headers(),
+            )
+            return self._handle_response(response)
+
+    def trigger_job(self, job_id: str) -> dict[str, Any]:
+        """Manually trigger a scheduled job."""
+        with httpx.Client(timeout=60.0) as client:  # Longer timeout for job execution
+            response = client.post(
+                f"{self.base_url}/api/scheduler/jobs/trigger",
+                json={"job_id": job_id},
+                headers=self._get_headers(),
+            )
+            return self._handle_response(response)
+
 
 # Global API client instance
 @st.cache_resource
