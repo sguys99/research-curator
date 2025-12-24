@@ -11,7 +11,8 @@ from app.collectors.news import NewsCollector
 from app.core.retry import with_retry
 from app.db import crud
 from app.db.session import SessionLocal
-from app.email.digest import send_daily_digest
+from app.email.builder import EmailBuilder
+from app.email.sender import EmailSender
 from app.processors.classifier import ContentClassifier
 from app.processors.embedder import TextEmbedder
 from app.processors.evaluator import ImportanceEvaluator
@@ -106,7 +107,6 @@ def collect_data_task() -> None:
                     # Check if article already exists
                     existing = crud.get_article_by_url(db, article_data.url)
                     if existing:
-                        logger.debug(f"Article already exists: {article_data.title[:50]}...")
                         continue
 
                     # Create article
@@ -122,7 +122,6 @@ def collect_data_task() -> None:
                         metadata=article_data.metadata,
                     )
                     collected_count += 1
-                    logger.info(f"✅ Collected from arXiv: {article_data.title[:60]}...")
 
             except Exception as e:
                 logger.error(f"Error collecting from arXiv for field '{field}': {e}")
@@ -156,7 +155,6 @@ def collect_data_task() -> None:
                         metadata=article_data.metadata,
                     )
                     collected_count += 1
-                    logger.info(f"✅ Collected from News: {article_data.title[:60]}...")
 
             except Exception as e:
                 logger.error(f"Error collecting news for keyword '{keyword}': {e}")
@@ -211,11 +209,8 @@ def process_articles_task() -> None:
 
         for article in unprocessed:
             try:
-                logger.info(f"\nProcessing: {article.title[:60]}...")
-
                 # 1. Generate summary if not exists
                 if not article.summary:
-                    logger.info("  - Generating summary...")
                     summary = with_retry(
                         lambda a=article: summarize_article(
                             title=a.title,
@@ -224,11 +219,9 @@ def process_articles_task() -> None:
                         max_attempts=3,
                     )
                     article.summary = summary
-                    logger.info(f"  ✅ Summary: {summary[:80]}...")
 
                 # 2. Evaluate importance if not exists
                 if article.importance_score is None:
-                    logger.info("  - Evaluating importance...")
                     score = with_retry(
                         lambda a=article: evaluate_importance(
                             title=a.title,
@@ -237,11 +230,9 @@ def process_articles_task() -> None:
                         max_attempts=3,
                     )
                     article.importance_score = score
-                    logger.info(f"  ✅ Importance score: {score:.2f}")
 
                 # 3. Classify article type if category not set
                 if not article.category:
-                    logger.info("  - Classifying article...")
                     category = with_retry(
                         lambda a=article: classify_article_type(
                             title=a.title,
@@ -250,11 +241,9 @@ def process_articles_task() -> None:
                         max_attempts=3,
                     )
                     article.category = category
-                    logger.info(f"  ✅ Category: {category}")
 
                 # 4. Generate embedding and store in Vector DB
                 if not article.vector_id:
-                    logger.info("  - Generating embedding...")
                     try:
                         _ = with_retry(
                             lambda a=article: generate_embedding(
@@ -268,11 +257,8 @@ def process_articles_task() -> None:
                         # TODO: Implement vector_db.upsert_article method
                         # For now, just set the vector_id
                         article.vector_id = vector_id
-                        logger.info(f"  ✅ Generated embedding (Vector DB storage pending): {vector_id}")
                     except Exception as e:
-                        logger.warning(
-                            f"  ⚠️ Embedding generation failed: {e}. Skipping vector DB storage.",
-                        )
+                        logger.warning(f"Embedding generation failed: {e}")
 
                 # Save updates
                 crud.update_article(
@@ -285,7 +271,6 @@ def process_articles_task() -> None:
                 )
 
                 processed_count += 1
-                logger.info(f"✅ Processing completed for article {processed_count}")
 
             except Exception as e:
                 logger.error(f"Error processing article '{article.title[:50]}': {e}")
@@ -334,10 +319,7 @@ def send_digest_task() -> None:
                 # Get user preferences
                 pref = crud.get_user_preference(db, user.id)
                 if not pref or not pref.email_enabled:
-                    logger.info(f"Email disabled for user: {user.email}")
                     continue
-
-                logger.info(f"\nPreparing digest for: {user.email}")
 
                 # Get articles from last 24 hours
                 since = datetime.now(UTC) - timedelta(days=1)
@@ -348,19 +330,33 @@ def send_digest_task() -> None:
                 )
 
                 if not recent_articles:
-                    logger.info("  No articles to send")
                     continue
 
-                logger.info(f"  Selected {len(recent_articles)} articles")
+                # Build and send digest email
+                try:
+                    # Build email content
+                    builder = EmailBuilder()
+                    html_content = builder.build_daily_digest(
+                        user_name=user.name or user.email.split("@")[0],
+                        user_email=user.email,
+                        articles=recent_articles,
+                        daily_limit=pref.daily_limit,
+                    )
 
-                # Send digest email
-                success = send_daily_digest(
-                    user_email=user.email,
-                    user_name=user.name or user.email.split("@")[0],
-                    articles=recent_articles,
-                )
+                    # Generate subject
+                    date_str = datetime.now().strftime("%Y년 %m월 %d일")
+                    subject = f"🔬 Research Curator - {date_str} AI 연구 동향"
 
-                if success:
+                    # Send email
+                    sender = EmailSender()
+                    asyncio.run(
+                        sender.send_email(
+                            to_email=user.email,
+                            subject=subject,
+                            html_content=html_content,
+                        ),
+                    )
+
                     # Record in database
                     crud.create_digest(
                         db=db,
@@ -368,9 +364,9 @@ def send_digest_task() -> None:
                         article_ids=[str(a.id) for a in recent_articles],
                     )
                     sent_count += 1
-                    logger.info("  ✅ Email sent successfully")
-                else:
-                    logger.error("  ❌ Failed to send email")
+
+                except Exception as email_error:
+                    logger.error(f"Failed to send email to {user.email}: {email_error}")
                     error_count += 1
 
             except Exception as e:

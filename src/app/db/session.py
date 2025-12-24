@@ -10,7 +10,7 @@ from app.core.config import settings
 # Create SQLAlchemy engine, PostgreSQL DB 연결 엔진 생성
 engine = create_engine(
     settings.database_url_str,
-    echo=settings.DEBUG,
+    echo=False,  # Disable SQL query logging to reduce verbosity
     pool_pre_ping=True,  # 연결전 유효성 검증
     pool_size=10,
     max_overflow=20,  # 최대 30개 동시연결 지원
