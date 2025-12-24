@@ -401,6 +401,7 @@ def count_articles(
 def get_top_articles_by_importance(
     db: Session,
     limit: int = 10,
+    since: datetime | None = None,
 ) -> list[CollectedArticle]:
     """
     Get top N articles ordered by importance score.
@@ -408,10 +409,14 @@ def get_top_articles_by_importance(
     Args:
         db: Database session
         limit: Maximum number of articles to return
+        since: Filter articles collected after this datetime (optional)
 
     Returns:
         List of top-rated articles
     """
-    return (
-        db.query(CollectedArticle).order_by(desc(CollectedArticle.importance_score)).limit(limit).all()
-    )
+    query = db.query(CollectedArticle)
+
+    if since:
+        query = query.filter(CollectedArticle.collected_at >= since)
+
+    return query.order_by(desc(CollectedArticle.importance_score)).limit(limit).all()

@@ -3,7 +3,7 @@
 import logging
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pytz import timezone
 
 from app.api.schemas.scheduler import (
@@ -94,7 +94,10 @@ async def list_jobs() -> JobListResponse:
 
 
 @router.post("/jobs/trigger", response_model=TriggerJobResponse)
-async def trigger_job(request: TriggerJobRequest) -> TriggerJobResponse:
+async def trigger_job(
+    request: TriggerJobRequest,
+    background_tasks: BackgroundTasks,
+) -> TriggerJobResponse:
     """
     Manually trigger a scheduled job.
 
@@ -115,15 +118,15 @@ async def trigger_job(request: TriggerJobRequest) -> TriggerJobResponse:
                 detail=f"Job with ID '{request.job_id}' not found",
             )
 
-        # Execute the job function directly
+        # Execute the job function in background
         logger.info(f"Manually triggering job: {job.name} (ID: {request.job_id})")
-        job.func()
+        background_tasks.add_task(job.func)
 
         triggered_at = datetime.now(KST).isoformat()
 
         return TriggerJobResponse(
             success=True,
-            message=f"Job '{job.name}' triggered successfully",
+            message=f"Job '{job.name}' started in background",
             job_id=request.job_id,
             triggered_at=triggered_at,
         )

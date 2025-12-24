@@ -4,6 +4,8 @@ import asyncio
 import logging
 from datetime import UTC, datetime, timedelta
 
+import nest_asyncio
+
 from app.collectors.arxiv import ArxivCollector
 from app.collectors.news import NewsCollector
 from app.core.retry import with_retry
@@ -14,6 +16,9 @@ from app.processors.classifier import ContentClassifier
 from app.processors.embedder import TextEmbedder
 from app.processors.evaluator import ImportanceEvaluator
 from app.processors.summarizer import ArticleSummarizer
+
+# Allow nested event loops
+nest_asyncio.apply()
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +98,7 @@ def collect_data_task() -> None:
         for field in all_fields:
             try:
                 articles = with_retry(
-                    lambda f=field: asyncio.run(arxiv_collector.collect(query=f, max_results=5)),
+                    lambda f=field: asyncio.run(arxiv_collector.collect(query=f, limit=5)),
                     max_attempts=3,
                 )
 
@@ -106,12 +111,15 @@ def collect_data_task() -> None:
 
                     # Create article
                     crud.create_article(
-                        db=db,
+                        db,
                         title=article_data.title,
                         content=article_data.content,
+                        summary="",
                         source_url=article_data.url,
                         source_type="paper",
-                        article_metadata=article_data.metadata,
+                        category="",
+                        importance_score=0.5,
+                        metadata=article_data.metadata,
                     )
                     collected_count += 1
                     logger.info(f"✅ Collected from arXiv: {article_data.title[:60]}...")
@@ -127,7 +135,7 @@ def collect_data_task() -> None:
         for keyword in list(all_keywords)[:5]:  # Limit to 5 keywords to avoid rate limits
             try:
                 articles = with_retry(
-                    lambda k=keyword: asyncio.run(news_collector.collect(query=k, max_results=3)),
+                    lambda k=keyword: asyncio.run(news_collector.collect(query=k, limit=3)),
                     max_attempts=3,
                 )
 
@@ -137,12 +145,15 @@ def collect_data_task() -> None:
                         continue
 
                     crud.create_article(
-                        db=db,
+                        db,
                         title=article_data.title,
                         content=article_data.content,
+                        summary="",
                         source_url=article_data.url,
                         source_type="news",
-                        article_metadata=article_data.metadata,
+                        category="",
+                        importance_score=0.5,
+                        metadata=article_data.metadata,
                     )
                     collected_count += 1
                     logger.info(f"✅ Collected from News: {article_data.title[:60]}...")
