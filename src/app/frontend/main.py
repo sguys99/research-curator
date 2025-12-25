@@ -1,7 +1,5 @@
 """Main entry point for Research Curator Streamlit application."""
 
-from pathlib import Path
-
 import streamlit as st
 
 from app.frontend.components.auth import (
@@ -18,12 +16,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
-
-# Load custom CSS for Korean font
-css_file = Path(__file__).parent.parent.parent.parent / ".streamlit" / "style.css"
-if css_file.exists():
-    with open(css_file) as f:
-        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 
 def main():
