@@ -83,13 +83,20 @@ def get_preferences(
             detail="Preferences not found",
         )
 
+    # Ensure sources is a list (handle legacy dict format)
+    sources = preference.sources
+    if isinstance(sources, dict):
+        sources = []
+    elif sources is None:
+        sources = []
+
     return UserPreferenceResponse(
         id=preference.id,
         user_id=preference.user_id,
-        research_fields=preference.research_fields,
-        keywords=preference.keywords,
-        sources=preference.sources,
-        info_types=preference.info_types,
+        research_fields=preference.research_fields or [],
+        keywords=preference.keywords or [],
+        sources=sources,
+        info_types=preference.info_types or {},
         email_time=preference.email_time,
         daily_limit=preference.daily_limit,
         email_enabled=preference.email_enabled,
