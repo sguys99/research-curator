@@ -247,8 +247,20 @@ class EmailBuilder:
             str: HTML content with inline styles
         """
         try:
+            # Suppress cssutils warnings about modern CSS properties
+            import logging
+
+            cssutils_logger = logging.getLogger("CSSUTILS")
+            original_level = cssutils_logger.level
+            cssutils_logger.setLevel(logging.CRITICAL)
+
             # Transform CSS to inline styles
-            return transform(html)
+            result = transform(html)
+
+            # Restore original log level
+            cssutils_logger.setLevel(original_level)
+
+            return result
         except Exception as e:
             # If inlining fails, return original HTML
             import logging
