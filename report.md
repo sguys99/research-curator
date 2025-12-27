@@ -3930,94 +3930,6 @@ src/app/
 
 ---
 
-### 발견된 이슈 및 해결
-
-#### 이슈 1: Ruff Linter B904 - Exception Chaining
-**위치**: `src/app/api/routers/articles.py` (2곳)
-
-**문제**: Exception 재발생 시 원본 예외 체인 누락
-```python
-except Exception as e:
-    raise HTTPException(..., detail=f"Error: {str(e)}")
-```
-
-**해결**: `from e` 추가로 예외 체인 보존
-```python
-except Exception as e:
-    raise HTTPException(..., detail=f"Error: {str(e)}") from e
-```
-
-#### 이슈 2: Ruff Linter C416 - Unnecessary Dict Comprehension
-**위치**: `src/app/db/crud/articles.py` (2곳)
-
-**문제**: dict comprehension 불필요
-```python
-"by_source_type": {st: count for st, count in source_type_counts}
-```
-
-**해결**: `dict()` 생성자 사용
-```python
-"by_source_type": dict(source_type_counts)
-```
-
-#### 이슈 3: FeedbackStatsResponse 누락
-**위치**: `src/app/api/schemas/feedback.py`
-
-**문제**: 라우터에서 import하지만 스키마 미정의
-
-**해결**: 스키마 추가
-```python
-class FeedbackStatsResponse(BaseModel):
-    article_id: UUID
-    count: int
-    average_rating: float
-    rating_distribution: dict[int, int]
-```
-
-#### 이슈 4: FeedbackListResponse 필드 불일치
-**문제**: 라우터에서 `feedback` 사용, 스키마는 `feedbacks`
-
-**해결**: `feedback`으로 통일 + `skip`, `limit` 필드 추가
-
-#### 이슈 5: FeedbackCreate 스키마 오류
-**문제**: `user_id`가 request body에 포함
-
-**해결**: `user_id` 제거 (JWT에서 자동 할당)
-
----
-
-### 테스트 방법
-
-#### 1. 서버 시작
-```bash
-source .venv/bin/activate
-uvicorn src.app.api.main:app --reload
-```
-
-#### 2. Swagger UI 접속
-```
-http://localhost:8000/docs
-```
-
-#### 3. 테스트 시나리오
-
-**시나리오 1: 인증 및 사용자 정보**
-1. `POST /auth/magic-link` - Magic link 요청
-2. `GET /auth/verify?token=xxx` - JWT 발급
-3. `GET /users/me` - 사용자 정보 조회
-4. `PUT /users/{user_id}/preferences` - 설정 업데이트
-
-**시나리오 2: 아티클 검색**
-1. `GET /api/articles?limit=10` - 최신 아티클
-2. `POST /api/articles/search` - 시맨틱 검색
-3. `GET /api/articles/{id}/similar` - 유사 아티클
-
-**시나리오 3: 피드백**
-1. `POST /api/feedback` - 피드백 생성
-2. `GET /api/feedback/user/{user_id}` - 내 피드백
-3. `GET /api/feedback/article/{article_id}/stats` - 통계
-
----
 
 ### 문서화
 
@@ -4047,11 +3959,6 @@ http://localhost:8000/docs
 
 ---
 
-**작성일**: 2025-12-05
-**작성자**: Claude Code
-**상태**: ✅ Day 9-1 완료
-
-**다음**: Day 9-2 - Frontend 통합 작업
 ## Day 9-2: Frontend API 통합 (2025-12-05)
 
 ### 작업 계획
