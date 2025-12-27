@@ -1,5 +1,6 @@
 """Session management utilities for Streamlit app."""
 
+import os
 from datetime import datetime
 from typing import Any
 
@@ -126,3 +127,20 @@ def set_current_page(page: str) -> None:
 def get_current_page() -> str:
     """Get current page from session."""
     return st.session_state.get("current_page", "dashboard")
+
+
+def is_admin_user() -> bool:
+    """Check if current user is admin (from environment variable)."""
+    # Get admin emails from environment variable or streamlit secrets
+    admin_emails_str = os.getenv("ADMIN_EMAILS", "")
+
+    # Also check streamlit secrets as fallback
+    if not admin_emails_str and hasattr(st, "secrets"):
+        admin_emails_str = st.secrets.get("ADMIN_EMAILS", "")
+
+    # Parse comma-separated emails
+    admin_emails = [email.strip() for email in admin_emails_str.split(",") if email.strip()]
+
+    # Check if current user email is in admin list
+    user_email = get_user_email()
+    return user_email in admin_emails if user_email else False

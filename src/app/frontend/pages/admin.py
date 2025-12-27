@@ -1,0 +1,278 @@
+"""Admin dashboard page."""
+
+import streamlit as st
+
+from app.frontend.utils.api_client import get_api_client
+from app.frontend.utils.db_helpers import (
+    get_all_digests,
+    get_all_users_with_stats,
+    get_total_digest_count,
+    get_total_feedback_count,
+    get_total_user_count,
+)
+from app.frontend.utils.session import is_admin_user, is_authenticated
+
+
+def show_admin_page():
+    """Display admin dashboard page."""
+    # 1. 인증 체크
+    if not is_authenticated():
+        st.warning("⚠️ 로그인이 필요합니다.")
+        st.stop()
+
+    # 2. 관리자 권한 체크
+    if not is_admin_user():
+        st.error("🚫 관리자 권한이 필요합니다.")
+        st.stop()
+
+    st.title("🛠️ Admin Dashboard")
+
+    # 3. 탭 구조
+    tab1, tab2, tab3, tab4 = st.tabs(
+        [
+            "📊 System Overview",
+            "👥 Users",
+            "📚 Articles",
+            "📧 Digests",
+        ],
+    )
+
+    with tab1:
+        show_system_overview()
+
+    with tab2:
+        show_users_section()
+
+    with tab3:
+        show_articles_section()
+
+    with tab4:
+        show_digests_section()
+
+
+def show_system_overview():
+    """Display system-wide statistics."""
+    st.subheader("📊 System Statistics")
+
+    # 기본 통계
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        try:
+            user_count = get_total_user_count()
+            st.metric("Total Users", user_count)
+        except Exception as e:
+            st.error(f"Error loading user count: {e}")
+            st.metric("Total Users", "N/A")
+
+    with col2:
+        try:
+            api = get_api_client()
+            article_stats = api.get_article_statistics()
+            st.metric("Total Articles", article_stats.get("total", 0))
+        except Exception as e:
+            st.error(f"Error loading article stats: {e}")
+            st.metric("Total Articles", "N/A")
+
+    with col3:
+        try:
+            digest_count = get_total_digest_count()
+            st.metric("Digests Sent", digest_count)
+        except Exception as e:
+            st.error(f"Error loading digest count: {e}")
+            st.metric("Digests Sent", "N/A")
+
+    with col4:
+        try:
+            feedback_count = get_total_feedback_count()
+            st.metric("Total Feedback", feedback_count)
+        except Exception as e:
+            st.error(f"Error loading feedback count: {e}")
+            st.metric("Total Feedback", "N/A")
+
+    st.markdown("---")
+
+    # 스케줄러 상태
+    st.subheader("⚙️ Scheduler Status")
+
+    try:
+        api = get_api_client()
+        scheduler_status = api.get_scheduler_status()
+
+        if scheduler_status.get("running"):
+            st.success("✅ Scheduler is running")
+            jobs = scheduler_status.get("jobs", [])
+
+            if jobs:
+                for job in jobs:
+                    with st.expander(f"📅 {job.get('name', 'Unknown')}"):
+                        st.write(f"**Next run**: {job.get('next_run_time', 'N/A')}")
+                        st.write(f"**Job ID**: {job.get('id', 'N/A')}")
+            else:
+                st.info("No scheduled jobs found")
+        else:
+            st.warning("⚠️ Scheduler is stopped")
+    except Exception as e:
+        st.error(f"Error loading scheduler status: {e}")
+
+
+def show_users_section():
+    """Display all users with their stats."""
+    st.subheader("👥 All Users")
+
+    try:
+        # DB에서 모든 사용자 조회
+        users = get_all_users_with_stats()
+
+        # 검색 필터
+        search = st.text_input("🔍 Search by email or name")
+
+        # 필터링
+        if search:
+            users = [
+                u
+                for u in users
+                if search.lower() in u["email"].lower() or search.lower() in u.get("name", "").lower()
+            ]
+
+        # 테이블 형태로 표시
+        st.write(f"**Total: {len(users)} users**")
+
+        if not users:
+            st.info("No users found")
+            return
+
+        st.markdown("---")
+
+        for user in users:
+            with st.container():
+                col1, col2, col3 = st.columns([3, 2, 2])
+
+                with col1:
+                    st.write(f"**{user['name']}** ({user['email']})")
+                    st.caption(f"ID: {user['id']} | Joined: {user['created_at'][:10]}")
+
+                with col2:
+                    st.write(f"📧 {user['digest_count']} digests")
+                    st.write(f"💬 {user['feedback_count']} feedbacks")
+
+                with col3:
+                    last_login = user.get("last_login")
+                    if last_login:
+                        st.write(f"Last login: {last_login[:10]}")
+                    else:
+                        st.write("Last login: Never")
+
+                st.divider()
+
+    except Exception as e:
+        st.error(f"Error loading users: {e}")
+
+
+def show_articles_section():
+    """Display articles statistics and list."""
+    st.subheader("📚 Articles")
+
+    try:
+        api = get_api_client()
+
+        # 통계
+        stats = api.get_article_statistics()
+
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            st.metric("Total Articles", stats.get("total", 0))
+
+        with col2:
+            st.write("**By Category**")
+            by_category = stats.get("by_category", {})
+            if by_category:
+                for cat, count in by_category.items():
+                    st.write(f"- {cat}: {count}")
+            else:
+                st.write("No data")
+
+        with col3:
+            st.write("**By Source**")
+            by_source = stats.get("by_source_type", {})
+            if by_source:
+                for src, count in by_source.items():
+                    st.write(f"- {src}: {count}")
+            else:
+                st.write("No data")
+
+        st.markdown("---")
+
+        # 최근 아티클 목록
+        st.subheader("Recent Articles")
+
+        limit = st.slider("Show articles", 10, 100, 20)
+        articles_response = api.get_articles(skip=0, limit=limit)
+        articles = articles_response.get("articles", [])
+
+        if not articles:
+            st.info("No articles found")
+            return
+
+        for article in articles:
+            with st.expander(f"📄 {article.get('title', 'Untitled')[:100]}..."):
+                st.write(f"**Source**: {article.get('source_type', 'N/A')}")
+                st.write(f"**Category**: {article.get('category', 'N/A')}")
+                st.write(f"**Importance**: {article.get('importance_score', 0):.2f}")
+                st.write(f"**Collected**: {article.get('collected_at', 'N/A')[:10]}")
+
+                if article.get("summary"):
+                    st.write(f"**Summary**: {article['summary'][:300]}...")
+
+                if article.get("source_url"):
+                    st.write(f"**URL**: {article['source_url']}")
+
+    except Exception as e:
+        st.error(f"Error loading articles: {e}")
+
+
+def show_digests_section():
+    """Display all digest history across all users."""
+    st.subheader("📧 Digest History")
+
+    try:
+        # 모든 digest 조회
+        digests = get_all_digests()
+
+        st.write(f"**Total: {len(digests)} digests sent** (최근 100개)")
+
+        if not digests:
+            st.info("No digests found")
+            return
+
+        st.markdown("---")
+
+        # 테이블
+        for digest in digests[:50]:  # 최근 50개만 표시
+            with st.expander(f"📧 {digest['user_email']} - {digest['sent_at'][:10]}"):
+                st.write(f"**User**: {digest['user_name']} ({digest['user_email']})")
+                st.write(f"**User ID**: {digest['user_id']}")
+                st.write(f"**Articles**: {len(digest['article_ids'])} articles")
+                st.write(f"**Sent**: {digest['sent_at']}")
+
+                if digest.get("email_opened"):
+                    opened_at = digest.get("opened_at", "N/A")
+                    st.success(f"✅ Opened at {opened_at[:19] if opened_at != 'N/A' else 'N/A'}")
+                else:
+                    st.info("📭 Not opened yet")
+
+                # Article IDs 표시
+                if digest["article_ids"]:
+                    with st.expander("View Article IDs"):
+                        for idx, article_id in enumerate(digest["article_ids"][:10], 1):
+                            st.caption(f"{idx}. {article_id}")
+                        if len(digest["article_ids"]) > 10:
+                            st.caption(f"... and {len(digest['article_ids']) - 10} more")
+
+    except Exception as e:
+        st.error(f"Error loading digests: {e}")
+
+
+if __name__ == "__main__":
+    show_admin_page()

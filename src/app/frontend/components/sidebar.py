@@ -6,6 +6,7 @@ from app.frontend.components.auth import show_logout_button
 from app.frontend.utils.session import (
     get_user_email,
     get_user_name,
+    is_admin_user,
     is_authenticated,
     is_onboarding_completed,
 )
@@ -51,6 +52,13 @@ def show_sidebar() -> str | None:
     for label, page_name in pages:
         if st.sidebar.button(label, key=f"nav_{page_name}", use_container_width=True):
             selected_page = page_name
+
+    # Admin section (only for admin users)
+    if is_admin_user():
+        st.sidebar.markdown("---")
+        st.sidebar.markdown("### 🛠️ Admin")
+        if st.sidebar.button("Admin Dashboard", key="nav_admin", use_container_width=True):
+            selected_page = "admin"
 
     # Help & Info
     st.sidebar.markdown("---")

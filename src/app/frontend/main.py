@@ -61,6 +61,8 @@ def _navigate_to_page(page_name: str) -> None:
         _show_settings_page()
     elif page_name == "feedback":
         _show_feedback_page()
+    elif page_name == "admin":
+        _show_admin_page()
     else:
         st.error(f"Unknown page: {page_name}")
 
@@ -98,6 +100,13 @@ def _show_feedback_page() -> None:
     from app.frontend.pages.feedback import show_feedback_page
 
     show_feedback_page()
+
+
+def _show_admin_page() -> None:
+    """Display admin page."""
+    from app.frontend.pages.admin import show_admin_page
+
+    show_admin_page()
 
 
 if __name__ == "__main__":
