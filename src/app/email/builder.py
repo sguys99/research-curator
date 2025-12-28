@@ -233,6 +233,57 @@ class EmailBuilder:
         template = self.env.get_template(template_name)
         return template.render(**context)
 
+    def build_magic_link_email(self, magic_link: str, user_email: str) -> str:
+        """
+        Build HTML email content for magic link authentication.
+
+        Args:
+            magic_link: The magic link URL for authentication
+            user_email: User's email address
+
+        Returns:
+            str: Rendered HTML email content with inline CSS
+        """
+        html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+                .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                .button {{
+                    display: inline-block;
+                    padding: 12px 24px;
+                    background-color: #007bff;
+                    color: white;
+                    text-decoration: none;
+                    border-radius: 5px;
+                    margin: 20px 0;
+                }}
+                .footer {{ margin-top: 30px; font-size: 12px; color: #666; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h2>🔬 Research Curator 로그인</h2>
+                <p>안녕하세요!</p>
+                <p>로그인을 위해 아래 버튼을 클릭해주세요:</p>
+                <a href="{magic_link}" class="button">로그인하기</a>
+                <p>또는 아래 링크를 복사하여 브라우저에 붙여넣으세요:</p>
+                <p style="word-break: break-all; background: #f5f5f5; padding: 10px;">{magic_link}</p>
+                <p>이 링크는 15분 동안 유효합니다.</p>
+                <div class="footer">
+                    <p>이 이메일은 Research Curator 로그인 요청에 따라 발송되었습니다.</p>
+                    <p>요청하지 않으셨다면 이 이메일을 무시하셔도 됩니다.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+
+        # Convert CSS to inline styles for better email client compatibility (especially Naver)
+        return self._inline_css(html)
+
     def _inline_css(self, html: str) -> str:
         """
         Convert CSS styles to inline styles for better email client compatibility.

@@ -40,49 +40,16 @@ def request_magic_link(
 
     # Send email with magic link
     try:
+        from app.email.builder import EmailBuilder
         from app.email.sender import EmailSender
 
         # Generate magic link URL
         frontend_url = getattr(settings, "FRONTEND_URL", "http://localhost:8501")
         magic_link = f"{frontend_url}/?token={token}"
 
-        # Build email content
-        html_content = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <style>
-                body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
-                .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-                .button {{
-                    display: inline-block;
-                    padding: 12px 24px;
-                    background-color: #007bff;
-                    color: white;
-                    text-decoration: none;
-                    border-radius: 5px;
-                    margin: 20px 0;
-                }}
-                .footer {{ margin-top: 30px; font-size: 12px; color: #666; }}
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <h2>🔬 Research Curator 로그인</h2>
-                <p>안녕하세요!</p>
-                <p>로그인을 위해 아래 버튼을 클릭해주세요:</p>
-                <a href="{magic_link}" class="button">로그인하기</a>
-                <p>또는 아래 링크를 복사하여 브라우저에 붙여넣으세요:</p>
-                <p style="word-break: break-all; background: #f5f5f5; padding: 10px;">{magic_link}</p>
-                <p>이 링크는 15분 동안 유효합니다.</p>
-                <div class="footer">
-                    <p>이 이메일은 Research Curator 로그인 요청에 따라 발송되었습니다.</p>
-                    <p>요청하지 않으셨다면 이 이메일을 무시하셔도 됩니다.</p>
-                </div>
-            </div>
-        </body>
-        </html>
-        """
+        # Build email content using EmailBuilder (with CSS inlining for Naver compatibility)
+        builder = EmailBuilder()
+        html_content = builder.build_magic_link_email(magic_link, request.email)
 
         # Send email
         sender = EmailSender()
