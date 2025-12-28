@@ -398,6 +398,28 @@ def count_articles(
     return query.count()
 
 
+def get_articles_since(
+    db: Session,
+    since: datetime,
+) -> list[CollectedArticle]:
+    """
+    Get all articles collected after a specific datetime.
+
+    Args:
+        db: Database session
+        since: Start datetime
+
+    Returns:
+        List of articles ordered by importance score
+    """
+    return (
+        db.query(CollectedArticle)
+        .filter(CollectedArticle.collected_at >= since)
+        .order_by(desc(CollectedArticle.importance_score))
+        .all()
+    )
+
+
 def get_top_articles_by_importance(
     db: Session,
     limit: int = 10,

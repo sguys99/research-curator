@@ -12,6 +12,7 @@ from app.core.retry import with_retry
 from app.db import crud
 from app.db.session import SessionLocal
 from app.email.builder import EmailBuilder
+from app.email.selection import select_articles_for_user
 from app.email.sender import EmailSender
 from app.processors.classifier import ContentClassifier
 from app.processors.embedder import TextEmbedder
@@ -314,6 +315,15 @@ def send_digest_task() -> None:
         users = crud.list_users(db)
         logger.info(f"Found {len(users)} users")
 
+        # Get all articles from last 24 hours (fetch once for efficiency)
+        since = datetime.now(UTC) - timedelta(days=1)
+        all_articles = crud.get_articles_since(db, since=since)
+        logger.info(f"Found {len(all_articles)} articles from last 24 hours")
+
+        if not all_articles:
+            logger.warning("No articles available for digest")
+            return
+
         for user in users:
             try:
                 # Get user preferences
@@ -321,16 +331,22 @@ def send_digest_task() -> None:
                 if not pref or not pref.email_enabled:
                     continue
 
-                # Get articles from last 24 hours
-                since = datetime.now(UTC) - timedelta(days=1)
-                recent_articles = crud.get_top_articles_by_importance(
-                    db,
+                # Select personalized articles based on user preferences
+                personalized_articles = select_articles_for_user(
+                    articles=all_articles,
+                    preferences=pref,
                     limit=pref.daily_limit,
-                    since=since,
                 )
 
-                if not recent_articles:
+                if not personalized_articles:
+                    logger.info(f"No matching articles for {user.email}")
                     continue
+
+                logger.info(
+                    f"Selected {len(personalized_articles)} articles for "
+                    f"{user.email} (keywords: {pref.keywords}, "
+                    f"fields: {pref.research_fields})",
+                )
 
                 # Build and send digest email
                 try:
@@ -339,7 +355,7 @@ def send_digest_task() -> None:
                     html_content = builder.build_daily_digest(
                         user_name=user.name or user.email.split("@")[0],
                         user_email=user.email,
-                        articles=recent_articles,
+                        articles=personalized_articles,
                         daily_limit=pref.daily_limit,
                     )
 
@@ -361,7 +377,7 @@ def send_digest_task() -> None:
                     crud.create_digest(
                         db=db,
                         user_id=user.id,
-                        article_ids=[str(a.id) for a in recent_articles],
+                        article_ids=[str(a.id) for a in personalized_articles],
                     )
                     sent_count += 1
 
