@@ -1,13 +1,21 @@
 """Main entry point for Research Curator Streamlit application."""
 
 import streamlit as st
+from dotenv import load_dotenv
 
 from app.frontend.components.auth import (
     handle_magic_link_callback,
     show_login_page,
 )
 from app.frontend.components.sidebar import show_sidebar
-from app.frontend.utils.session import init_session_state, is_authenticated, is_onboarding_completed
+from app.frontend.utils.session import (
+    init_session_state,
+    is_authenticated,
+    is_onboarding_completed,
+)
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Page configuration
 st.set_page_config(
