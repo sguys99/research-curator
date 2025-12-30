@@ -1,5 +1,6 @@
 """Article selection and filtering logic for daily digests."""
 
+import asyncio
 import logging
 from typing import Any
 
@@ -17,11 +18,14 @@ def select_articles_for_user(
     """
     Select and filter articles based on user preferences.
 
-    Strategy:
-    1. Filter by user's research fields and keywords
-    2. Apply info_types distribution (paper/news/report ratio)
-    3. Sort by importance score
-    4. Select top N with category balancing
+    Strategy (updated with semantic search and fallback cascade):
+    1. Try semantic search via Qdrant (if articles are vectorized)
+    2. If semantic fails, try keyword/field filtering
+    3. If that fails, try title-only matching
+    4. If that fails, use importance ranking
+    5. Apply category distribution
+    6. Sort by importance score
+    7. Select top N
 
     Args:
         articles: Available articles
@@ -36,21 +40,58 @@ def select_articles_for_user(
 
     limit = limit or preferences.daily_limit or 5
 
-    # 4단계로 진행됨.
-    # Step 1: Filter by keywords and fields, 키워드, 연구분야/선호도로 필터링
-    filtered = _filter_by_preferences(articles, preferences)
+    # Step 1: Try semantic search first (most powerful)
+    filtered = _semantic_filter_sync(
+        articles,
+        preferences,
+        limit=limit * 3,  # Get more candidates for distribution
+        score_threshold=0.65,
+    )
 
-    if not filtered:
-        logger.warning("No articles match user preferences, using all articles")
-        filtered = articles
+    if filtered:
+        logger.info(f"Using semantic search: {len(filtered)} articles")
+    else:
+        logger.info("Semantic search yielded no results, trying keyword matching")
 
-    # Step 2: Apply category distribution, 논문: 뉴스: 리포트 비율
+        # Step 2: Try traditional keyword/field filtering
+        filtered = _filter_by_preferences(articles, preferences)
+
+        if not filtered:
+            logger.warning(
+                f"No articles match user preferences for "
+                f"keywords={preferences.keywords}, fields={preferences.research_fields}. "
+                f"Trying fallback strategies.",
+            )
+
+            # Step 3: Fallback to title-only keyword matching
+            filtered = _fallback_title_search(articles, preferences)
+
+            if not filtered:
+                logger.warning("Title fallback found nothing. Trying importance ranking.")
+
+                # Step 4: Final fallback to importance ranking
+                filtered = _fallback_importance_ranking(articles, limit=limit)
+
+            if not filtered:
+                logger.warning(
+                    "All filtering strategies failed. Returning empty to avoid "
+                    "sending identical digests to all users.",
+                )
+                return []
+
+            logger.info(f"Fallback strategy succeeded with {len(filtered)} articles")
+
+    # Step 5: Apply category distribution
     distributed = _apply_category_distribution(filtered, preferences)
 
-    # Step 3: Sort by importance, 중요도순 정렬
-    sorted_articles = sorted(distributed, key=lambda x: x.importance_score or 0.0, reverse=True)
+    # Step 6: Sort by importance score
+    sorted_articles = sorted(
+        distributed,
+        key=lambda x: x.importance_score or 0.0,
+        reverse=True,
+    )
 
-    # Step 4: Select top N, 상위 N개 선택
+    # Step 7: Select top N
     selected = sorted_articles[:limit]
 
     logger.info(
@@ -81,13 +122,27 @@ def _filter_by_preferences(
     if not keywords and not research_fields:
         return articles
 
+    # First, filter out articles without sufficient metadata
+    validated_articles = [a for a in articles if _has_sufficient_metadata(a)]
+
+    if not validated_articles:
+        logger.warning(
+            f"No articles with sufficient metadata found. "
+            f"Total articles: {len(articles)}, Validated: {len(validated_articles)}",
+        )
+        return []
+
     filtered = []
 
-    for article in articles:
+    for article in validated_articles:
         # Check if article matches keywords
         matches_keyword = False
         if keywords:
-            article_text = f"{article.title} {article.summary or ''} {article.category or ''}"
+            # Include content field (first 500 chars) to handle articles with empty summaries
+            article_text = (
+                f"{article.title} {article.summary or ''} "
+                f"{article.category or ''} {(article.content or '')[:500]}"
+            )
             article_text_lower = article_text.lower()
             matches_keyword = any(kw.lower() in article_text_lower for kw in keywords)
 
@@ -102,6 +157,252 @@ def _filter_by_preferences(
             filtered.append(article)
 
     return filtered
+
+
+def _has_sufficient_metadata(article: CollectedArticle) -> bool:
+    """
+    Check if article has sufficient metadata for filtering.
+
+    Args:
+        article: Article to check
+
+    Returns:
+        True if article has been fully processed with LLM
+    """
+    # Article needs at least summary OR category to be considered processed
+    # AND importance_score must be set (not None and not default 0.5)
+    has_summary = bool(article.summary and article.summary.strip())
+    has_category = bool(article.category and article.category.strip())
+    has_score = article.importance_score is not None and article.importance_score != 0.5
+
+    return (has_summary or has_category) and has_score
+
+
+def _fallback_title_search(
+    articles: list[CollectedArticle],
+    preferences: UserPreference,
+) -> list[CollectedArticle]:
+    """
+    Fallback: Match keywords against titles only when full filtering fails.
+
+    This is more restrictive than full-text search but better than returning
+    all articles.
+
+    Args:
+        articles: Available articles
+        preferences: User preferences
+
+    Returns:
+        Articles matching keywords in title
+    """
+    keywords = preferences.keywords or []
+
+    if not keywords:
+        logger.info("No keywords for fallback search")
+        return []
+
+    matched = []
+    for article in articles:
+        if not _has_sufficient_metadata(article):
+            continue
+
+        title_lower = article.title.lower()
+        if any(kw.lower() in title_lower for kw in keywords):
+            matched.append(article)
+
+    logger.info(f"Fallback title search found {len(matched)} articles " f"matching keywords: {keywords}")
+
+    return matched
+
+
+def _fallback_importance_ranking(
+    articles: list[CollectedArticle],
+    limit: int = 5,
+) -> list[CollectedArticle]:
+    """
+    Last resort fallback: Select top articles by importance score.
+
+    When all other strategies fail, return highest-rated articles
+    that have been processed.
+
+    Args:
+        articles: Available articles
+        limit: Maximum number to return
+
+    Returns:
+        Top articles by importance
+    """
+    # Only use validated articles
+    validated = [a for a in articles if _has_sufficient_metadata(a)]
+
+    if not validated:
+        logger.warning("No validated articles for importance fallback")
+        return []
+
+    # Sort by importance score descending
+    sorted_articles = sorted(
+        validated,
+        key=lambda x: x.importance_score or 0.0,
+        reverse=True,
+    )
+
+    selected = sorted_articles[:limit]
+
+    logger.info(
+        f"Importance fallback selected {len(selected)} top articles "
+        f"from {len(validated)} validated articles",
+    )
+
+    return selected
+
+
+def _generate_preference_embedding(preferences: UserPreference) -> list[float] | None:
+    """
+    Generate embedding from user preferences for semantic search.
+
+    Combines research_fields and keywords into a single text and generates
+    embedding.
+
+    Args:
+        preferences: User preferences
+
+    Returns:
+        Embedding vector or None if generation fails
+    """
+    # Build preference text from fields and keywords
+    fields = preferences.research_fields or []
+    keywords = preferences.keywords or []
+
+    if not fields and not keywords:
+        logger.warning("No fields or keywords to generate embedding from")
+        return None
+
+    # Combine into searchable text
+    preference_text = "Research interests: " + ", ".join(fields)
+    if keywords:
+        preference_text += ". Keywords: " + ", ".join(keywords)
+
+    logger.info(f"Generating embedding for preference text: {preference_text[:100]}...")
+
+    try:
+        from app.processors.embedder import TextEmbedder
+
+        embedder = TextEmbedder()
+        # Run async embedding in sync context
+        embedding = asyncio.run(embedder.embed(preference_text))
+        logger.info(f"Generated preference embedding: {len(embedding)} dimensions")
+        return embedding
+    except Exception as e:
+        logger.error(f"Failed to generate preference embedding: {e}")
+        return None
+
+
+async def _semantic_filter(
+    articles: list[CollectedArticle],
+    preferences: UserPreference,
+    limit: int = 20,
+    score_threshold: float = 0.65,
+) -> list[CollectedArticle]:
+    """
+    Filter articles using semantic similarity search via Qdrant.
+
+    Strategy:
+    1. Generate embedding from user's research_fields + keywords
+    2. Search Qdrant for semantically similar articles
+    3. Filter results to only include articles from provided list
+    4. Return top matches above threshold
+
+    Args:
+        articles: Available articles (should have vector_id set)
+        preferences: User preferences
+        limit: Max articles to return
+        score_threshold: Minimum similarity score (0.0-1.0)
+
+    Returns:
+        Semantically matched articles ordered by relevance
+    """
+    try:
+        # Generate preference embedding
+        preference_embedding = _generate_preference_embedding(preferences)
+
+        if not preference_embedding:
+            logger.warning("Could not generate preference embedding, skipping semantic search")
+            return []
+
+        # Get vector operations client
+        from app.vector_db.operations import VectorOperations
+
+        vector_ops = VectorOperations()
+
+        # Filter articles that have vector_id (embedded in Qdrant)
+        vectorized_articles = [a for a in articles if a.vector_id]
+
+        if not vectorized_articles:
+            logger.warning(
+                f"No articles have vector_id set. " f"Total articles: {len(articles)}, Vectorized: 0",
+            )
+            return []
+
+        logger.info(f"Performing semantic search on {len(vectorized_articles)} articles")
+
+        # Search Qdrant with preference embedding
+        search_results = vector_ops.qdrant_client.client.query_points(
+            collection_name=vector_ops.collection_name,
+            query=preference_embedding,
+            limit=limit * 2,  # Get more results to filter
+            score_threshold=score_threshold,
+            with_payload=True,
+            with_vectors=False,
+        ).points
+
+        # Create mapping of vector_id -> article
+        article_map = {a.vector_id: a for a in vectorized_articles}
+
+        # Filter results to only include our available articles
+        matched_articles = []
+        for hit in search_results:
+            vector_id = str(hit.id)
+            if vector_id in article_map:
+                article = article_map[vector_id]
+                # Store similarity score as temporary attribute for sorting
+                article._semantic_score = hit.score  # noqa: SLF001
+                matched_articles.append(article)
+
+        # Sort by semantic score and limit
+        matched_articles.sort(
+            key=lambda x: getattr(x, "_semantic_score", 0.0),
+            reverse=True,
+        )
+        matched_articles = matched_articles[:limit]
+
+        logger.info(
+            f"Semantic search found {len(matched_articles)} matches "
+            f"above threshold {score_threshold}",
+        )
+
+        return matched_articles
+
+    except Exception as e:
+        logger.error(f"Semantic search failed: {e}", exc_info=True)
+        return []
+
+
+def _semantic_filter_sync(
+    articles: list[CollectedArticle],
+    preferences: UserPreference,
+    limit: int = 20,
+    score_threshold: float = 0.65,
+) -> list[CollectedArticle]:
+    """
+    Synchronous wrapper for semantic filtering.
+
+    This allows calling from sync code like select_articles_for_user.
+    """
+    try:
+        return asyncio.run(_semantic_filter(articles, preferences, limit, score_threshold))
+    except Exception as e:
+        logger.error(f"Semantic filter sync wrapper failed: {e}")
+        return []
 
 
 def _apply_category_distribution(

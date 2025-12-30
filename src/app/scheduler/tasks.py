@@ -246,20 +246,29 @@ def process_articles_task() -> None:
                 # 4. Generate embedding and store in Vector DB
                 if not article.vector_id:
                     try:
-                        _ = with_retry(
-                            lambda a=article: generate_embedding(
-                                text=f"{a.title}\n\n{a.summary or a.content or ''}",
+                        from app.vector_db.operations import VectorOperations
+
+                        # Store in Qdrant (embedding is generated internally)
+                        vector_ops = VectorOperations()
+                        vector_id = asyncio.run(
+                            vector_ops.insert_article(
+                                article_id=str(article.id),
+                                title=article.title,
+                                content=article.content or "",
+                                summary=article.summary or "",
+                                source_type=article.source_type,
+                                category=article.category or "general",
+                                importance_score=article.importance_score or 0.5,
+                                metadata=article.article_metadata or {},
                             ),
-                            max_attempts=3,
                         )
 
-                        # Store in Qdrant
-                        vector_id = str(article.id)
-                        # TODO: Implement vector_db.upsert_article method
-                        # For now, just set the vector_id
                         article.vector_id = vector_id
+                        logger.info(f"Stored article in Qdrant with vector_id={vector_id}")
+
                     except Exception as e:
-                        logger.warning(f"Embedding generation failed: {e}")
+                        logger.warning(f"Embedding generation or Qdrant storage failed: {e}")
+                        # Don't fail the entire processing, just log and continue
 
                 # Save updates
                 crud.update_article(
@@ -318,10 +327,35 @@ def send_digest_task() -> None:
         # Get all articles from last 24 hours (fetch once for efficiency)
         since = datetime.now(UTC) - timedelta(days=1)
         all_articles = crud.get_articles_since(db, since=since)
-        logger.info(f"Found {len(all_articles)} articles from last 24 hours")
+
+        # Filter for fully processed articles only
+        processed_articles = [
+            a
+            for a in all_articles
+            if (
+                # Must have summary OR category (LLM generated)
+                (a.summary and a.summary.strip()) or (a.category and a.category.strip())
+            )
+            and (
+                # Must have importance score set (not None, not default 0.5)
+                a.importance_score is not None and a.importance_score != 0.5
+            )
+        ]
+
+        logger.info(
+            f"Found {len(all_articles)} articles from last 24 hours, "
+            f"{len(processed_articles)} are fully processed",
+        )
+
+        # Use processed articles instead of all articles
+        all_articles = processed_articles
 
         if not all_articles:
-            logger.warning("No articles available for digest")
+            logger.warning(
+                "No processed articles available for digest. "
+                "This may happen if collection ran but processing hasn't completed yet. "
+                "Skipping digest sending for now.",
+            )
             return
 
         for user in users:
