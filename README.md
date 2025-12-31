@@ -108,6 +108,19 @@ streamlit run src/app/frontend/main.py
 # http://localhost:8501
 ```
 
+**Scheduler (자동 데이터 수집 및 이메일 발송):**
+```bash
+# 터미널 3 (새 터미널)
+source .venv/bin/activate
+python -m src.app.scheduler.main
+
+# 스케줄러 작동 확인
+# - 매일 01:00: 데이터 수집
+# - 매일 01:30: LLM 처리
+# - 매일 06:00: 큐레이션
+# - 매일 08:00 (또는 사용자 설정 시간): 이메일 발송
+```
+
 ### 7. 서비스 확인
 
 1. **Backend API 확인**
