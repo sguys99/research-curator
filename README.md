@@ -72,10 +72,10 @@ QDRANT_PORT=6333
 
 ```bash
 # PostgreSQL & Qdrant 컨테이너 시작
-docker-compose up -d
+docker compose up -d
 
 # 컨테이너 상태 확인
-docker-compose ps
+docker compose ps
 ```
 
 ### 5. 데이터베이스 마이그레이션
