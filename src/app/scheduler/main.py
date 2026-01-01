@@ -3,6 +3,7 @@
 import logging
 from datetime import datetime
 
+from apscheduler.events import EVENT_JOB_ERROR, EVENT_JOB_EXECUTED, EVENT_JOB_SUBMITTED
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from pytz import timezone
@@ -22,6 +23,34 @@ KST = timezone("Asia/Seoul")
 
 # Create scheduler instance
 scheduler = BackgroundScheduler(timezone=KST)
+
+
+# Event listeners for job monitoring
+def job_submitted_listener(event):
+    """Log when a job starts executing."""
+    job = scheduler.get_job(event.job_id)
+    if job:
+        logger.info(f"⏰ Job started: {job.name} (ID: {job.id})")
+
+
+def job_executed_listener(event):
+    """Log when a job completes successfully."""
+    job = scheduler.get_job(event.job_id)
+    if job:
+        logger.info(f"✅ Job completed: {job.name} (ID: {job.id})")
+
+
+def job_error_listener(event):
+    """Log when a job encounters an error."""
+    job = scheduler.get_job(event.job_id)
+    job_name = job.name if job else event.job_id
+    logger.error(f"❌ Job failed: {job_name} - Error: {event.exception}")
+
+
+# Register event listeners
+scheduler.add_listener(job_submitted_listener, EVENT_JOB_SUBMITTED)
+scheduler.add_listener(job_executed_listener, EVENT_JOB_EXECUTED)
+scheduler.add_listener(job_error_listener, EVENT_JOB_ERROR)
 
 
 def setup_jobs() -> None:
