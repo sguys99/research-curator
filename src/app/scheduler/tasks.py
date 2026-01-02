@@ -337,8 +337,8 @@ def send_digest_task() -> None:
                 (a.summary and a.summary.strip()) or (a.category and a.category.strip())
             )
             and (
-                # Must have importance score set (not None, not default 0.5)
-                a.importance_score is not None and a.importance_score != 0.5
+                # Must have importance score processed (>= 0.1 threshold)
+                a.importance_score is not None and a.importance_score >= 0.1
             )
         ]
 
