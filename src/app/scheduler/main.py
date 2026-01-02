@@ -8,8 +8,9 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from pytz import timezone
 
-from app.core.config import settings
-from app.scheduler.tasks import collect_data_task, process_articles_task, send_digest_task
+from app.scheduler.tasks import (
+    unified_collect_and_send_task,
+)
 
 # Configure logging
 logging.basicConfig(
@@ -57,56 +58,74 @@ def setup_jobs() -> None:
     """Setup all scheduled jobs."""
     logger.info("Setting up scheduled jobs...")
 
-    # Job 1: Data Collection - Daily at 01:00 KST
+    # NEW: Unified Job - Collect, Process, and Send (Daily at 06:00 KST)
     scheduler.add_job(
-        func=collect_data_task,
+        func=unified_collect_and_send_task,
         trigger=CronTrigger(
-            hour=settings.COLLECT_SCHEDULE_HOUR,
-            minute=settings.COLLECT_SCHEDULE_MINUTE,
+            hour=6,
+            minute=0,
             timezone=KST,
         ),
-        id="collect_data",
-        name="Daily Data Collection",
+        id="unified_collect_send",
+        name="Unified Collect & Send Digests",
         replace_existing=True,
         misfire_grace_time=3600,  # 1 hour grace period
     )
-    logger.info(
-        f"✅ Scheduled: Data Collection at {settings.COLLECT_SCHEDULE_HOUR:02d}:"
-        f"{settings.COLLECT_SCHEDULE_MINUTE:02d} KST",
-    )
+    logger.info("✅ Scheduled: Unified Collect & Send at 06:00 KST")
 
-    # Job 2: Process Articles - Daily at 01:30 KST
-    scheduler.add_job(
-        func=process_articles_task,
-        trigger=CronTrigger(
-            hour=1,
-            minute=30,
-            timezone=KST,
-        ),
-        id="process_articles",
-        name="Process Collected Articles",
-        replace_existing=True,
-        misfire_grace_time=3600,
-    )
-    logger.info("✅ Scheduled: Article Processing at 01:30 KST")
+    # LEGACY JOBS (kept for backward compatibility, but not used by default)
+    # Uncomment below to use the old 3-task system instead
 
-    # Job 3: Send Email Digests - Daily at 08:00 KST (configurable per user)
-    scheduler.add_job(
-        func=send_digest_task,
-        trigger=CronTrigger(
-            hour=settings.SEND_EMAIL_SCHEDULE_HOUR,
-            minute=settings.SEND_EMAIL_SCHEDULE_MINUTE,
-            timezone=KST,
-        ),
-        id="send_digests",
-        name="Send Email Digests",
-        replace_existing=True,
-        misfire_grace_time=3600,
-    )
-    logger.info(
-        f"✅ Scheduled: Email Digest Sending at {settings.SEND_EMAIL_SCHEDULE_HOUR:02d}:"
-        f"{settings.SEND_EMAIL_SCHEDULE_MINUTE:02d} KST",
-    )
+    # # Job 1: Data Collection - Daily at 01:00 KST
+    # scheduler.add_job(
+    #     func=collect_data_task,
+    #     trigger=CronTrigger(
+    #         hour=settings.COLLECT_SCHEDULE_HOUR,
+    #         minute=settings.COLLECT_SCHEDULE_MINUTE,
+    #         timezone=KST,
+    #     ),
+    #     id="collect_data",
+    #     name="Daily Data Collection",
+    #     replace_existing=True,
+    #     misfire_grace_time=3600,
+    # )
+    # logger.info(
+    #     f"✅ Scheduled: Data Collection at {settings.COLLECT_SCHEDULE_HOUR:02d}:"
+    #     f"{settings.COLLECT_SCHEDULE_MINUTE:02d} KST",
+    # )
+
+    # # Job 2: Process Articles - Daily at 01:30 KST
+    # scheduler.add_job(
+    #     func=process_articles_task,
+    #     trigger=CronTrigger(
+    #         hour=1,
+    #         minute=30,
+    #         timezone=KST,
+    #     ),
+    #     id="process_articles",
+    #     name="Process Collected Articles",
+    #     replace_existing=True,
+    #     misfire_grace_time=3600,
+    # )
+    # logger.info("✅ Scheduled: Article Processing at 01:30 KST")
+
+    # # Job 3: Send Email Digests - Daily at 08:00 KST
+    # scheduler.add_job(
+    #     func=send_digest_task,
+    #     trigger=CronTrigger(
+    #         hour=settings.SEND_EMAIL_SCHEDULE_HOUR,
+    #         minute=settings.SEND_EMAIL_SCHEDULE_MINUTE,
+    #         timezone=KST,
+    #     ),
+    #     id="send_digests",
+    #     name="Send Email Digests",
+    #     replace_existing=True,
+    #     misfire_grace_time=3600,
+    # )
+    # logger.info(
+    #     f"✅ Scheduled: Email Digest Sending at {settings.SEND_EMAIL_SCHEDULE_HOUR:02d}:"
+    #     f"{settings.SEND_EMAIL_SCHEDULE_MINUTE:02d} KST",
+    # )
 
 
 def start_scheduler() -> None:

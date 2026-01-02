@@ -433,3 +433,330 @@ def send_digest_task() -> None:
         logger.error(f"Fatal error in email digest task: {e}", exc_info=True)
     finally:
         db.close()
+
+
+def unified_collect_and_send_task() -> None:
+    """
+    Unified task: Collect, match, process, and send digests.
+
+    This combines collection, processing, and sending into one efficient task:
+    1. Collect articles from all sources (in-memory only, no DB save)
+    2. Match articles to users based on preferences
+    3. Select top N articles per user
+    4. Process selected articles with LLM (summary, score, category, embedding)
+    5. Save processed articles to DB + Vector DB
+    6. Send email digests
+
+    Runs daily at 06:00 KST
+    """
+    logger.info("=" * 60)
+    logger.info("Starting unified collect-and-send task...")
+    logger.info(f"Timestamp: {datetime.now(UTC).isoformat()}")
+    logger.info("=" * 60)
+
+    db = SessionLocal()
+    collected_count = 0
+    processed_count = 0
+    sent_count = 0
+    error_count = 0
+
+    try:
+        # Step 1: Get all users
+        users = crud.list_users(db)
+        logger.info(f"Found {len(users)} users")
+
+        if not users:
+            logger.warning("No users found, skipping task")
+            return
+
+        # Aggregate all research fields and keywords from users
+        all_fields = set()
+        all_keywords = set()
+
+        for user in users:
+            pref = crud.get_user_preference(db, user.id)
+            if pref:
+                all_fields.update(pref.research_fields)
+                all_keywords.update(pref.keywords)
+
+        logger.info(
+            f"Collecting for {len(all_fields)} fields and {len(all_keywords)} keywords",
+        )
+
+        # Step 2: Collect articles (in-memory only, no DB save yet)
+        raw_articles = []
+
+        # 2a. Collect from arXiv
+        logger.info("\n📚 Collecting from arXiv...")
+        arxiv_collector = ArxivCollector()
+
+        for field in all_fields:
+            try:
+                articles = with_retry(
+                    lambda f=field: asyncio.run(arxiv_collector.collect(query=f, limit=5)),
+                    max_attempts=3,
+                )
+                raw_articles.extend(articles)
+                collected_count += len(articles)
+            except Exception as e:
+                logger.error(f"Error collecting from arXiv for field '{field}': {e}")
+                error_count += 1
+
+        # 2b. Collect from News sources
+        logger.info("\n📰 Collecting from News sources...")
+        news_collector = NewsCollector()
+
+        for keyword in list(all_keywords)[:5]:  # Limit to 5 keywords
+            try:
+                articles = with_retry(
+                    lambda k=keyword: asyncio.run(news_collector.collect(query=k, limit=3)),
+                    max_attempts=3,
+                )
+                raw_articles.extend(articles)
+                collected_count += len(articles)
+            except Exception as e:
+                logger.error(f"Error collecting news for keyword '{keyword}': {e}")
+                error_count += 1
+
+        logger.info(f"\n✅ Collected {collected_count} articles (in-memory)")
+
+        # Remove duplicates based on URL
+        unique_articles = {}
+        for article in raw_articles:
+            if article.url not in unique_articles:
+                unique_articles[article.url] = article
+
+        raw_articles = list(unique_articles.values())
+        logger.info(f"After deduplication: {len(raw_articles)} unique articles")
+
+        # Step 3: Match articles to users and select top N per user
+        user_article_map = {}  # {user_id: [selected_articles]}
+
+        for user in users:
+            pref = crud.get_user_preference(db, user.id)
+            if not pref or not pref.email_enabled:
+                continue
+
+            # Simple keyword matching for article selection
+            selected = _match_articles_to_user(raw_articles, pref)
+
+            if selected:
+                user_article_map[user.id] = selected
+                logger.info(
+                    f"User {user.email}: selected {len(selected)} articles "
+                    f"from {len(raw_articles)} collected",
+                )
+
+        # Step 4: Get unique articles that need processing
+        articles_to_process = set()
+        for selected_articles in user_article_map.values():
+            articles_to_process.update(selected_articles)
+
+        articles_to_process = list(articles_to_process)
+        logger.info(
+            f"\n🔄 Processing {len(articles_to_process)} unique articles (selected across all users)",
+        )
+
+        # Step 5: Process selected articles with LLM
+        processed_articles = {}  # {url: processed_db_article}
+
+        for article_data in articles_to_process:
+            try:
+                # Check if article already exists in DB
+                existing = crud.get_article_by_url(db, article_data.url)
+                if existing:
+                    logger.info(f"Article already exists: {article_data.title[:50]}...")
+                    processed_articles[article_data.url] = existing
+                    continue
+
+                # LLM Processing: Summary
+                summary = with_retry(
+                    lambda data=article_data: summarize_article(
+                        title=data.title,
+                        content=data.content or "",
+                    ),
+                    max_attempts=3,
+                )
+
+                # LLM Processing: Importance Score
+                importance_score = with_retry(
+                    lambda data=article_data, s=summary: evaluate_importance(
+                        title=data.title,
+                        content=data.content or s,
+                    ),
+                    max_attempts=3,
+                )
+
+                # LLM Processing: Category
+                category = with_retry(
+                    lambda data=article_data, s=summary: classify_article_type(
+                        title=data.title,
+                        content=data.content or s,
+                    ),
+                    max_attempts=3,
+                )
+
+                # Save to DB
+                db_article = crud.create_article(
+                    db,
+                    title=article_data.title,
+                    content=article_data.content,
+                    summary=summary,
+                    source_url=article_data.url,
+                    source_type=article_data.metadata.get("source_type", "news"),
+                    category=category,
+                    importance_score=importance_score,
+                    metadata=article_data.metadata,
+                )
+
+                # Generate embedding and store in Vector DB
+                try:
+                    from app.vector_db.operations import VectorOperations
+
+                    vector_ops = VectorOperations()
+                    vector_id = asyncio.run(
+                        vector_ops.insert_article(
+                            article_id=str(db_article.id),
+                            title=db_article.title,
+                            content=db_article.content or "",
+                            summary=db_article.summary or "",
+                            source_type=db_article.source_type,
+                            category=db_article.category or "general",
+                            importance_score=db_article.importance_score or 0.5,
+                            metadata=db_article.article_metadata or {},
+                        ),
+                    )
+
+                    crud.update_article(db, db_article.id, vector_id=vector_id)
+                    logger.info(
+                        f"✅ Processed & saved: {article_data.title[:50]}... "
+                        f"(score={importance_score:.2f})",
+                    )
+
+                except Exception as e:
+                    logger.warning(f"Vector DB storage failed: {e}")
+
+                processed_articles[article_data.url] = db_article
+                processed_count += 1
+
+            except Exception as e:
+                logger.error(f"Error processing article '{article_data.title[:50]}': {e}")
+                error_count += 1
+
+        # Step 6: Send emails
+        logger.info(f"\n📧 Sending digests to {len(user_article_map)} users...")
+
+        for user in users:
+            if user.id not in user_article_map:
+                continue
+
+            try:
+                pref = crud.get_user_preference(db, user.id)
+                if not pref or not pref.email_enabled:
+                    continue
+
+                # Get processed DB articles for this user
+                user_articles_data = user_article_map[user.id]
+                user_db_articles = [processed_articles.get(a.url) for a in user_articles_data]
+                user_db_articles = [a for a in user_db_articles if a is not None]
+
+                if not user_db_articles:
+                    logger.info(f"No processed articles for {user.email}")
+                    continue
+
+                # Sort by importance and limit
+                user_db_articles = sorted(
+                    user_db_articles,
+                    key=lambda x: x.importance_score or 0.0,
+                    reverse=True,
+                )
+                user_db_articles = user_db_articles[: pref.daily_limit]
+
+                # Build and send email
+                builder = EmailBuilder()
+                html_content = builder.build_daily_digest(
+                    user_name=user.name or user.email.split("@")[0],
+                    user_email=user.email,
+                    articles=user_db_articles,
+                    daily_limit=pref.daily_limit,
+                )
+
+                date_str = datetime.now().strftime("%Y년 %m월 %d일")
+                subject = f"🔬 Research Curator - {date_str} AI 연구 동향"
+
+                sender = EmailSender()
+                asyncio.run(
+                    sender.send_email(
+                        to_email=user.email,
+                        subject=subject,
+                        html_content=html_content,
+                    ),
+                )
+
+                # Record in database
+                crud.create_digest(
+                    db=db,
+                    user_id=user.id,
+                    article_ids=[str(a.id) for a in user_db_articles],
+                )
+
+                logger.info(
+                    f"✅ Sent {len(user_db_articles)} articles to {user.email}",
+                )
+                sent_count += 1
+
+            except Exception as e:
+                logger.error(f"Error sending digest to {user.email}: {e}")
+                error_count += 1
+
+        logger.info("\n" + "=" * 60)
+        logger.info("✅ Unified task completed!")
+        logger.info(f"Collected: {collected_count} articles")
+        logger.info(f"Processed: {processed_count} articles (LLM + DB)")
+        logger.info(f"Emails sent: {sent_count}")
+        logger.info(f"Errors: {error_count}")
+        logger.info("=" * 60)
+
+    except Exception as e:
+        logger.error(f"Fatal error in unified task: {e}", exc_info=True)
+    finally:
+        db.close()
+
+
+def _match_articles_to_user(raw_articles: list, preferences) -> list:
+    """
+    Match raw articles to user preferences using simple keyword matching.
+
+    Args:
+        raw_articles: List of CollectedArticleData objects
+        preferences: UserPreference object
+
+    Returns:
+        List of matched articles (limited to user's daily_limit * 2)
+    """
+    keywords = preferences.keywords or []
+    research_fields = preferences.research_fields or []
+
+    if not keywords and not research_fields:
+        # Return top articles by default
+        return raw_articles[: preferences.daily_limit * 2]
+
+    matched = []
+
+    for article in raw_articles:
+        # Combine all searchable text
+        searchable_text = f"{article.title} {article.content or ''}"
+        searchable_text_lower = searchable_text.lower()
+
+        # Check keyword match
+        matches_keyword = any(kw.lower() in searchable_text_lower for kw in keywords)
+
+        # Check field match
+        matches_field = any(field.lower() in searchable_text_lower for field in research_fields)
+
+        if matches_keyword or matches_field:
+            matched.append(article)
+
+    # Return top matches (2x daily limit to allow for diversity)
+    limit = preferences.daily_limit * 2
+    return matched[:limit]
