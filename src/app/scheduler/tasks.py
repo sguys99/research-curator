@@ -548,11 +548,14 @@ def unified_collect_and_send_task() -> None:
                 )
 
         # Step 4: Get unique articles that need processing
-        articles_to_process = set()
-        for selected_articles in user_article_map.values():
-            articles_to_process.update(selected_articles)
+        seen_urls = set()
+        articles_to_process = []
 
-        articles_to_process = list(articles_to_process)
+        for selected_articles in user_article_map.values():
+            for article in selected_articles:
+                if article.url not in seen_urls:
+                    seen_urls.add(article.url)
+                    articles_to_process.append(article)
         logger.info(
             f"\n🔄 Processing {len(articles_to_process)} unique articles (selected across all users)",
         )
