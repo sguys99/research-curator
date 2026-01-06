@@ -105,28 +105,37 @@ def collect_data_task() -> None:
                 )
 
                 for article_data in articles:
-                    # Check if article already exists
-                    existing = crud.get_article_by_url(db, article_data.url)
-                    if existing:
-                        continue
+                    try:
+                        # Check if article already exists
+                        existing = crud.get_article_by_url(db, article_data.url)
+                        if existing:
+                            continue
 
-                    # Create article
-                    crud.create_article(
-                        db,
-                        title=article_data.title,
-                        content=article_data.content,
-                        summary="",
-                        source_url=article_data.url,
-                        source_type="paper",
-                        category="",
-                        importance_score=0.5,
-                        metadata=article_data.metadata,
-                    )
-                    collected_count += 1
+                        # Create article
+                        crud.create_article(
+                            db,
+                            title=article_data.title,
+                            content=article_data.content,
+                            summary="",
+                            source_url=article_data.url,
+                            source_type="paper",
+                            category="",
+                            importance_score=0.5,
+                            metadata=article_data.metadata,
+                        )
+                        collected_count += 1
+
+                    except Exception as article_error:
+                        logger.error(
+                            f"Error saving article '{article_data.title[:50]}': {article_error}",
+                        )
+                        error_count += 1
+                        db.rollback()
 
             except Exception as e:
                 logger.error(f"Error collecting from arXiv for field '{field}': {e}")
                 error_count += 1
+                db.rollback()
 
         # 2. Collect from News sources
         logger.info("\n2. Collecting from News sources...")
@@ -140,26 +149,35 @@ def collect_data_task() -> None:
                 )
 
                 for article_data in articles:
-                    existing = crud.get_article_by_url(db, article_data.url)
-                    if existing:
-                        continue
+                    try:
+                        existing = crud.get_article_by_url(db, article_data.url)
+                        if existing:
+                            continue
 
-                    crud.create_article(
-                        db,
-                        title=article_data.title,
-                        content=article_data.content,
-                        summary="",
-                        source_url=article_data.url,
-                        source_type="news",
-                        category="",
-                        importance_score=0.5,
-                        metadata=article_data.metadata,
-                    )
-                    collected_count += 1
+                        crud.create_article(
+                            db,
+                            title=article_data.title,
+                            content=article_data.content,
+                            summary="",
+                            source_url=article_data.url,
+                            source_type="news",
+                            category="",
+                            importance_score=0.5,
+                            metadata=article_data.metadata,
+                        )
+                        collected_count += 1
+
+                    except Exception as article_error:
+                        logger.error(
+                            f"Error saving article '{article_data.title[:50]}': {article_error}",
+                        )
+                        error_count += 1
+                        db.rollback()
 
             except Exception as e:
                 logger.error(f"Error collecting news for keyword '{keyword}': {e}")
                 error_count += 1
+                db.rollback()
 
         logger.info("\n" + "=" * 60)
         logger.info("✅ Data collection completed!")
@@ -285,6 +303,8 @@ def process_articles_task() -> None:
             except Exception as e:
                 logger.error(f"Error processing article '{article.title[:50]}': {e}")
                 error_count += 1
+                # Rollback the transaction to recover from errors
+                db.rollback()
 
         logger.info("\n" + "=" * 60)
         logger.info("✅ Article processing completed!")
@@ -418,10 +438,12 @@ def send_digest_task() -> None:
                 except Exception as email_error:
                     logger.error(f"Failed to send email to {user.email}: {email_error}")
                     error_count += 1
+                    db.rollback()
 
             except Exception as e:
                 logger.error(f"Error sending digest to {user.email}: {e}")
                 error_count += 1
+                db.rollback()
 
         logger.info("\n" + "=" * 60)
         logger.info("✅ Email digest task completed!")
@@ -645,6 +667,8 @@ def unified_collect_and_send_task() -> None:
             except Exception as e:
                 logger.error(f"Error processing article '{article_data.title[:50]}': {e}")
                 error_count += 1
+                # Rollback the transaction to recover from errors
+                db.rollback()
 
         # Step 6: Send emails
         logger.info(f"\n📧 Sending digests to {len(user_article_map)} users...")
@@ -711,6 +735,7 @@ def unified_collect_and_send_task() -> None:
             except Exception as e:
                 logger.error(f"Error sending digest to {user.email}: {e}")
                 error_count += 1
+                db.rollback()
 
         logger.info("\n" + "=" * 60)
         logger.info("✅ Unified task completed!")
