@@ -385,6 +385,13 @@ def send_digest_task() -> None:
                 if not pref or not pref.email_enabled:
                     continue
 
+                # Check if digest was already sent today (prevent duplicates)
+                if crud.has_digest_sent_today(db, user.id):
+                    logger.info(
+                        f"⏭️  Digest already sent to {user.email} today, skipping",
+                    )
+                    continue
+
                 # Select personalized articles based on user preferences
                 personalized_articles = select_articles_for_user(
                     articles=all_articles,
@@ -680,6 +687,13 @@ def unified_collect_and_send_task() -> None:
             try:
                 pref = crud.get_user_preference(db, user.id)
                 if not pref or not pref.email_enabled:
+                    continue
+
+                # Check if digest was already sent today (prevent duplicates)
+                if crud.has_digest_sent_today(db, user.id):
+                    logger.info(
+                        f"⏭️  Digest already sent to {user.email} today, skipping",
+                    )
                     continue
 
                 # Get processed DB articles for this user

@@ -297,6 +297,20 @@ def list_user_digests(
     return list(db.scalars(stmt).all())
 
 
+def has_digest_sent_today(db: Session, user_id: UUID) -> bool:
+    """Check if a digest was already sent to this user today (in UTC)."""
+    from datetime import UTC, datetime
+
+    today_start = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
+
+    stmt = select(SentDigest).where(
+        and_(SentDigest.user_id == user_id, SentDigest.sent_at >= today_start),
+    )
+
+    result = db.scalar(stmt)
+    return result is not None
+
+
 def get_latest_digest(db: Session, user_id: UUID) -> SentDigest | None:
     """Get the most recent digest for a user."""
     stmt = (
