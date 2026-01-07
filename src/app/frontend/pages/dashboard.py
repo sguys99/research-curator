@@ -94,42 +94,58 @@ def show_dashboard_page():
     # Scheduler Status Section
     st.markdown("### 🤖 스케줄러 상태")
 
+    st.info(
+        "ℹ️ **안내**: 스케줄러는 별도의 프로세스로 실행됩니다. "
+        "아래 상태는 모니터링 전용이며, 실제 스케줄러는 서버에서 독립적으로 관리됩니다.",
+    )
+
     try:
-        scheduler_status = api.get_scheduler_status()
-        is_running = scheduler_status.get("running", False)
+        # Check standalone scheduler status
+        import psutil
+
+        scheduler_running = False
+        scheduler_pids = []
+
+        for proc in psutil.process_iter(["pid", "cmdline"]):
+            try:
+                cmdline = proc.info.get("cmdline")
+                if cmdline and "scheduler.main" in " ".join(cmdline):
+                    scheduler_running = True
+                    scheduler_pids.append(proc.info["pid"])
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                continue
 
         col_status1, col_status2 = st.columns([3, 1])
 
         with col_status1:
-            if is_running:
-                st.success("✅ 스케줄러가 실행 중입니다")
-                jobs = scheduler_status.get("jobs", [])
-                if jobs:
-                    with st.expander("📅 예정된 작업 보기"):
-                        for job in jobs:
-                            next_run = job.get("next_run_time", "N/A")
-                            st.markdown(f"- **{job.get('name')}**: {next_run}")
+            if scheduler_running:
+                st.success(
+                    f"✅ Standalone 스케줄러가 실행 중입니다 "
+                    f"(PID: {', '.join(map(str, scheduler_pids))})",
+                )
+
+                # Get job info from API (for display only)
+                try:
+                    scheduler_status = api.get_scheduler_status()
+                    jobs = scheduler_status.get("jobs", [])
+                    if jobs:
+                        with st.expander("📅 예정된 작업 보기"):
+                            for job in jobs:
+                                next_run = job.get("next_run_time", "N/A")
+                                st.markdown(f"- **{job.get('name')}**: {next_run}")
+                except Exception:
+                    pass
             else:
-                st.warning("⚠️ 스케줄러가 중지되어 있습니다. 자동 수집이 작동하지 않습니다.")
+                st.warning(
+                    "⚠️ 스케줄러가 실행되지 않고 있습니다. " "서버 관리자에게 문의하세요.",
+                )
 
         with col_status2:
-            if is_running:
-                if st.button("⏹️ 중지", use_container_width=True):
-                    try:
-                        api.stop_scheduler()
-                        st.success("스케줄러가 중지되었습니다")
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"오류: {str(e)}")
-            else:
-                if st.button("▶️ 시작", use_container_width=True):
-                    try:
-                        api.start_scheduler()
-                        st.success("스케줄러가 시작되었습니다")
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"오류: {str(e)}")
+            st.caption("읽기 전용")
+            st.button("🔄 새로고침", use_container_width=True, on_click=st.rerun)
 
+    except ImportError:
+        st.warning("스케줄러 상태를 확인할 수 없습니다 (psutil 필요)")
     except Exception as e:
         st.error(f"스케줄러 상태를 불러올 수 없습니다: {str(e)}")
 
