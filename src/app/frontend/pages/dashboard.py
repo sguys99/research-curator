@@ -137,7 +137,7 @@ def show_dashboard_page():
                     pass
             else:
                 st.warning(
-                    "⚠️ 스케줄러가 실행되지 않고 있습니다. " "서버 관리자에게 문의하세요.",
+                    "⚠️ 스케줄러가 실행되지 않고 있습니다. 서버 관리자에게 문의하세요.",
                 )
 
         with col_status2:

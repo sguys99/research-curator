@@ -95,23 +95,63 @@ def show_system_overview():
     # 스케줄러 상태
     st.subheader("⚙️ Scheduler Status")
 
+    st.info(
+        "ℹ️ **안내**: 스케줄러는 별도의 프로세스로 실행됩니다. "
+        "아래 상태는 모니터링 전용이며, 실제 스케줄러는 서버에서 독립적으로 관리됩니다.",
+    )
+
     try:
-        api = get_api_client()
-        scheduler_status = api.get_scheduler_status()
+        # Check standalone scheduler status
+        import psutil
 
-        if scheduler_status.get("running"):
-            st.success("✅ Scheduler is running")
-            jobs = scheduler_status.get("jobs", [])
+        scheduler_running = False
+        scheduler_pids = []
 
-            if jobs:
-                for job in jobs:
-                    with st.expander(f"📅 {job.get('name', 'Unknown')}"):
-                        st.write(f"**Next run**: {job.get('next_run_time', 'N/A')}")
-                        st.write(f"**Job ID**: {job.get('id', 'N/A')}")
+        for proc in psutil.process_iter(["pid", "cmdline", "create_time"]):
+            try:
+                cmdline = proc.info.get("cmdline")
+                if cmdline and "scheduler.main" in " ".join(cmdline):
+                    scheduler_running = True
+                    scheduler_pids.append(proc.info["pid"])
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                continue
+
+        col_status1, col_status2 = st.columns([3, 1])
+
+        with col_status1:
+            if scheduler_running:
+                st.success(
+                    f"✅ Standalone 스케줄러가 실행 중입니다 "
+                    f"(PID: {', '.join(map(str, scheduler_pids))})",
+                )
+
+                # Get job info from API (for display only)
+                try:
+                    api = get_api_client()
+                    scheduler_status = api.get_scheduler_status()
+                    jobs = scheduler_status.get("jobs", [])
+
+                    if jobs:
+                        for job in jobs:
+                            with st.expander(f"📅 {job.get('name', 'Unknown')}"):
+                                st.write(f"**Next run**: {job.get('next_run_time', 'N/A')}")
+                                st.write(f"**Job ID**: {job.get('id', 'N/A')}")
+                    else:
+                        st.info("No scheduled jobs found")
+                except Exception:
+                    pass
             else:
-                st.info("No scheduled jobs found")
-        else:
-            st.warning("⚠️ Scheduler is stopped")
+                st.warning(
+                    "⚠️ 스케줄러가 실행되지 않고 있습니다. 서버에서 스케줄러 프로세스를 시작해야 합니다.",
+                )
+
+        with col_status2:
+            st.caption("읽기 전용")
+            if st.button("🔄 새로고침", use_container_width=True):
+                st.rerun()
+
+    except ImportError:
+        st.warning("스케줄러 상태를 확인할 수 없습니다 (psutil 필요)")
     except Exception as e:
         st.error(f"Error loading scheduler status: {e}")
 
