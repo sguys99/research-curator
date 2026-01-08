@@ -103,7 +103,7 @@ class EmailBuilder:
         articles: list[CollectedArticle],
     ) -> tuple[list[CollectedArticle], list[CollectedArticle], list[CollectedArticle]]:
         """
-        Group articles by source type (paper/news/report).
+        Group articles by category (paper/news/report).
 
         Args:
             articles: List of collected articles
@@ -116,11 +116,13 @@ class EmailBuilder:
         reports = []
 
         for article in articles:
-            if article.source_type == "paper":
+            # Use LLM-classified category instead of source_type
+            category = (article.category or "").lower()
+            if category == "paper":
                 papers.append(article)
-            elif article.source_type == "news":
+            elif category == "news":
                 news.append(article)
-            elif article.source_type == "report":
+            elif category == "report":
                 reports.append(article)
 
         return papers, news, reports
@@ -136,12 +138,13 @@ class EmailBuilder:
             dict: Formatted article data
         """
         # Calculate importance level and stars
+        # Adjusted thresholds: 0.6 for high, 0.4 for medium
         importance_score = article.importance_score or 0.0
-        if importance_score >= 0.8:
+        if importance_score >= 0.6:
             importance_level = "high"
             importance_stars = "⭐⭐⭐"
             importance_label = "높음"
-        elif importance_score >= 0.6:
+        elif importance_score >= 0.4:
             importance_level = "medium"
             importance_stars = "⭐⭐"
             importance_label = "중간"
