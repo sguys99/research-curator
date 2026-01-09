@@ -392,15 +392,28 @@ def send_digest_task() -> None:
                     )
                     continue
 
+                # Filter out articles already sent to this user in last 7 days
+                sent_article_ids = crud.get_user_sent_article_ids(db, user.id, days=7)
+                unsent_articles = [a for a in all_articles if str(a.id) not in sent_article_ids]
+
+                logger.info(
+                    f"Filtered articles for {user.email}: "
+                    f"{len(all_articles)} total → {len(unsent_articles)} unsent "
+                    f"(excluded {len(sent_article_ids)} already sent in last 7 days)",
+                )
+
                 # Select personalized articles based on user preferences
                 personalized_articles = select_articles_for_user(
-                    articles=all_articles,
+                    articles=unsent_articles,
                     preferences=pref,
                     limit=pref.daily_limit,
                 )
 
                 if not personalized_articles:
-                    logger.info(f"No matching articles for {user.email}")
+                    logger.info(
+                        f"No new articles for {user.email} "
+                        f"(all recent articles already sent or no matches)",
+                    )
                     continue
 
                 logger.info(
@@ -701,8 +714,21 @@ def unified_collect_and_send_task() -> None:
                 user_db_articles = [processed_articles.get(a.url) for a in user_articles_data]
                 user_db_articles = [a for a in user_db_articles if a is not None]
 
+                # Filter out articles already sent to this user in last 7 days
+                sent_article_ids = crud.get_user_sent_article_ids(db, user.id, days=7)
+                user_db_articles = [a for a in user_db_articles if str(a.id) not in sent_article_ids]
+
+                logger.info(
+                    f"Filtered articles for {user.email}: "
+                    f"excluded {len(sent_article_ids)} already sent in last 7 days, "
+                    f"{len(user_db_articles)} remaining",
+                )
+
                 if not user_db_articles:
-                    logger.info(f"No processed articles for {user.email}")
+                    logger.info(
+                        f"No new articles for {user.email} "
+                        f"(all articles already sent or processing failed)",
+                    )
                     continue
 
                 # Sort by importance and limit

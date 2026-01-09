@@ -1,5 +1,6 @@
 """CRUD operations for sent digests."""
 
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -142,3 +143,47 @@ def list_user_digests(
         .limit(limit)
         .all()
     )
+
+
+def get_user_sent_article_ids(
+    db: Session,
+    user_id: UUID,
+    days: int = 7,
+) -> set[str]:
+    """
+    Get article IDs sent to user in the last N days.
+
+    This function retrieves all article IDs that were sent to a specific user
+    within the specified time period. Used to prevent sending duplicate articles.
+
+    Args:
+        db: Database session
+        user_id: User UUID
+        days: Number of days to look back (default: 7)
+
+    Returns:
+        Set of article IDs (as strings) sent to user in last N days
+
+    Examples:
+        >>> sent_ids = get_user_sent_article_ids(db, user_id, days=7)
+        >>> # Filter out already sent articles
+        >>> new_articles = [a for a in articles if str(a.id) not in sent_ids]
+    """
+    if days <= 0:
+        return set()
+
+    # Calculate cutoff date
+    since = datetime.now(UTC) - timedelta(days=days)
+
+    # Query digests sent to this user in the last N days
+    digests = (
+        db.query(SentDigest).filter(SentDigest.user_id == user_id, SentDigest.sent_at >= since).all()
+    )
+
+    # Collect all article IDs from these digests
+    article_ids = set()
+    for digest in digests:
+        if digest.article_ids:
+            article_ids.update(digest.article_ids)
+
+    return article_ids

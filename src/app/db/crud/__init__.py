@@ -20,6 +20,7 @@ from app.db.crud.digests import (
     get_digest_by_id,
     get_latest_digest,
     get_user_digests,
+    get_user_sent_article_ids,
     list_user_digests,
     update_digest_opened,
 )
@@ -71,6 +72,7 @@ __all__ = [
     "get_digest_by_id",
     "update_digest_opened",
     "list_user_digests",
+    "get_user_sent_article_ids",
     # Articles
     "get_articles",
     "get_article_by_id",
