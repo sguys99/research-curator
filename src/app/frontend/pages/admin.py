@@ -107,7 +107,7 @@ def show_system_overview():
         scheduler_running = False
         scheduler_pids = []
 
-        for proc in psutil.process_iter(["pid", "cmdline", "create_time"]):
+        for proc in psutil.process_iter(["pid", "cmdline"]):
             try:
                 cmdline = proc.info.get("cmdline")
                 if cmdline and "scheduler.main" in " ".join(cmdline):
