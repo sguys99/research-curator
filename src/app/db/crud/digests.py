@@ -145,6 +145,28 @@ def list_user_digests(
     )
 
 
+def has_digest_sent_today(db: Session, user_id: UUID) -> bool:
+    """
+    Check if a digest was already sent to this user today (in UTC).
+
+    Args:
+        db: Database session
+        user_id: User UUID
+
+    Returns:
+        True if digest was sent today, False otherwise
+    """
+    today_start = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
+
+    digest = (
+        db.query(SentDigest)
+        .filter(SentDigest.user_id == user_id, SentDigest.sent_at >= today_start)
+        .first()
+    )
+
+    return digest is not None
+
+
 def get_user_sent_article_ids(
     db: Session,
     user_id: UUID,
