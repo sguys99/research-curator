@@ -20,6 +20,259 @@
 | Package Manager | pnpm |
 | Testing | Vitest + Playwright |
 
+## UI/UX 디자인 가이드라인
+
+### 디자인 레퍼런스
+
+참고 디자인: Jay Jhaveri Portfolio, maskara.ai
+- 미니멀하고 클린한 화이트 기반 디자인
+- 충분한 여백(whitespace)과 넓은 패딩
+- 둥근 모서리의 Pill 형태 네비게이션
+- 그라데이션 배경 효과 (은은한 파스텔)
+- 아이콘 + 텍스트 조합의 깔끔한 카드
+
+### 디자인 원칙
+
+- **미니멀리즘**: 불필요한 요소 제거, 핵심 콘텐츠에 집중
+- **여백 활용**: 넉넉한 padding/margin으로 시원한 레이아웃
+- **일관된 둥근 모서리**: rounded-xl ~ rounded-2xl 사용
+- **미묘한 그림자**: shadow-sm 위주, 과하지 않게
+- Streamlit POC의 **기능과 워크플로우**를 참고하되, **배치/레이아웃/색상 테마**는 새롭게 구성
+
+### 색상 테마 (Phase 1)
+
+```
+Primary:        Blue (#2563EB / blue-600)
+Primary Hover:  Blue (#1D4ED8 / blue-700)
+Primary Light:  Blue (#DBEAFE / blue-100)
+
+Background:     White (#FFFFFF)
+Surface:        Gray (#F9FAFB / gray-50)
+Card BG:        White (#FFFFFF)
+Border:         Gray (#E5E7EB / gray-200)
+
+Text Primary:   Gray (#111827 / gray-900)  - 거의 블랙
+Text Secondary: Gray (#6B7280 / gray-500)
+Text Muted:     Gray (#9CA3AF / gray-400)
+
+Success:        Green (#10B981 / emerald-500)
+Warning:        Amber (#F59E0B / amber-500)
+Error:          Red (#EF4444 / red-500)
+Info:           Blue (#3B82F6 / blue-500)
+
+Accent Gradient: linear-gradient(135deg, #DBEAFE, #FDE7F3, #E0E7FF)
+                 (은은한 파스텔 그라데이션 - 히어로 섹션 배경)
+```
+
+### 타이포그래피
+
+```
+Font Family:    Inter (또는 Pretendard for 한글)
+                font-family: 'Inter', 'Pretendard', sans-serif;
+
+Heading 1:      text-4xl md:text-5xl font-bold (48-60px)
+Heading 2:      text-2xl md:text-3xl font-semibold (24-30px)
+Heading 3:      text-xl font-semibold (20px)
+Body:           text-base (16px)
+Small:          text-sm (14px)
+Caption:        text-xs text-gray-500 (12px)
+```
+
+### 레이아웃 구조
+
+#### 1. 공통 Header (모든 페이지)
+```
+┌──────────────────────────────────────────────────────────────┐
+│  Logo          [  About  |  Projects  |  Contact  ]    🔗 🔗 │
+│                       (Pill 형태 Nav)              (소셜 링크)│
+└──────────────────────────────────────────────────────────────┘
+```
+- 중앙에 Pill 형태(rounded-full, bg-gray-100) 네비게이션
+- 좌측 로고, 우측 소셜/유저 메뉴
+- 배경: 투명 or 흰색, 스크롤 시 shadow 추가
+
+#### 2. Landing/Hero 섹션 (로그인 전)
+```
+┌──────────────────────────────────────────────────────────────┐
+│                                                              │
+│              "Research Curator"                              │
+│         AI 기반 맞춤형 연구 큐레이션 서비스                    │
+│                                                              │
+│         [ 🚀 시작하기 ]    [ 📖 더 알아보기 ]                  │
+│                                                              │
+│   ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐        │
+│   │ Feature │  │ Feature │  │ Feature │  │ Feature │        │
+│   │  Card   │  │  Card   │  │  Card   │  │  Card   │        │
+│   └─────────┘  └─────────┘  └─────────┘  └─────────┘        │
+│                  (가로 스크롤 or 그리드)                      │
+└──────────────────────────────────────────────────────────────┘
+```
+- 파스텔 그라데이션 배경
+- 큰 타이틀 + 서브텍스트
+- CTA 버튼 2개 (Primary + Secondary)
+- 하단에 Feature 카드 슬라이드
+
+#### 3. 로그인 페이지
+```
+┌──────────────────────────────────────────────────────────────┐
+│                         Header                               │
+├──────────────────────────────────────────────────────────────┤
+│                                                              │
+│                    ┌─────────────────┐                       │
+│                    │     🔐 로고      │                       │
+│                    │                 │                       │
+│                    │  Magic Link     │                       │
+│                    │  로그인         │                       │
+│                    │                 │                       │
+│                    │ [이메일 입력    ]│                       │
+│                    │ [ 로그인 링크   ]│                       │
+│                    │     전송        │                       │
+│                    └─────────────────┘                       │
+│                                                              │
+└──────────────────────────────────────────────────────────────┘
+```
+- 중앙 정렬 카드
+- 최소한의 입력 필드
+- 깔끔한 CTA 버튼
+
+#### 4. 대시보드 레이아웃 (로그인 후)
+```
+┌──────────────────────────────────────────────────────────────┐
+│  Logo    [대시보드 | 검색 | 설정 | 피드백]      👤 User ▼    │
+├──────────────────────────────────────────────────────────────┤
+│                                                              │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │              Main Content Area                         │  │
+│  │                                                        │  │
+│  │   (통계 카드, 다이제스트 목록, 검색 결과 등)            │  │
+│  │                                                        │  │
+│  └────────────────────────────────────────────────────────┘  │
+│                                                              │
+└──────────────────────────────────────────────────────────────┘
+```
+- 탑 네비게이션 (사이드바 대신)
+- 넓은 콘텐츠 영역
+- 모바일에서는 햄버거 메뉴
+
+#### 5. AI 챗봇 (온보딩/검색)
+```
+┌──────────────────────────────────────────────────────────────┐
+│  왼쪽 패널 (대화)          │  오른쪽 패널 (상세/결과)        │
+│                            │                                │
+│  💬 AI 메시지              │   Job Status                   │
+│     ┌────────────────────┐ │   ┌──────────────────────────┐ │
+│     │ 연구 분야를 알려주세요│ │   │ Status: In progress     │ │
+│     └────────────────────┘ │   │ Started: 10:00           │ │
+│                            │   └──────────────────────────┘ │
+│  👤 사용자 메시지          │                                │
+│     ┌────────────────────┐ │   Files                        │
+│     │ AI/ML 연구입니다    │ │   ┌──────┐ ┌──────┐          │
+│     └────────────────────┘ │   │📄 PDF │ │📊 XLS│          │
+│                            │   └──────┘ └──────┘          │
+│  [옵션1] [옵션2] [옵션3]   │                                │
+│                            │   Preview                      │
+│  ┌─────────────────────┐   │   ┌──────────────────────────┐ │
+│  │ 메시지 입력...    ➤ │   │   │ Summary content...       │ │
+│  └─────────────────────┘   │   └──────────────────────────┘ │
+└──────────────────────────────────────────────────────────────┘
+```
+- 좌우 분할 레이아웃 (maskara.ai 참고)
+- 왼쪽: 채팅 인터페이스
+- 오른쪽: 진행 상태, 파일, 결과 미리보기
+
+### 컴포넌트 스타일
+
+#### Button
+```tsx
+// Primary (파란색 채움)
+className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-full
+           font-medium transition-colors flex items-center gap-2"
+
+// Secondary (테두리)
+className="bg-white border border-gray-300 hover:bg-gray-50 text-gray-900
+           px-6 py-3 rounded-full font-medium transition-colors"
+```
+
+#### Card
+```tsx
+className="bg-white rounded-2xl border border-gray-200 p-6
+           shadow-sm hover:shadow-md transition-shadow"
+```
+
+#### Input
+```tsx
+className="w-full px-4 py-3 rounded-xl border border-gray-200
+           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+           placeholder:text-gray-400"
+```
+
+#### Navigation Pill
+```tsx
+// Container
+className="bg-gray-100 rounded-full p-1 flex gap-1"
+
+// Item (비활성)
+className="px-4 py-2 rounded-full text-gray-600 hover:text-gray-900 transition-colors"
+
+// Item (활성)
+className="px-4 py-2 rounded-full bg-white text-gray-900 shadow-sm font-medium"
+```
+
+#### Feature Card (아이콘 + 텍스트)
+```tsx
+className="bg-white rounded-2xl border border-gray-200 p-6 text-center
+           hover:shadow-md transition-shadow"
+// 내부: 아이콘(48x48) + 타이틀
+```
+
+#### Badge/Chip
+```tsx
+// 옵션 선택 버튼 (챗봇)
+className="px-4 py-2 rounded-full border border-gray-200 bg-white
+           hover:bg-gray-50 text-sm flex items-center gap-2 cursor-pointer"
+```
+
+### 네비게이션 구조
+
+```
+Landing (/) → 로그인 (/login) → 온보딩 (/onboarding) → 대시보드 (/dashboard)
+                                         │
+                    ┌────────────────────┴────────────────────┐
+                    │           Top Navigation                │
+                    ├─────────────────────────────────────────┤
+                    │ 📊 대시보드 │ 🔍 검색 │ ⚙️ 설정 │ 💬 피드백 │
+                    └─────────────────────────────────────────┘
+                                         │
+                              (ADMIN only: 관리자)
+```
+
+### 반응형 브레이크포인트
+
+- **Mobile**: < 768px
+  - 탑 네비 → 햄버거 메뉴
+  - 2컬럼 → 1컬럼 스택
+  - 챗봇 좌우분할 → 탭 전환
+- **Tablet**: 768px - 1024px
+  - 축소된 네비게이션
+  - 2컬럼 그리드 유지
+- **Desktop**: > 1024px
+  - 전체 네비게이션 표시
+  - 최대 너비 제한 (max-w-7xl)
+
+### 애니메이션/트랜지션
+
+- **Hover**: transition-all duration-200
+- **Page Transition**: fade-in (optional, framer-motion)
+- **Loading**: Skeleton UI (shimmer effect)
+- **Toast**: slide-in from top-right
+
+### 향후 개선 예정 (Phase 6+)
+
+- 다크 모드 지원
+- 테마 커스터마이징
+- 더 정교한 애니메이션
+- 접근성(a11y) 강화
+
 ## 디렉토리 구조
 
 ### 변경 사항
