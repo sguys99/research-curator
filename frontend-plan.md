@@ -371,7 +371,7 @@ research-curator/
 ## 구현 단계
 
 ### Phase 1: 프로젝트 설정 및 인프라
-1. 기존 `src/frontend/` → `src/frontend-poc/` 이동
+1. ~~기존 `src/frontend/` → `src/frontend-poc/` 이동~~ ✅
 2. Next.js 14 프로젝트 초기화
 3. shadcn/ui + Tailwind CSS 설정
 4. ESLint, Prettier 설정
