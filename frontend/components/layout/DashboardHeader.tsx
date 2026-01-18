@@ -1,6 +1,10 @@
+"use client";
+
 import Link from "next/link";
 
-const navItems = [
+import { useAuth } from "@/hooks/use-auth";
+
+const baseNavItems = [
   { label: "Dashboard", href: "/dashboard" },
   { label: "Search", href: "/search" },
   { label: "Settings", href: "/settings" },
@@ -8,6 +12,17 @@ const navItems = [
 ];
 
 export default function DashboardHeader() {
+  const { user } = useAuth();
+  const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((email) => email.trim())
+    .filter(Boolean);
+  const fallbackAdmins = adminEmails.length ? adminEmails : ["sguys99@gmail.com"];
+  const isAdmin = Boolean(user?.email && fallbackAdmins.includes(user.email));
+  const navItems = isAdmin
+    ? [...baseNavItems, { label: "Admin", href: "/admin" }]
+    : baseNavItems;
+
   return (
     <header className="border-b border-slate-200 bg-white">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4">
