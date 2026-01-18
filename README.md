@@ -8,7 +8,7 @@ AI 연구자를 위한 맞춤형 리서치 큐레이션 서비스입니다. LLM�
 - 🧠 **LLM 기반 처리**: GPT-4를 활용한 한국어 요약, 중요도 평가, 카테고리 분류
 - 🔍 **Vector DB 검색**: Qdrant를 사용한 시맨틱 검색 및 과거 자료 재검색
 - 📧 **이메일 큐레이션**: 매일 상위 N개 자료를 HTML 이메일로 전송
-- 🎨 **웹 대시보드**: Streamlit 기반 설정 관리 및 검색 인터페이스
+- 🎨 **웹 대시보드**: Next.js 기반 프로덕션 레벨 대시보드
 - 🔐 **매직 링크 인증**: 비밀번호 없는 간편한 이메일 인증
 
 ## 기술 스택
@@ -17,9 +17,10 @@ AI 연구자를 위한 맞춤형 리서치 큐레이션 서비스입니다. LLM�
 - **Database**: PostgreSQL
 - **Vector DB**: Qdrant
 - **LLM**: OpenAI GPT-4o via LiteLLM
-- **Frontend**: Streamlit
+- **Frontend**: Next.js 14 (App Router), TypeScript, shadcn/ui, Tailwind CSS
+- **State Management**: Zustand + TanStack Query
 - **Scheduler**: APScheduler
-- **Package Manager**: uv
+- **Package Manager**: uv (Backend), pnpm (Frontend)
 
 ---
 
@@ -101,11 +102,12 @@ uvicorn src.app.api.main:app --reload
 **Frontend 대시보드:**
 ```bash
 # 터미널 2 (새 터미널)
-source .venv/bin/activate
-streamlit run src/app/frontend/main.py
+cd frontend
+pnpm install
+pnpm dev
 
 # 대시보드 접속
-# http://localhost:8501
+# http://localhost:3000
 ```
 
 **Scheduler (자동 데이터 수집 및 이메일 발송):**
@@ -128,7 +130,7 @@ python -m src.app.scheduler.main
    - Swagger UI에서 API 문서 확인
 
 2. **Frontend 접속**
-   - 브라우저에서 http://localhost:8501 접속
+   - 브라우저에서 http://localhost:3000 접속
    - 매직 링크로 로그인 (이메일 입력)
 
 3. **주요 기능 테스트**
@@ -147,15 +149,17 @@ Research Curator를 처음 사용하시는 분들을 위한 단계별 가이드�
 
 #### 1단계: 로그인 (매직 링크 인증)
 
-1. Frontend 접속: http://localhost:8501
-2. 로그인 화면에서 이메일 주소 입력
-3. "매직 링크 발송" 버튼 클릭
-4. 이메일에서 링크 클릭 (로컬 환경에서는 터미널에 토큰 출력)
-5. 자동으로 로그인 및 기본 사용자 계정 생성
+1. Frontend 접속: http://localhost:3000
+2. 랜딩 페이지에서 "시작하기" 버튼 클릭
+3. 로그인 화면에서 이메일 주소 입력
+4. "로그인 링크 전송" 버튼 클릭
+5. 이메일에서 링크 클릭 (로컬 환경에서는 터미널에 토큰 출력)
+6. 자동으로 로그인 및 기본 사용자 계정 생성
 
 **개발 환경 팁:**
-- 로컬에서 테스트 시 "토큰으로 로그인" 확장 메뉴 사용
-- 터미널에 출력된 JWT 토큰을 복사하여 직접 입력 가능
+
+- 로컬에서 테스트 시 URL에 토큰을 직접 추가하여 접속 가능
+- `/verify?token=<JWT_TOKEN>` 형식으로 접속
 
 #### 2단계: 온보딩 (최초 1회)
 
@@ -350,17 +354,20 @@ Research Curator를 처음 사용하시는 분들을 위한 단계별 가이드�
 **목적:** 비밀번호 없는 간편한 이메일 인증
 
 **UI 요소:**
+
 - 이메일 입력 필드
-- "매직 링크 발송" 버튼 (Primary)
-- "토큰으로 로그인" 확장 메뉴 (개발용)
+- "로그인 링크 전송" 버튼 (Primary)
+- 미니멀한 중앙 정렬 카드 디자인
 
 **사용 방법:**
+
 1. 이메일 주소 입력 (예: user@example.com)
-2. "매직 링크 발송" 버튼 클릭
+2. "로그인 링크 전송" 버튼 클릭
 3. 이메일 확인 또는 터미널에서 토큰 복사
-4. (개발용) 토큰을 "토큰으로 로그인"에 붙여넣기
+4. 이메일 링크 클릭 또는 `/verify?token=<TOKEN>` URL로 직접 접속
 
 **주의사항:**
+
 - 유효한 이메일 형식 필요 (@포함)
 - 로컬 환경에서는 실제 이메일 발송 안됨 (토큰만 출력)
 
@@ -371,12 +378,14 @@ Research Curator를 처음 사용하시는 분들을 위한 단계별 가이드�
 **목적:** AI 챗봇과 대화하며 맞춤형 설정 완료
 
 **UI 요소:**
-- 환영 헤더 (그라데이션 배경)
-- 정보 카드 (소요 시간, 질문 수, 맞춤 설정)
-- AI 챗봇 인터페이스
-- 사이드바 도움말
+
+- 좌우 분할 레이아웃 (채팅 / 상태 패널)
+- AI 챗봇 인터페이스 (SSE 스트리밍 지원)
+- 다중 선택 옵션 버튼
+- 실시간 작업 상태 표시
 
 **진행 단계:**
+
 1. 연구 분야 입력
 2. 관심 키워드 입력
 3. 정보 유형 비율 선택
@@ -385,6 +394,7 @@ Research Curator를 처음 사용하시는 분들을 위한 단계별 가이드�
 6. 최종 확인 및 저장
 
 **입력 팁:**
+
 - 여러 항목은 쉼표로 구분
 - 구체적일수록 정확한 큐레이션 가능
 - 나중에 언제든 수정 가능
@@ -396,22 +406,25 @@ Research Curator를 처음 사용하시는 분들을 위한 단계별 가이드�
 **목적:** 최근 받은 다이제스트 및 통계 확인
 
 **UI 요소:**
+
 - **통계 카드 (상단)**
   - 📚 총 아티클
   - 📧 받은 이메일
   - ⭐ 평균 피드백
 
 - **최근 받은 이메일 섹션**
-  - 다이제스트별 확장 패널
+  - 다이제스트별 아코디언 패널
   - 아티클 카드 (제목, 요약, 중요도, 출처)
   - "유사 문서 찾기" 버튼
 
-- **빠른 작업 버튼 (하단)**
+- **빠른 작업 버튼**
   - 📧 테스트 이메일 발송
-  - 🔍 검색하기
-  - ⚙️ 설정 변경
+  - 🔄 수동 트리거 (스케줄러 작업)
+
+- **스케줄러 상태** (읽기 전용)
 
 **사용 시나리오:**
+
 - 매일 아침 접속하여 받은 다이제스트 확인
 - 테스트 이메일로 현재 설정 확인
 - 아티클 읽고 피드백 제출
@@ -423,11 +436,12 @@ Research Curator를 처음 사용하시는 분들을 위한 단계별 가이드�
 **목적:** 과거 아티클 시맨틱/키워드 검색
 
 **UI 요소:**
+
 - **검색 탭**
   - 🧠 시맨틱 검색
   - 🔤 키워드 검색
 
-- **필터 옵션 (확장 메뉴)**
+- **필터 옵션 (접을 수 있는 패널)**
   - Source Type 멀티셀렉트
   - Category 멀티셀렉트
   - 최소 중요도 슬라이더
@@ -447,6 +461,7 @@ Research Curator를 처음 사용하시는 분들을 위한 단계별 가이드�
   - "유사 문서 찾기" 버튼
 
 **사용 팁:**
+
 - 시맨틱 검색: 자연어로 의미 기반 검색
 - 키워드 검색: 정확한 단어 매칭
 - 필터 조합으로 정밀한 검색 가능
@@ -459,6 +474,7 @@ Research Curator를 처음 사용하시는 분들을 위한 단계별 가이드�
 **목적:** 사용자 맞춤 설정 관리
 
 **UI 요소:**
+
 - **연구 분야 및 키워드 섹션**
   - 연구 분야 텍스트 영역
   - 관심 키워드 텍스트 영역
@@ -475,21 +491,19 @@ Research Curator를 처음 사용하시는 분들을 위한 단계별 가이드�
 - **이메일 설정 섹션**
   - 발송 시간 셀렉트박스
   - 일일 아티클 수 입력
-  - 이메일 수신 체크박스
+  - 이메일 수신 스위치
 
 - **저장 버튼**
   - 💾 설정 저장 (Primary)
 
-- **도움말 섹션**
-  - 설정 가이드 확장 메뉴
-  - 현재 설정 요약 (JSON)
+- **Zod 스키마 검증**으로 입력값 유효성 검사
 
 **설정 변경 흐름:**
+
 1. 원하는 항목 수정
 2. 변경 내용 확인
-3. "💾 설정 저장" 버튼 클릭
-4. 성공 메시지 확인
-5. 자동 새로고침
+3. "설정 저장" 버튼 클릭
+4. Toast 알림으로 성공/실패 확인
 
 ---
 
@@ -542,32 +556,26 @@ Research Curator를 처음 사용하시는 분들을 위한 단계별 가이드�
 
 ---
 
-## 🧭 사이드바 네비게이션
+## 🧭 탑 네비게이션
+
+**레이아웃:** 상단 네비게이션 바 (Pill 형태)
 
 **고정 요소:**
-- 🔬 **Research Curator** (앱 타이틀)
-- 👤 **사용자 정보** (이름, 이메일)
-- 📑 **메뉴** (페이지 네비게이션 버튼)
-- ℹ️ **도움말** (확장 메뉴)
-- 🚪 **로그아웃** 버튼
 
-**메뉴 버튼:**
-- 온보딩 미완료 시:
-  - 🎯 온보딩
-- 온보딩 완료 시:
+- 🔬 **Research Curator** 로고 (좌측)
+- **Pill 네비게이션** (중앙)
   - 📊 대시보드
   - 🔍 검색
   - ⚙️ 설정
   - 💬 피드백
+- 👤 **사용자 메뉴** (우측, 드롭다운)
+  - 사용자 정보
+  - 로그아웃
 
-**도움말 내용:**
-1. **대시보드**: 최근 받은 이메일 확인
-2. **검색**: 과거 자료 시맨틱 검색
-3. **설정**: 키워드, 소스, 발송 시간 변경
-4. **피드백**: 받은 아티클 평가
+**반응형:**
 
-**문의:**
-- contact@research-curator.com
+- 모바일에서는 햄버거 메뉴로 전환
+- 태블릿/데스크탑에서 전체 네비게이션 표시
 
 ---
 
@@ -639,6 +647,8 @@ alembic history
 
 ### 테스트
 
+**Backend (Python):**
+
 ```bash
 # 전체 테스트 실행
 pytest tests/
@@ -648,6 +658,24 @@ pytest tests/test_llm_client.py
 
 # 커버리지와 함께 실행
 pytest -v --cov=src/app
+```
+
+**Frontend (Next.js):**
+
+```bash
+cd frontend
+
+# 린트 검사
+pnpm lint
+
+# 단위 테스트 (Vitest)
+pnpm test
+
+# E2E 테스트 (Playwright)
+pnpm test:e2e
+
+# 빌드
+pnpm build
 ```
 
 ---
@@ -693,14 +721,18 @@ lsof -i :6333
 ### 4. Frontend 실행 오류
 
 ```bash
-# 가상환경 활성화 확인
-source .venv/bin/activate
+# frontend 디렉토리로 이동
+cd frontend
 
-# Streamlit 재설치
-uv pip install --upgrade streamlit
+# 의존성 재설치
+rm -rf node_modules pnpm-lock.yaml
+pnpm install
 
-# 캐시 삭제
-rm -rf ~/.streamlit
+# 개발 서버 실행
+pnpm dev
+
+# 빌드 테스트
+pnpm build
 ```
 
 ### 5. API 서버 포트 충돌
@@ -722,7 +754,7 @@ uvicorn src.app.api.main:app --port 8001 --reload
 
 ```
 research-curator/
-├── src/app/
+├── src/app/                    # Python 백엔드
 │   ├── api/                    # FastAPI 백엔드
 │   │   ├── main.py            # FastAPI 앱 엔트리포인트
 │   │   ├── routers/           # API 라우터
@@ -732,16 +764,32 @@ research-curator/
 │   │   ├── models.py          # SQLAlchemy 모델
 │   │   ├── session.py         # DB 세션
 │   │   └── crud/              # CRUD 함수
-│   ├── frontend/              # Streamlit 프론트엔드
+│   ├── frontend-poc/          # Streamlit 프론트엔드 (POC, 보존용)
 │   │   ├── main.py            # Streamlit 엔트리포인트
 │   │   ├── pages/             # 페이지 컴포넌트
 │   │   └── utils/             # 유틸리티
 │   ├── llm/                   # LLM 통합
 │   ├── collectors/            # 데이터 수집
 │   ├── vector_db/             # Qdrant 통합
-│   └── scheduler/             # 스케줄러 (추후)
+│   └── scheduler/             # APScheduler
+│
+├── frontend/                   # Next.js 프론트엔드 (프로덕션)
+│   ├── app/                   # Next.js App Router
+│   │   ├── (auth)/            # 인증 관련 페이지
+│   │   ├── (dashboard)/       # 대시보드 페이지
+│   │   └── (admin)/           # 관리자 페이지
+│   ├── components/            # React 컴포넌트
+│   │   ├── ui/                # shadcn/ui 컴포넌트
+│   │   ├── layout/            # Header, Footer 등
+│   │   └── ...                # 기능별 컴포넌트
+│   ├── hooks/                 # Custom React Hooks
+│   ├── lib/                   # API 클라이언트, 유틸리티
+│   ├── stores/                # Zustand 상태 관리
+│   ├── types/                 # TypeScript 타입 정의
+│   └── providers/             # Context Providers
+│
 ├── alembic/                   # DB 마이그레이션
-├── docs/                      # 문서
+├── configs/                   # 설정 파일
 ├── tests/                     # 테스트
 ├── docker-compose.yml         # Docker 설정
 ├── pyproject.toml             # Python 프로젝트 설정
@@ -791,6 +839,36 @@ research-curator/
 - `POST /api/collectors/news` - 뉴스
 
 자세한 API 문서는 http://localhost:8000/docs (Swagger UI) 참조
+
+---
+
+## 🎨 Frontend 환경 설정
+
+### 환경 변수
+
+```bash
+# frontend/.env.local
+NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_ADMIN_EMAILS=admin@example.com
+```
+
+### 개발 서버 실행
+
+```bash
+cd frontend
+pnpm install
+pnpm dev
+```
+
+앱은 `http://localhost:3000`에서 실행됩니다 (API는 `http://localhost:8000` 필요).
+
+### 프로덕션 빌드
+
+```bash
+cd frontend
+pnpm build
+pnpm start
+```
 
 ---
 
