@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 
 import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
 import { getUserPreferences, updateUserPreferences } from "@/lib/api/users";
 import type { UserPreferences } from "@/types/user";
 
@@ -77,7 +78,7 @@ const toFormValues = (preferences?: UserPreferences): PreferencesFormValues => {
 
 export default function SettingsPage() {
   const { user } = useAuth();
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const form = useForm<PreferencesFormValues>({
     resolver: zodResolver(preferencesSchema),
@@ -100,8 +101,18 @@ export default function SettingsPage() {
   const mutation = useMutation({
     mutationFn: (payload: Partial<UserPreferences>) =>
       updateUserPreferences(user?.id ?? "", payload),
-    onSuccess: () => setStatusMessage("Preferences saved."),
-    onError: () => setStatusMessage("Unable to save preferences."),
+    onSuccess: () =>
+      toast({
+        title: "Preferences saved",
+        description: "Your settings are updated.",
+        variant: "success",
+      }),
+    onError: () =>
+      toast({
+        title: "Unable to save preferences",
+        description: "Check your connection and try again.",
+        variant: "error",
+      }),
   });
 
   const [paperRatio, newsRatio, reportRatio] = useWatch({
@@ -116,7 +127,11 @@ export default function SettingsPage() {
 
   const onSubmit = (values: PreferencesFormValues) => {
     if (!user?.id) {
-      setStatusMessage("Login required to save preferences.");
+      toast({
+        title: "Login required",
+        description: "Please sign in to save preferences.",
+        variant: "error",
+      });
       return;
     }
 
@@ -134,13 +149,11 @@ export default function SettingsPage() {
       email_enabled: values.emailEnabled,
     };
 
-    setStatusMessage(null);
     mutation.mutate(payload);
   };
 
   const handleReset = () => {
     form.reset(toFormValues(preferencesQuery.data));
-    setStatusMessage(null);
   };
 
   return (
@@ -261,8 +274,6 @@ export default function SettingsPage() {
               Enable daily email
             </label>
           </div>
-
-          {statusMessage && <p className="text-sm text-slate-600">{statusMessage}</p>}
 
           <div className="flex flex-wrap gap-3">
             <button

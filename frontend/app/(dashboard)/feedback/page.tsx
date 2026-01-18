@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 
 import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
 import {
   createFeedback,
   deleteFeedback,
@@ -50,7 +51,7 @@ const formatDate = (value?: string) => {
 export default function FeedbackPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const { toast } = useToast();
   const [editState, setEditState] = useState<EditState>(null);
   const [stats, setStats] = useState<FeedbackStatsResponse | null>(null);
 
@@ -79,31 +80,58 @@ export default function FeedbackPage() {
   const createMutation = useMutation({
     mutationFn: createFeedback,
     onSuccess: () => {
-      setStatusMessage("Feedback submitted.");
+      toast({
+        title: "Feedback submitted",
+        description: "Thanks for helping us improve.",
+        variant: "success",
+      });
       createForm.reset({ articleId: "", rating: 5, comment: "" });
       queryClient.invalidateQueries({ queryKey: ["feedback", "user", user?.id] });
     },
-    onError: () => setStatusMessage("Unable to submit feedback."),
+    onError: () =>
+      toast({
+        title: "Unable to submit feedback",
+        description: "Please try again.",
+        variant: "error",
+      }),
   });
 
   const updateMutation = useMutation({
     mutationFn: (values: { feedbackId: string; payload: { rating?: number; comment?: string } }) =>
       updateFeedback(values.feedbackId, values.payload),
     onSuccess: () => {
-      setStatusMessage("Feedback updated.");
+      toast({
+        title: "Feedback updated",
+        description: "Your changes are saved.",
+        variant: "success",
+      });
       setEditState(null);
       queryClient.invalidateQueries({ queryKey: ["feedback", "user", user?.id] });
     },
-    onError: () => setStatusMessage("Unable to update feedback."),
+    onError: () =>
+      toast({
+        title: "Unable to update feedback",
+        description: "Please try again.",
+        variant: "error",
+      }),
   });
 
   const deleteMutation = useMutation({
     mutationFn: deleteFeedback,
     onSuccess: () => {
-      setStatusMessage("Feedback removed.");
+      toast({
+        title: "Feedback deleted",
+        description: "The entry has been removed.",
+        variant: "success",
+      });
       queryClient.invalidateQueries({ queryKey: ["feedback", "user", user?.id] });
     },
-    onError: () => setStatusMessage("Unable to delete feedback."),
+    onError: () =>
+      toast({
+        title: "Unable to delete feedback",
+        description: "Please try again.",
+        variant: "error",
+      }),
   });
 
   const statsMutation = useMutation({
@@ -126,7 +154,6 @@ export default function FeedbackPage() {
   }, [feedbackItems]);
 
   const onSubmit = (values: CreateFormValues) => {
-    setStatusMessage(null);
     createMutation.mutate({
       article_id: values.articleId,
       rating: values.rating,
@@ -138,7 +165,6 @@ export default function FeedbackPage() {
     if (!editState) {
       return;
     }
-    setStatusMessage(null);
     updateMutation.mutate({
       feedbackId: editState.id,
       payload: { rating: editState.rating, comment: editState.comment.trim() || undefined },
@@ -209,7 +235,6 @@ export default function FeedbackPage() {
             >
               {createMutation.isPending ? "Submitting..." : "Submit feedback"}
             </button>
-            {statusMessage && <span className="text-sm text-slate-600">{statusMessage}</span>}
           </div>
         </form>
       </div>

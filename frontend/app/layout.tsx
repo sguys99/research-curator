@@ -3,6 +3,7 @@ import { IBM_Plex_Sans_KR, Sora } from "next/font/google";
 
 import AuthProvider from "@/providers/auth-provider";
 import QueryProvider from "@/providers/query-provider";
+import ToastProvider from "@/providers/toast-provider";
 
 import "./globals.css";
 
@@ -31,7 +32,9 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${sora.variable} ${plexSansKr.variable} antialiased`}>
         <QueryProvider>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            <ToastProvider>{children}</ToastProvider>
+          </AuthProvider>
         </QueryProvider>
       </body>
     </html>
