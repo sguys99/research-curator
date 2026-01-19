@@ -1,10 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { useAuth } from "@/hooks/use-auth";
+import { useAuthStore } from "@/stores/auth-store";
 
 const baseNavItems = [
   { label: "Dashboard", href: "/dashboard" },
@@ -15,7 +18,13 @@ const baseNavItems = [
 
 export default function DashboardHeader() {
   const { user } = useAuth();
+  const { clearAuth } = useAuthStore();
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
   const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS ?? "")
     .split(",")
     .map((email) => email.trim())
@@ -25,6 +34,25 @@ export default function DashboardHeader() {
   const navItems = isAdmin
     ? [...baseNavItems, { label: "Admin", href: "/admin" }]
     : baseNavItems;
+
+  // 드롭다운 외부 클릭 시 닫기
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleLogout = () => {
+    clearAuth();
+    // React Query 캐시 초기화 (인증 관련 쿼리)
+    queryClient.removeQueries({ queryKey: ["auth"] });
+    setDropdownOpen(false);
+    router.push("/");
+  };
 
   return (
     <header className="border-b border-slate-200 bg-white">
@@ -52,10 +80,41 @@ export default function DashboardHeader() {
           ))}
         </nav>
         <div className="flex items-center gap-2">
-          <span className="hidden text-sm text-slate-500 md:block">Signed in</span>
-          <button className="rounded-full border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700">
-            User
-          </button>
+          {/* 사용자 드롭다운 메뉴 */}
+          <div ref={dropdownRef} className="relative hidden md:block">
+            <button
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+              className="flex items-center gap-2 rounded-full border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+            >
+              <span className="max-w-[200px] truncate">{user?.email ?? "User"}</span>
+              <svg
+                className={`h-4 w-4 transition-transform ${dropdownOpen ? "rotate-180" : ""}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {dropdownOpen && (
+              <div className="absolute right-0 z-50 mt-2 w-48 rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
+                <Link
+                  href="/settings"
+                  onClick={() => setDropdownOpen(false)}
+                  className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                >
+                  Settings
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="block w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-slate-50"
+                >
+                  Logout
+                </button>
+              </div>
+            )}
+          </div>
+          {/* 모바일 메뉴 버튼 */}
           <button
             type="button"
             onClick={() => setMenuOpen((open) => !open)}
@@ -80,6 +139,16 @@ export default function DashboardHeader() {
                   {item.label}
                 </Link>
               ))}
+              {/* 모바일: 사용자 정보 및 로그아웃 */}
+              <div className="mt-2 border-t border-slate-200 pt-2">
+                <span className="block px-3 py-2 text-slate-500">{user?.email ?? "User"}</span>
+                <button
+                  onClick={handleLogout}
+                  className="w-full rounded-xl px-3 py-2 text-left text-red-600 hover:bg-white"
+                >
+                  Logout
+                </button>
+              </div>
             </nav>
           </div>
         )}

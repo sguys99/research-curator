@@ -28,18 +28,22 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     if (!hydrated) {
       return;
     }
+    // 토큰이 없으면 로그인 페이지로 리다이렉트
     if (!token && pathname !== "/login") {
       router.replace("/login");
     }
   }, [hydrated, pathname, router, token]);
 
+  // hydration 전이거나 로딩 중이면 로딩 표시
   if (!hydrated || isLoading) {
     return <LoadingCard />;
   }
 
-  if (!token || !user) {
+  // 토큰이 없으면 null 반환 (useEffect에서 리다이렉트 처리)
+  if (!token) {
     return null;
   }
 
+  // 토큰이 있으면 자식 컴포넌트 렌더링 (user는 API 응답 후 설정됨)
   return <>{children}</>;
 }
