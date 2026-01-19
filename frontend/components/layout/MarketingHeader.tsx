@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 const navItems = [
@@ -11,9 +12,13 @@ export default function MarketingHeader() {
     <header className="sticky top-0 z-30 border-b border-transparent bg-white/70 backdrop-blur">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4">
         <Link href="/" className="flex items-center gap-2 text-lg font-semibold">
-          <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-white">
-            RC
-          </span>
+          <Image
+            src="/images/icon.png"
+            alt="Research Curator"
+            width={36}
+            height={36}
+            className="rounded-xl"
+          />
           <span className="font-display">Research Curator</span>
         </Link>
         <nav className="hidden items-center gap-2 rounded-full bg-slate-100 p-1 text-sm md:flex">
