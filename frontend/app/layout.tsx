@@ -32,7 +32,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${notoSansKr.variable} antialiased`}>
+      <body className={`${inter.variable} ${notoSansKr.variable} font-sans antialiased`}>
         <QueryProvider>
           <AuthProvider>
             <ToastProvider>{children}</ToastProvider>

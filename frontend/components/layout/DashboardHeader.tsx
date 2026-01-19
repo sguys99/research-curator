@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 
 import { useAuth } from "@/hooks/use-auth";
@@ -30,9 +31,13 @@ export default function DashboardHeader() {
       <div className="mx-auto w-full max-w-6xl px-6 py-4">
         <div className="flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 text-lg font-semibold">
-          <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-white">
-            RC
-          </span>
+          <Image
+            src="/images/icon.png"
+            alt="Research Curator"
+            width={36}
+            height={36}
+            className="rounded-xl"
+          />
           <span className="font-display">Research Curator</span>
         </Link>
         <nav className="hidden items-center gap-1 rounded-full bg-slate-100 p-1 text-sm md:flex">
