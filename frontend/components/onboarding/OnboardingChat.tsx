@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import ReactMarkdown from "react-markdown";
 
 import { useChatStream } from "@/hooks/use-chat-stream";
 import { updateUserPreferences } from "@/lib/api/users";
@@ -50,6 +51,7 @@ export default function OnboardingChat() {
     completed,
     addMessage,
     updateMessage,
+    clearAllOptions,
     setStep,
     updatePreferences,
     markCompleted,
@@ -58,6 +60,7 @@ export default function OnboardingChat() {
   const [inputValue, setInputValue] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   const initialized = useRef(false);
 
   const progressLabel = useMemo(() => {
@@ -90,7 +93,7 @@ export default function OnboardingChat() {
     addMessage({ id: createId(), role: "assistant", content: welcomeMessage });
 
     await addAssistantMessage(
-      "**질문 1/5**: 어떤 연구 분야에 관심이 있으신가요?\n\n예시: Machine Learning, Natural Language Processing, Computer Vision",
+      "\n**질문 1/5**: 어떤 연구 분야에 관심이 있으신가요?\n\n예시: Machine Learning, Natural Language Processing, Computer Vision",
     );
     setStep(1);
   }, [addAssistantMessage, addMessage, setStep]);
@@ -121,7 +124,7 @@ export default function OnboardingChat() {
       const nextFields = fields.length ? fields : ["AI", "Machine Learning"];
       updatePreferences({ research_fields: nextFields });
       await addAssistantMessage(
-        "좋아요! **질문 2/5**: 특히 관심있는 키워드를 알려주세요.\n\n예시: transformer, GPT, alignment",
+        "좋아요!\n**질문 2/5**: 특히 관심있는 키워드를 알려주세요.\n\n예시: transformer, GPT, alignment",
       );
       setStep(2);
       return;
@@ -142,16 +145,19 @@ export default function OnboardingChat() {
 
     if (step === 3) {
       let infoTypes: UserPreferences["info_types"] = { paper: 0.5, news: 0.3, report: 0.2 };
-      if (content.includes("논문") || content.toLowerCase().includes("paper")) {
+      const normalized = content.toLowerCase();
+      if (content.includes("균형") || normalized.includes("balance")) {
+        infoTypes = { paper: 0.5, news: 0.3, report: 0.2 };
+      } else if (content.includes("논문") || normalized.includes("paper")) {
         infoTypes = { paper: 0.7, news: 0.2, report: 0.1 };
-      } else if (content.includes("뉴스") || content.toLowerCase().includes("news")) {
+      } else if (content.includes("뉴스") || normalized.includes("news")) {
         infoTypes = { paper: 0.2, news: 0.7, report: 0.1 };
-      } else if (content.includes("리포트") || content.toLowerCase().includes("report")) {
+      } else if (content.includes("리포트") || normalized.includes("report")) {
         infoTypes = { paper: 0.2, news: 0.1, report: 0.7 };
       }
       updatePreferences({ info_types: infoTypes });
       await addAssistantMessage(
-        "**질문 4/5**: 특별히 포함하고 싶은 웹사이트가 있나요?\n\n예시: techcrunch.com, venturebeat.com\n없으면 '없음'이라고 입력해주세요.",
+        "**질문 4/5**: 특별히 포함하고 싶은 웹사이트가 있나요?\n예시: techcrunch.com, venturebeat.com\n없으면 '없음'이라고 입력해주세요.",
       );
       setStep(4);
       return;
@@ -224,12 +230,24 @@ export default function OnboardingChat() {
     }
   };
 
-  const handleOptionSelect = (option: string) => {
-    void handleUserResponse(option);
+  const handleOptionSelect = async (option: string) => {
+    // 중복 클릭 방지: 이미 처리 중이거나 스트리밍 중이면 무시
+    if (isProcessing || isStreaming) {
+      return;
+    }
+    setIsProcessing(true);
+
+    try {
+      // 응답 처리 완료 후 options 제거 (타이밍 문제 해결)
+      await handleUserResponse(option);
+    } finally {
+      clearAllOptions();
+      setIsProcessing(false);
+    }
   };
 
   const handleSubmit = () => {
-    if (isStreaming || completed || isSaving) {
+    if (isStreaming || completed || isSaving || isProcessing) {
       return;
     }
     const value = inputValue.trim();
@@ -237,7 +255,7 @@ export default function OnboardingChat() {
     void handleUserResponse(value);
   };
 
-  const canSend = !isStreaming && !completed && !isSaving && inputValue.trim().length > 0;
+  const canSend = !isStreaming && !completed && !isSaving && !isProcessing && inputValue.trim().length > 0;
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -260,7 +278,15 @@ export default function OnboardingChat() {
                     : "max-w-sm rounded-2xl bg-slate-100 px-4 py-3 text-sm text-slate-700 whitespace-pre-line"
               }
             >
-              {message.content}
+              <ReactMarkdown
+                components={{
+                  // 마크다운 요소들이 채팅 버블 스타일과 어울리도록 커스터마이징
+                  p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                  strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                }}
+              >
+                {message.content}
+              </ReactMarkdown>
               {message.options && message.options.length > 0 ? (
                 <div className="mt-3 flex flex-wrap gap-2">
                   {message.options.map((option) => (
@@ -269,7 +295,7 @@ export default function OnboardingChat() {
                       type="button"
                       onClick={() => handleOptionSelect(option)}
                       className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 transition-colors hover:bg-slate-50"
-                      disabled={isStreaming || completed || isSaving}
+                      disabled={isStreaming || completed || isSaving || isProcessing}
                     >
                       {option}
                     </button>

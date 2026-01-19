@@ -10,6 +10,7 @@ type OnboardingState = {
   completed: boolean;
   addMessage: (message: ChatMessage) => void;
   updateMessage: (id: string, content: string) => void;
+  clearAllOptions: () => void;
   setStep: (step: number) => void;
   updatePreferences: (patch: Partial<UserPreferences>) => void;
   markCompleted: () => void;
@@ -41,6 +42,10 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
       messages: state.messages.map((message) =>
         message.id === id ? { ...message, content } : message,
       ),
+    })),
+  clearAllOptions: () =>
+    set((state) => ({
+      messages: state.messages.map((message) => ({ ...message, options: undefined })),
     })),
   setStep: (step) => set({ step }),
   updatePreferences: (patch) =>
