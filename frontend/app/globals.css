@@ -12,8 +12,8 @@
   --accent-pink: #fde7f3;
   --accent-indigo: #e0e7ff;
   --accent-blue: #dbeafe;
-  --font-display: var(--font-inter);
-  --font-sans: var(--font-noto);
+  --font-display: var(--font-inter), var(--font-noto);
+  --font-sans: var(--font-inter), var(--font-noto);
 }
 
 @theme inline {
