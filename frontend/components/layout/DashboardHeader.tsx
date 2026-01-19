@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { useAuth } from "@/hooks/use-auth";
@@ -20,6 +20,7 @@ export default function DashboardHeader() {
   const { user } = useAuth();
   const { clearAuth } = useAuthStore();
   const router = useRouter();
+  const pathname = usePathname();
   const queryClient = useQueryClient();
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -69,15 +70,22 @@ export default function DashboardHeader() {
           <span className="font-display">Research Curator</span>
         </Link>
         <nav className="hidden items-center gap-1 rounded-full bg-slate-100 p-1 text-sm md:flex">
-          {navItems.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              className="rounded-full px-4 py-2 text-slate-600 transition-colors hover:text-slate-900"
-            >
-              {item.label}
-            </Link>
-          ))}
+          {navItems.map((item) => {
+            const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+            return (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={`rounded-full px-4 py-2 transition-colors ${
+                  isActive
+                    ? "bg-white font-semibold text-slate-900 shadow-sm"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
         <div className="flex items-center gap-2">
           {/* 사용자 드롭다운 메뉴 */}
@@ -129,16 +137,23 @@ export default function DashboardHeader() {
         {menuOpen && (
           <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3 md:hidden">
             <nav id="mobile-nav" className="grid gap-2 text-sm text-slate-700">
-              {navItems.map((item) => (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  className="rounded-xl px-3 py-2 hover:bg-white"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  {item.label}
-                </Link>
-              ))}
+              {navItems.map((item) => {
+                const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+                return (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    className={`rounded-xl px-3 py-2 ${
+                      isActive
+                        ? "bg-white font-semibold text-slate-900"
+                        : "text-slate-700 hover:bg-white"
+                    }`}
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
               {/* 모바일: 사용자 정보 및 로그아웃 */}
               <div className="mt-2 border-t border-slate-200 pt-2">
                 <span className="block px-3 py-2 text-slate-500">{user?.email ?? "User"}</span>
