@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { useAuth } from "@/hooks/use-auth";
+import { useClickOutside } from "@/hooks/use-click-outside";
 import { useAuthStore } from "@/stores/auth-store";
 
 const baseNavItems = [
@@ -37,15 +38,8 @@ export default function DashboardHeader() {
     : baseNavItems;
 
   // 드롭다운 외부 클릭 시 닫기
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setDropdownOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  const closeDropdown = useCallback(() => setDropdownOpen(false), []);
+  useClickOutside(dropdownRef, closeDropdown, dropdownOpen);
 
   const handleLogout = () => {
     clearAuth();

@@ -15,6 +15,25 @@ const createId = () =>
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
+// 정보 유형별 비율 프리셋 상수
+type InfoTypeRatio = { paper: number; news: number; report: number };
+const INFO_TYPE_PRESETS: Record<string, InfoTypeRatio> = {
+  PAPER_FOCUSED: { paper: 0.7, news: 0.2, report: 0.1 },
+  NEWS_FOCUSED: { paper: 0.2, news: 0.7, report: 0.1 },
+  REPORT_FOCUSED: { paper: 0.2, news: 0.1, report: 0.7 },
+  BALANCED: { paper: 0.5, news: 0.3, report: 0.2 },
+};
+
+// 이메일 발송 시간 매핑 상수
+const EMAIL_TIME_MAP: Record<string, string> = {
+  "오전 8시": "08:00",
+  "오후 1시": "13:00",
+  "오후 6시": "18:00",
+  "오후 9시": "21:00",
+} as const;
+
+const DEFAULT_EMAIL_TIME = "08:00";
+
 const infoTypeOptions = [
   "📚 논문 위주 (70%)",
   "📰 뉴스 위주 (70%)",
@@ -99,13 +118,24 @@ export default function OnboardingChat() {
   }, [addAssistantMessage, addMessage, setStep]);
 
   useEffect(() => {
+    // 컴포넌트 언마운트 시 비동기 작업 취소를 위한 플래그
+    let cancelled = false;
+
     if (initialized.current) {
       return;
     }
     if (messages.length === 0) {
       initialized.current = true;
-      void seedConversation();
+      seedConversation().catch((error) => {
+        // 언마운트 후에는 에러 무시
+        if (cancelled) return;
+        console.error("온보딩 초기화 실패:", error);
+      });
     }
+
+    return () => {
+      cancelled = true;
+    };
   }, [messages.length, seedConversation]);
 
   const handleUserResponse = async (content: string) => {
@@ -144,16 +174,16 @@ export default function OnboardingChat() {
     }
 
     if (step === 3) {
-      let infoTypes: UserPreferences["info_types"] = { paper: 0.5, news: 0.3, report: 0.2 };
+      let infoTypes = INFO_TYPE_PRESETS.BALANCED;
       const normalized = content.toLowerCase();
       if (content.includes("균형") || normalized.includes("balance")) {
-        infoTypes = { paper: 0.5, news: 0.3, report: 0.2 };
+        infoTypes = INFO_TYPE_PRESETS.BALANCED;
       } else if (content.includes("논문") || normalized.includes("paper")) {
-        infoTypes = { paper: 0.7, news: 0.2, report: 0.1 };
+        infoTypes = INFO_TYPE_PRESETS.PAPER_FOCUSED;
       } else if (content.includes("뉴스") || normalized.includes("news")) {
-        infoTypes = { paper: 0.2, news: 0.7, report: 0.1 };
+        infoTypes = INFO_TYPE_PRESETS.NEWS_FOCUSED;
       } else if (content.includes("리포트") || normalized.includes("report")) {
-        infoTypes = { paper: 0.2, news: 0.1, report: 0.7 };
+        infoTypes = INFO_TYPE_PRESETS.REPORT_FOCUSED;
       }
       updatePreferences({ info_types: infoTypes });
       await addAssistantMessage(
@@ -181,16 +211,10 @@ export default function OnboardingChat() {
     }
 
     if (step === 5) {
-      const timeMap: Record<string, string> = {
-        "오전 8시": "08:00",
-        "오후 1시": "13:00",
-        "오후 6시": "18:00",
-        "오후 9시": "21:00",
-      };
-      const match = Object.keys(timeMap).find((key) => content.includes(key));
+      const match = Object.keys(EMAIL_TIME_MAP).find((key) => content.includes(key));
       const nextPreferences = {
         ...preferences,
-        email_time: match ? timeMap[match] : "08:00",
+        email_time: match ? EMAIL_TIME_MAP[match] : DEFAULT_EMAIL_TIME,
       };
       updatePreferences({ email_time: nextPreferences.email_time });
       await addAssistantMessage(buildSummary(nextPreferences));

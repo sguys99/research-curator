@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 
 import {
@@ -128,13 +128,16 @@ export default function SearchPage() {
     }
   };
 
-  const toggleValue = (value: string, list: string[], setter: (next: string[]) => void) => {
-    if (list.includes(value)) {
-      setter(list.filter((item) => item !== value));
-    } else {
-      setter([...list, value]);
-    }
-  };
+  const toggleValue = useCallback(
+    (value: string, list: string[], setter: (next: string[]) => void) => {
+      if (list.includes(value)) {
+        setter(list.filter((item) => item !== value));
+      } else {
+        setter([...list, value]);
+      }
+    },
+    [],
+  );
 
   const fallbackResults: SearchResult[] =
     !hasSearched && recentQuery.data

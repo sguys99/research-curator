@@ -12,14 +12,15 @@ type AuthState = {
   clearAuth: () => void;
 };
 
+// sessionStorage 사용: XSS 공격 시 토큰 노출 위험 감소 (탭 닫으면 자동 삭제)
 const persistToken = (token: string | null) => {
   if (typeof window === "undefined") {
     return;
   }
   if (token) {
-    window.localStorage.setItem("access_token", token);
+    window.sessionStorage.setItem("access_token", token);
   } else {
-    window.localStorage.removeItem("access_token");
+    window.sessionStorage.removeItem("access_token");
   }
 };
 
@@ -37,7 +38,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ hydrated: true });
       return;
     }
-    const token = window.localStorage.getItem("access_token");
+    const token = window.sessionStorage.getItem("access_token");
     set({ token, hydrated: true });
   },
   clearAuth: () => {

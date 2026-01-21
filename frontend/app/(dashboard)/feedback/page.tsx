@@ -48,6 +48,29 @@ const formatDate = (value?: string) => {
   return date.toLocaleDateString();
 };
 
+// 에러 타입에 따른 사용자 친화적 메시지 생성
+const getErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase();
+    if (message.includes("network") || message.includes("fetch")) {
+      return "네트워크 연결을 확인해주세요.";
+    }
+    if (message.includes("timeout")) {
+      return "요청 시간이 초과되었습니다. 다시 시도해주세요.";
+    }
+    if (message.includes("401") || message.includes("unauthorized")) {
+      return "로그인이 필요합니다.";
+    }
+    if (message.includes("403") || message.includes("forbidden")) {
+      return "접근 권한이 없습니다.";
+    }
+    if (message.includes("404")) {
+      return "요청한 리소스를 찾을 수 없습니다.";
+    }
+  }
+  return "일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
+};
+
 export default function FeedbackPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -88,10 +111,10 @@ export default function FeedbackPage() {
       createForm.reset({ articleId: "", rating: 5, comment: "" });
       queryClient.invalidateQueries({ queryKey: ["feedback", "user", user?.id] });
     },
-    onError: () =>
+    onError: (error) =>
       toast({
-        title: "Unable to submit feedback",
-        description: "Please try again.",
+        title: "피드백 제출 실패",
+        description: getErrorMessage(error),
         variant: "error",
       }),
   });
@@ -108,10 +131,10 @@ export default function FeedbackPage() {
       setEditState(null);
       queryClient.invalidateQueries({ queryKey: ["feedback", "user", user?.id] });
     },
-    onError: () =>
+    onError: (error) =>
       toast({
-        title: "Unable to update feedback",
-        description: "Please try again.",
+        title: "피드백 수정 실패",
+        description: getErrorMessage(error),
         variant: "error",
       }),
   });
@@ -126,10 +149,10 @@ export default function FeedbackPage() {
       });
       queryClient.invalidateQueries({ queryKey: ["feedback", "user", user?.id] });
     },
-    onError: () =>
+    onError: (error) =>
       toast({
-        title: "Unable to delete feedback",
-        description: "Please try again.",
+        title: "피드백 삭제 실패",
+        description: getErrorMessage(error),
         variant: "error",
       }),
   });
