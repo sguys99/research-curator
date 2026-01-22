@@ -243,8 +243,8 @@
 - [x] 4.2 zip strict=True
 
 ### Phase 5 (재시도)
-- [ ] 5.1 LLM 재시도 로직
-- [ ] 5.2 Collectors 재시도 개선
+- [x] 5.1 LLM 재시도 로직
+- [x] 5.2 Collectors 재시도 개선
 
 ### Phase 6 (설정)
 - [ ] 6.1 토큰 제한 설정화
