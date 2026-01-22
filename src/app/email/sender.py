@@ -2,6 +2,7 @@
 
 import logging
 import os
+import ssl
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import Any
@@ -91,6 +92,7 @@ class EmailSender:
             message.attach(html_part)
 
             # Send email ,SMTP 전송
+            tls_context = ssl.create_default_context()
             await aiosmtplib.send(
                 message,
                 hostname=self.smtp_host,
@@ -98,6 +100,9 @@ class EmailSender:
                 username=self.smtp_user,
                 password=self.smtp_password,
                 start_tls=True,
+                tls_context=tls_context,
+                validate_certs=True,
+                timeout=30,
             )
 
             logger.info(f"Email sent successfully to {to_email}")

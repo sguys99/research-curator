@@ -12,6 +12,7 @@ from app.api.schemas.articles import (
     ArticleResponse,
     ArticleSearchRequest,
     ArticleSearchResponse,
+    ArticleSearchResult,
     ArticleStatisticsResponse,
     BatchArticleRequest,
 )
@@ -184,8 +185,6 @@ async def search_semantic(
         )
 
         # Convert results to response format
-        from app.api.schemas.articles import ArticleSearchResult
-
         article_results = []
         for result in results:
             # Get article details from DB
@@ -272,8 +271,6 @@ async def get_similar_articles(
         )
 
         # Filter out the original article and convert to response
-        from app.api.schemas.articles import ArticleSearchResult
-
         article_results = []
         for result in results:
             # Skip if it's the same article

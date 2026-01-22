@@ -1,7 +1,7 @@
 """Email sending history management."""
 
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
@@ -124,7 +124,7 @@ async def mark_email_opened(
 
         # Update opened status
         digest.email_opened = True
-        digest.opened_at = opened_at or datetime.utcnow()
+        digest.opened_at = opened_at or datetime.now(UTC)
 
         await session.commit()
         await session.refresh(digest)

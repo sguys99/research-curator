@@ -1,7 +1,7 @@
 """Article-related Pydantic schemas."""
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -151,7 +151,7 @@ class ArticleListRequest(BaseModel):
     limit: int = Field(10, ge=1, le=100, description="Number of items to return")
     source_type: str | None = Field(None, description="Filter by source type")
     category: str | None = Field(None, description="Filter by category")
-    sort_by: str = Field(
+    sort_by: Literal["collected_at", "importance_score", "published_at"] = Field(
         "collected_at",
         description="Sort field (collected_at, importance_score, published_at)",
     )

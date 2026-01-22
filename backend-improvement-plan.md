@@ -224,12 +224,12 @@
 ## 체크리스트
 
 ### Phase 1 (즉시)
-- [ ] 1.1 utils/ 디렉토리 삭제
-- [ ] 1.2 JWT SECRET 보안 강화
-- [ ] 1.3 datetime.utcnow() 수정
-- [ ] 1.4 SMTP 보안 설정
-- [ ] 1.5 SQL Injection 방지
-- [ ] 1.6 Import 문 이동
+- [x] 1.1 utils/ 디렉토리 삭제
+- [x] 1.2 JWT SECRET 보안 강화
+- [x] 1.3 datetime.utcnow() 수정
+- [x] 1.4 SMTP 보안 설정
+- [x] 1.5 SQL Injection 방지
+- [x] 1.6 Import 문 이동
 
 ### Phase 2 (트랜잭션)
 - [ ] 2.1 DB 롤백 추가

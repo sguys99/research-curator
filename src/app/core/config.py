@@ -1,9 +1,10 @@
 """Application configuration settings."""
 
+import warnings
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field  # 메타 데이터 검증규칙을 정의할 떄 사용
+from pydantic import Field, model_validator  # 메타 데이터 검증규칙을 정의할 떄 사용
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -65,7 +66,7 @@ class Settings(BaseSettings):
     SMTP_FROM_NAME: str = Field(default="Research Curator")
 
     # Authentication
-    JWT_SECRET_KEY: str = Field(default="your-secret-key-change-in-production")
+    JWT_SECRET_KEY: str | None = Field(default=None)
     JWT_ALGORITHM: str = "HS256"
     MAGIC_LINK_EXPIRE_MINUTES: int = 15
     ACCESS_TOKEN_EXPIRE_DAYS: int = 30
@@ -93,6 +94,23 @@ class Settings(BaseSettings):
     def database_url_str(self) -> str:
         """Get database URL as string."""
         return str(self.DATABASE_URL)
+
+    @model_validator(mode="after")
+    def validate_jwt_secret(self) -> "Settings":
+        """Ensure JWT secret is set appropriately for the environment."""
+        if self.JWT_SECRET_KEY:
+            return self
+
+        if self.ENVIRONMENT == "production":
+            raise ValueError("JWT_SECRET_KEY must be set in production.")
+
+        warnings.warn(
+            "JWT_SECRET_KEY is not set; using an insecure development default.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        self.JWT_SECRET_KEY = "dev-insecure-secret"
+        return self
 
 
 # lru_cache: 함수가 호출되면 결과를 캐시에 저장

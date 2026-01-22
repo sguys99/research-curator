@@ -13,6 +13,7 @@ from app.api.schemas.feedback import (
     FeedbackStatsResponse,
     FeedbackUpdate,
 )
+from app.db.crud.articles import get_article_by_id
 from app.db.crud.feedback import (
     create_feedback,
     delete_feedback,
@@ -49,8 +50,6 @@ def create_user_feedback(
         HTTPException: If article not found or validation fails
     """
     # Verify article exists
-    from app.db.crud.articles import get_article_by_id
-
     article = get_article_by_id(db, feedback_data.article_id)
     if not article:
         raise HTTPException(
@@ -303,8 +302,6 @@ def get_article_feedback_list(
         List of article's feedback
     """
     # Verify article exists
-    from app.db.crud.articles import get_article_by_id
-
     article = get_article_by_id(db, article_id)
     if not article:
         raise HTTPException(
@@ -355,8 +352,6 @@ def get_article_stats(
         HTTPException: If article not found
     """
     # Verify article exists
-    from app.db.crud.articles import get_article_by_id
-
     article = get_article_by_id(db, article_id)
     if not article:
         raise HTTPException(
