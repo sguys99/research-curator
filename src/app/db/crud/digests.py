@@ -8,6 +8,14 @@ from sqlalchemy.orm import Session
 from app.db.models import SentDigest
 
 
+def _commit_or_rollback(db: Session) -> None:
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+
+
 def get_user_digests(
     db: Session,
     user_id: UUID,
@@ -71,7 +79,7 @@ def create_digest(
     """
     digest = SentDigest(user_id=user_id, article_ids=article_ids)
     db.add(digest)
-    db.commit()
+    _commit_or_rollback(db)
     db.refresh(digest)
     return digest
 
@@ -112,7 +120,7 @@ def update_digest_opened(
 
     digest.email_opened = True
     digest.opened_at = opened_at
-    db.commit()
+    _commit_or_rollback(db)
     db.refresh(digest)
     return digest
 

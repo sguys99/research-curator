@@ -8,6 +8,14 @@ from sqlalchemy.orm import Session
 from app.db.models import User, UserPreference
 
 
+def _commit_or_rollback(db: Session) -> None:
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+
+
 def get_user_by_id(db: Session, user_id: UUID) -> User | None:
     """
     Get user by ID.
@@ -50,13 +58,13 @@ def create_user(db: Session, email: str, name: str | None = None) -> User:
     """
     user = User(email=email, name=name)
     db.add(user)
-    db.commit()
+    _commit_or_rollback(db)
     db.refresh(user)
 
     # Create default preferences for the user
     preference = UserPreference(user_id=user.id)
     db.add(preference)
-    db.commit()
+    _commit_or_rollback(db)
 
     return user
 
@@ -75,7 +83,7 @@ def update_user_last_login(db: Session, user_id: UUID) -> User | None:
     user = get_user_by_id(db, user_id)
     if user:
         user.last_login = datetime.now(UTC)
-        db.commit()
+        _commit_or_rollback(db)
         db.refresh(user)
     return user
 
@@ -107,7 +115,7 @@ def update_user(
     if name is not None:
         user.name = name
 
-    db.commit()
+    _commit_or_rollback(db)
     db.refresh(user)
     return user
 
@@ -128,7 +136,7 @@ def delete_user(db: Session, user_id: UUID) -> bool:
         return False
 
     db.delete(user)
-    db.commit()
+    _commit_or_rollback(db)
     return True
 
 

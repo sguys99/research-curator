@@ -9,6 +9,14 @@ from sqlalchemy.orm import Session
 from app.db.models import Feedback
 
 
+def _commit_or_rollback(db: Session) -> None:
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+
+
 def get_feedback_by_id(db: Session, feedback_id: UUID) -> Feedback | None:
     """
     Get feedback by ID.
@@ -103,7 +111,7 @@ def create_feedback(
         created_at=datetime.now(UTC),
     )
     db.add(feedback)
-    db.commit()
+    _commit_or_rollback(db)
     db.refresh(feedback)
     return feedback
 
@@ -135,7 +143,7 @@ def update_feedback(
     if comment is not None:
         feedback.comment = comment
 
-    db.commit()
+    _commit_or_rollback(db)
     db.refresh(feedback)
     return feedback
 
@@ -156,7 +164,7 @@ def delete_feedback(db: Session, feedback_id: UUID) -> bool:
         return False
 
     db.delete(feedback)
-    db.commit()
+    _commit_or_rollback(db)
     return True
 
 

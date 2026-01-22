@@ -8,6 +8,14 @@ from sqlalchemy.orm import Session
 from app.db.models import UserPreference
 
 
+def _commit_or_rollback(db: Session) -> None:
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+
+
 def get_user_preference(db: Session, user_id: UUID) -> UserPreference | None:
     """
     Get user preferences by user ID.
@@ -40,7 +48,7 @@ def create_user_preference(
     """
     preference = UserPreference(user_id=user_id, **kwargs)
     db.add(preference)
-    db.commit()
+    _commit_or_rollback(db)
     db.refresh(preference)
     return preference
 
@@ -70,6 +78,6 @@ def update_user_preference(
         if value is not None and hasattr(preference, key):
             setattr(preference, key, value)
 
-    db.commit()
+    _commit_or_rollback(db)
     db.refresh(preference)
     return preference

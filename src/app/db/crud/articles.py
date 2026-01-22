@@ -10,6 +10,14 @@ from sqlalchemy.orm import Session
 from app.db.models import CollectedArticle
 
 
+def _commit_or_rollback(db: Session) -> None:
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+
+
 def get_articles(
     db: Session,
     skip: int = 0,
@@ -166,7 +174,7 @@ def create_article(
         collected_at=datetime.now(UTC),
     )
     db.add(article)
-    db.commit()
+    _commit_or_rollback(db)
     db.refresh(article)
     return article
 
@@ -218,7 +226,7 @@ def update_article(
     if vector_id is not None:
         article.vector_id = vector_id
 
-    db.commit()
+    _commit_or_rollback(db)
     db.refresh(article)
     return article
 
@@ -239,7 +247,7 @@ def delete_article(db: Session, article_id: UUID) -> bool:
         return False
 
     db.delete(article)
-    db.commit()
+    _commit_or_rollback(db)
     return True
 
 
