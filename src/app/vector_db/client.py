@@ -1,6 +1,7 @@
 """Qdrant client wrapper for managing vector database connections and operations."""
 
 import logging
+import threading
 from typing import Any
 
 from qdrant_client import QdrantClient
@@ -32,6 +33,7 @@ class QdrantClientWrapper:
         self.port = port or settings.QDRANT_PORT
         self.collection_name = collection_name or settings.QDRANT_COLLECTION_NAME  # research_articles
         self._client: QdrantClient | None = None
+        self._client_lock = threading.Lock()
 
     @property  # 메서드를 속성처럼 접근(예: .client), Lazy initialization(지연 초기화, 사용할 때 연결)
     def client(self) -> QdrantClient:
@@ -44,12 +46,16 @@ class QdrantClientWrapper:
             ConnectionError: If unable to connect to Qdrant server
         """
         if self._client is None:
-            try:
-                self._client = QdrantClient(host=self.host, port=self.port)
-                logger.info(f"Connected to Qdrant at {self.host}:{self.port}")
-            except Exception as e:
-                logger.error(f"Failed to connect to Qdrant: {e}")
-                raise ConnectionError(f"Unable to connect to Qdrant at {self.host}:{self.port}") from e
+            with self._client_lock:
+                if self._client is None:
+                    try:
+                        self._client = QdrantClient(host=self.host, port=self.port)
+                        logger.info(f"Connected to Qdrant at {self.host}:{self.port}")
+                    except Exception as e:
+                        logger.error(f"Failed to connect to Qdrant: {e}")
+                        raise ConnectionError(
+                            f"Unable to connect to Qdrant at {self.host}:{self.port}",
+                        ) from e
         return self._client
 
     def health_check(self) -> dict[str, Any]:
@@ -238,9 +244,11 @@ class QdrantClientWrapper:
     def close(self) -> None:
         """Close the Qdrant client connection."""
         if self._client is not None:
-            self._client.close()
-            self._client = None
-            logger.info("Qdrant client connection closed")
+            with self._client_lock:
+                if self._client is not None:
+                    self._client.close()
+                    self._client = None
+                    logger.info("Qdrant client connection closed")
 
     def __enter__(self) -> "QdrantClientWrapper":
         """Context manager entry."""
@@ -259,6 +267,7 @@ class QdrantClientWrapper:
 
 # Global client instance, 싱글턴 패턴, 전역 단일 인스턴스, 어플리케이션 전역에서 동일한 연결 재사용
 _qdrant_client: QdrantClientWrapper | None = None
+_qdrant_client_lock = threading.Lock()
 
 
 def get_qdrant_client() -> QdrantClientWrapper:
@@ -269,5 +278,7 @@ def get_qdrant_client() -> QdrantClientWrapper:
     """
     global _qdrant_client
     if _qdrant_client is None:
-        _qdrant_client = QdrantClientWrapper()
+        with _qdrant_client_lock:
+            if _qdrant_client is None:
+                _qdrant_client = QdrantClientWrapper()
     return _qdrant_client

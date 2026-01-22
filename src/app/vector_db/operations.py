@@ -190,7 +190,7 @@ class VectorOperations:
             points = []
             vector_ids = []
 
-            for article, embedding in zip(articles, embeddings, strict=False):
+            for article, embedding in zip(articles, embeddings, strict=True):
                 vector_id = str(uuid.uuid4())
                 vector_ids.append(vector_id)
 
