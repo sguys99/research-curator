@@ -232,8 +232,8 @@
 - [x] 1.6 Import 문 이동
 
 ### Phase 2 (트랜잭션)
-- [ ] 2.1 DB 롤백 추가
-- [ ] 2.2 CRUD 중복 제거
+- [x] 2.1 DB 롤백 추가
+- [x] 2.2 CRUD 중복 제거
 
 ### Phase 3 (asyncio)
 - [ ] 3.1 asyncio.run() 패턴 개선
