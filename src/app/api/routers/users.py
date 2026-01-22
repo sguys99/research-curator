@@ -1,4 +1,4 @@
-"""Users router for user management and preferences."""
+"""사용자 관리 및 선호도 설정을 위한 라우터."""
 
 import logging
 from datetime import datetime, timedelta
@@ -32,13 +32,13 @@ def get_current_user_info(
     current_user: User = Depends(get_current_user),
 ) -> UserResponse:
     """
-    Get current authenticated user information.
+    현재 인증된 사용자 정보를 조회한다.
 
     Args:
-        current_user: Current user from JWT token
+        current_user: JWT 토큰에서 추출된 사용자
 
     Returns:
-        User information
+        사용자 정보
     """
     return UserResponse(
         id=current_user.id,
@@ -56,20 +56,20 @@ def get_preferences(
     current_user: User = Depends(get_current_user),
 ) -> UserPreferenceResponse:
     """
-    Get user preferences.
+    사용자 선호도를 조회한다.
 
     Args:
-        user_id: User UUID
-        db: Database session
-        current_user: Current authenticated user
+        user_id: 사용자 UUID
+        db: 데이터베이스 세션
+        current_user: 현재 인증된 사용자
 
     Returns:
-        User preferences
+        사용자 선호도
 
     Raises:
-        HTTPException: If user not authorized or preferences not found
+        HTTPException: 권한이 없거나 선호도를 찾지 못한 경우
     """
-    # Check authorization (users can only access their own preferences)
+    # 권한 확인(사용자는 자신의 선호도만 조회 가능)
     if str(current_user.id) != str(user_id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -83,7 +83,7 @@ def get_preferences(
             detail="Preferences not found",
         )
 
-    # Ensure sources is a list (handle legacy dict format)
+    # sources가 리스트인지 확인(레거시 dict 포맷 대응)
     sources = preference.sources
     if isinstance(sources, dict):
         sources = []
@@ -113,28 +113,28 @@ def update_preferences(
     current_user: User = Depends(get_current_user),
 ) -> UserPreferenceResponse:
     """
-    Update user preferences.
+    사용자 선호도를 업데이트한다.
 
     Args:
-        user_id: User UUID
-        update_data: Preference update data
-        db: Database session
-        current_user: Current authenticated user
+        user_id: 사용자 UUID
+        update_data: 선호도 업데이트 데이터
+        db: 데이터베이스 세션
+        current_user: 현재 인증된 사용자
 
     Returns:
-        Updated user preferences
+        업데이트된 사용자 선호도
 
     Raises:
-        HTTPException: If user not authorized or update fails
+        HTTPException: 권한이 없거나 업데이트 실패 시
     """
-    # Check authorization
+    # 권한 확인
     if str(current_user.id) != str(user_id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to update these preferences",
         )
 
-    # Update preferences
+    # 선호도 업데이트
     preference = update_user_preference(
         db,
         user_id,
@@ -171,22 +171,22 @@ def get_digests(
     current_user: User = Depends(get_current_user),
 ) -> DigestListResponse:
     """
-    Get user's digest history.
+    사용자의 다이제스트 기록을 조회한다.
 
     Args:
-        user_id: User UUID
-        skip: Number of records to skip (pagination)
-        limit: Maximum number of records to return
-        db: Database session
-        current_user: Current authenticated user
+        user_id: 사용자 UUID
+        skip: 건너뛸 레코드 수(페이지네이션)
+        limit: 반환할 최대 레코드 수
+        db: 데이터베이스 세션
+        current_user: 현재 인증된 사용자
 
     Returns:
-        List of digests with pagination
+        페이지네이션이 포함된 다이제스트 목록
 
     Raises:
-        HTTPException: If user not authorized
+        HTTPException: 권한이 없는 경우
     """
-    # Check authorization
+    # 권한 확인
     if str(current_user.id) != str(user_id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -220,30 +220,30 @@ async def send_test_digest(
     current_user: User = Depends(get_current_user),
 ) -> dict:
     """
-    Send test digest email to user.
+    사용자에게 테스트 다이제스트 이메일을 전송한다.
 
-    This endpoint sends a test email with recent articles based on user preferences.
-    It's useful for testing the email delivery and previewing the digest format.
+    이 엔드포인트는 사용자 선호도를 기준으로 최근 아티클로 테스트 메일을 보낸다.
+    이메일 발송 검증 및 다이제스트 형식 미리보기에 उपयोग한다.
 
     Args:
-        user_id: User UUID
-        db: Database session
-        current_user: Current authenticated user
+        user_id: 사용자 UUID
+        db: 데이터베이스 세션
+        current_user: 현재 인증된 사용자
 
     Returns:
-        dict: Success message with digest details
+        dict: 다이제스트 상세가 포함된 성공 메시지
 
     Raises:
-        HTTPException: If user not authorized, preferences not found, or no articles available
+        HTTPException: 권한이 없거나 선호도를 찾지 못했거나 아티클이 없는 경우
     """
-    # Check authorization
+    # 권한 확인
     if str(current_user.id) != str(user_id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to send test digest for this user",
         )
 
-    # Get user preferences
+    # 사용자 선호도 조회
     preferences = get_user_preference(db, user_id)
     if not preferences:
         raise HTTPException(
@@ -251,7 +251,7 @@ async def send_test_digest(
             detail="User preferences not found. Please complete onboarding first.",
         )
 
-    # Get recent articles (last 7 days)
+    # 최근 7일 아티클 조회
     try:
         seven_days_ago = datetime.now() - timedelta(days=7)
         stmt = (
@@ -269,7 +269,7 @@ async def send_test_digest(
                 detail="No articles available for digest. Please collect articles first.",
             )
 
-        # Select articles based on user preferences
+        # 사용자 선호도 기반으로 아티클 선택
         selected_articles = await select_articles_for_user_async(
             articles=all_articles,
             preferences=preferences,
@@ -285,7 +285,7 @@ async def send_test_digest(
                 ),
             )
 
-        # Build email content
+        # 이메일 콘텐츠 생성
         from app.email.builder import EmailBuilder
         from app.email.sender import EmailSender
 
@@ -297,11 +297,11 @@ async def send_test_digest(
             daily_limit=preferences.daily_limit or 5,
         )
 
-        # Generate subject
+        # 제목 생성
         date_str = datetime.now().strftime("%Y년 %m월 %d일")
         subject = f"🔬 [테스트] Research Curator - {date_str} AI 연구 동향"
 
-        # Send email
+        # 이메일 전송
         sender = EmailSender()
         await sender.send_email(
             to_email=current_user.email,

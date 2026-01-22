@@ -1,24 +1,24 @@
-"""Pydantic schemas for Scheduler API endpoints."""
+"""스케줄러 API 엔드포인트용 Pydantic 스키마."""
 
 from pydantic import BaseModel, Field
 
 
 class JobInfo(BaseModel):
-    """Information about a scheduled job."""
+    """스케줄된 작업 정보."""
 
-    id: str = Field(..., description="Unique job identifier")
-    name: str = Field(..., description="Human-readable job name")
-    next_run_time: str | None = Field(None, description="ISO format timestamp of next scheduled run")
-    trigger: str = Field(..., description="Trigger description")
+    id: str = Field(..., description="고유 작업 식별자")
+    name: str = Field(..., description="표시용 작업 이름")
+    next_run_time: str | None = Field(None, description="다음 실행 시각(ISO 형식)")
+    trigger: str = Field(..., description="트리거 설명")
 
 
 class SchedulerStatusResponse(BaseModel):
-    """Response schema for scheduler status endpoint."""
+    """스케줄러 상태 응답 스키마."""
 
-    running: bool = Field(..., description="Whether scheduler is currently running")
-    timezone: str = Field(..., description="Scheduler timezone")
-    current_time: str = Field(..., description="Current time in scheduler timezone (ISO format)")
-    jobs: list[JobInfo] = Field(..., description="List of registered jobs")
+    running: bool = Field(..., description="스케줄러 실행 여부")
+    timezone: str = Field(..., description="스케줄러 타임존")
+    current_time: str = Field(..., description="현재 시각(ISO 형식)")
+    jobs: list[JobInfo] = Field(..., description="등록된 작업 목록")
 
     class Config:
         json_schema_extra = {
@@ -39,9 +39,9 @@ class SchedulerStatusResponse(BaseModel):
 
 
 class TriggerJobRequest(BaseModel):
-    """Request schema for manually triggering a job."""
+    """작업 수동 실행 요청 스키마."""
 
-    job_id: str = Field(..., description="ID of the job to trigger")
+    job_id: str = Field(..., description="실행할 작업 ID")
 
     class Config:
         json_schema_extra = {
@@ -52,12 +52,12 @@ class TriggerJobRequest(BaseModel):
 
 
 class TriggerJobResponse(BaseModel):
-    """Response schema for job trigger endpoint."""
+    """작업 실행 응답 스키마."""
 
-    success: bool = Field(..., description="Whether job was triggered successfully")
-    message: str = Field(..., description="Result message")
-    job_id: str = Field(..., description="ID of the triggered job")
-    triggered_at: str = Field(..., description="ISO format timestamp when job was triggered")
+    success: bool = Field(..., description="작업 실행 성공 여부")
+    message: str = Field(..., description="결과 메시지")
+    job_id: str = Field(..., description="실행된 작업 ID")
+    triggered_at: str = Field(..., description="작업 실행 시각(ISO 형식)")
 
     class Config:
         json_schema_extra = {
@@ -71,10 +71,10 @@ class TriggerJobResponse(BaseModel):
 
 
 class JobListResponse(BaseModel):
-    """Response schema for listing all jobs."""
+    """전체 작업 목록 응답 스키마."""
 
-    total: int = Field(..., description="Total number of registered jobs")
-    jobs: list[JobInfo] = Field(..., description="List of all registered jobs")
+    total: int = Field(..., description="등록된 작업 총 수")
+    jobs: list[JobInfo] = Field(..., description="모든 등록 작업 목록")
 
     class Config:
         json_schema_extra = {
@@ -105,9 +105,9 @@ class JobListResponse(BaseModel):
 
 
 class SchedulerControlRequest(BaseModel):
-    """Request schema for scheduler control (start/stop)."""
+    """스케줄러 제어 요청 스키마(start/stop)."""
 
-    action: str = Field(..., description="Action to perform: 'start' or 'stop'")
+    action: str = Field(..., description="수행할 동작: 'start' 또는 'stop'")
 
     class Config:
         json_schema_extra = {
@@ -118,11 +118,11 @@ class SchedulerControlRequest(BaseModel):
 
 
 class SchedulerControlResponse(BaseModel):
-    """Response schema for scheduler control endpoint."""
+    """스케줄러 제어 응답 스키마."""
 
-    success: bool = Field(..., description="Whether action was successful")
-    message: str = Field(..., description="Result message")
-    running: bool = Field(..., description="Current scheduler running status")
+    success: bool = Field(..., description="동작 성공 여부")
+    message: str = Field(..., description="결과 메시지")
+    running: bool = Field(..., description="현재 스케줄러 실행 상태")
 
     class Config:
         json_schema_extra = {

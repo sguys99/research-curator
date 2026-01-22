@@ -1,4 +1,4 @@
-"""FastAPI application entry point."""
+"""FastAPI 애플리케이션 진입점."""
 
 import logging
 from contextlib import asynccontextmanager
@@ -16,11 +16,11 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Lifespan context manager for startup and shutdown events."""
-    # Startup
+    """시작/종료 이벤트를 처리하는 lifespan 컨텍스트 매니저."""
+    # 시작
     logger.info("Starting up application...")
 
-    # Initialize vector database
+    # 벡터 DB 초기화
     logger.info("Initializing vector database...")
     try:
         success = initialize_vector_db(recreate=False)
@@ -37,10 +37,10 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    # Shutdown
+    # 종료
     logger.info("Shutting down application...")
 
-    # Close Qdrant client connection
+    # Qdrant 클라이언트 연결 종료
     try:
         client = get_qdrant_client()
         client.close()
@@ -51,7 +51,7 @@ async def lifespan(app: FastAPI):
     logger.info("Application shutdown complete")
 
 
-# Create FastAPI app
+# FastAPI 앱 생성
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
@@ -60,7 +60,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS middleware
+# CORS 미들웨어
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
@@ -72,7 +72,7 @@ app.add_middleware(
 
 @app.get("/")
 async def root():
-    """Health check endpoint."""
+    """헬스 체크 엔드포인트."""
     return {
         "name": settings.APP_NAME,
         "version": settings.APP_VERSION,
@@ -82,11 +82,11 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    """Health check for monitoring."""
+    """모니터링용 헬스 체크."""
     return {"status": "healthy"}
 
 
-# Include routers
+# 라우터 등록
 app.include_router(auth.router, prefix="/auth")
 app.include_router(users.router, prefix="/users")
 app.include_router(articles.router, prefix="/api")

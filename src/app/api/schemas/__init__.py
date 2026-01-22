@@ -1,4 +1,4 @@
-"""API schemas package."""
+"""API 스키마 패키지."""
 
 from app.api.schemas.articles import (
     ArticleBase,
@@ -66,17 +66,17 @@ from app.api.schemas.users import (
 )
 
 __all__ = [
-    # Common
+    # 공통
     "ErrorResponse",
     "MessageResponse",
     "PaginatedResponse",
     "PaginationParams",
-    # Auth
+    # 인증
     "MagicLinkRequest",
     "MagicLinkResponse",
     "TokenPayload",
     "TokenResponse",
-    # Users
+    # 사용자
     "UserBase",
     "UserCreate",
     "UserUpdate",
@@ -87,7 +87,7 @@ __all__ = [
     "UserPreferenceResponse",
     "DigestResponse",
     "DigestListResponse",
-    # Articles
+    # 아티클
     "ArticleBase",
     "ArticleCreate",
     "ArticleUpdate",
@@ -99,13 +99,13 @@ __all__ = [
     "SimilarArticlesResponse",
     "ArticleListRequest",
     "ArticleListResponse",
-    # Feedback
+    # 피드백
     "FeedbackBase",
     "FeedbackCreate",
     "FeedbackUpdate",
     "FeedbackResponse",
     "FeedbackListResponse",
-    # LLM (existing)
+    # LLM
     "ChatMessage",
     "ChatCompletionRequest",
     "ChatCompletionResponse",
@@ -115,7 +115,7 @@ __all__ = [
     "ArticleSummaryResponse",
     "ArticleAnalysisRequest",
     "ArticleAnalysisResponse",
-    # Scheduler (existing)
+    # 스케줄러
     "JobInfo",
     "JobListResponse",
     "SchedulerControlRequest",

@@ -1,4 +1,4 @@
-"""Feedback-related Pydantic schemas."""
+"""피드백 관련 Pydantic 스키마."""
 
 from datetime import datetime
 from uuid import UUID
@@ -7,62 +7,62 @@ from pydantic import BaseModel, Field
 
 
 class FeedbackBase(BaseModel):
-    """Base feedback schema."""
+    """피드백 기본 스키마."""
 
-    rating: int = Field(..., ge=1, le=5, description="Rating (1-5 stars)")
+    rating: int = Field(..., ge=1, le=5, description="평점(1-5점)")
     comment: str | None = Field(
         None,
         max_length=500,
-        description="Optional feedback comment",
+        description="선택적 피드백 코멘트",
     )
 
 
 class FeedbackCreate(BaseModel):
-    """Schema for creating feedback."""
+    """피드백 생성 스키마."""
 
-    article_id: UUID = Field(..., description="Article ID")
-    rating: int = Field(..., ge=1, le=5, description="Rating (1-5 stars)")
+    article_id: UUID = Field(..., description="아티클 ID")
+    rating: int = Field(..., ge=1, le=5, description="평점(1-5점)")
     comment: str | None = Field(
         None,
         max_length=1000,
-        description="Optional feedback comment",
+        description="선택적 피드백 코멘트",
     )
 
 
 class FeedbackUpdate(BaseModel):
-    """Schema for updating feedback."""
+    """피드백 수정 스키마."""
 
-    rating: int | None = Field(None, ge=1, le=5, description="Rating")
-    comment: str | None = Field(None, max_length=1000, description="Comment")
+    rating: int | None = Field(None, ge=1, le=5, description="평점")
+    comment: str | None = Field(None, max_length=1000, description="코멘트")
 
 
 class FeedbackResponse(FeedbackBase):
-    """Feedback response schema."""
+    """피드백 응답 스키마."""
 
-    id: UUID = Field(..., description="Feedback ID")
-    user_id: UUID = Field(..., description="User ID")
-    article_id: UUID = Field(..., description="Article ID")
-    created_at: datetime = Field(..., description="Creation time")
+    id: UUID = Field(..., description="피드백 ID")
+    user_id: UUID = Field(..., description="사용자 ID")
+    article_id: UUID = Field(..., description="아티클 ID")
+    created_at: datetime = Field(..., description="생성 시각")
 
     model_config = {"from_attributes": True}
 
 
 class FeedbackListResponse(BaseModel):
-    """List of feedbacks with pagination."""
+    """페이지네이션이 포함된 피드백 목록."""
 
-    feedback: list[FeedbackResponse] = Field(..., description="List of feedbacks")
-    total: int = Field(..., description="Total number of feedbacks")
-    skip: int = Field(..., description="Number of items skipped")
-    limit: int = Field(..., description="Number of items returned")
+    feedback: list[FeedbackResponse] = Field(..., description="피드백 목록")
+    total: int = Field(..., description="전체 피드백 수")
+    skip: int = Field(..., description="건너뛴 항목 수")
+    limit: int = Field(..., description="반환된 항목 수")
 
 
 class FeedbackStatsResponse(BaseModel):
-    """Feedback statistics response."""
+    """피드백 통계 응답 스키마."""
 
-    article_id: UUID = Field(..., description="Article ID")
-    count: int = Field(..., description="Total feedback count")
-    average_rating: float = Field(..., description="Average rating (0.00-5.00)")
+    article_id: UUID = Field(..., description="아티클 ID")
+    count: int = Field(..., description="전체 피드백 수")
+    average_rating: float = Field(..., description="평균 평점(0.00-5.00)")
     rating_distribution: dict[int, int] = Field(
         ...,
-        description="Rating distribution (1-5 stars with counts)",
+        description="평점 분포(1-5점별 개수)",
     )

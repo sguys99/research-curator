@@ -1,4 +1,4 @@
-"""LLM API endpoints."""
+"""LLM API 엔드포인트."""
 
 import json
 
@@ -23,13 +23,13 @@ router = APIRouter(prefix="/llm", tags=["LLM"])
 @router.post("/chat/completions")
 async def chat_completion(request: ChatCompletionRequest):
     """
-    Generate chat completion using specified LLM provider.
+    지정한 LLM 제공자를 사용해 채팅 응답을 생성한다.
 
-    Supports both OpenAI and Claude with a unified interface.
-    Supports streaming mode when stream=True.
+    OpenAI와 Claude를 동일한 인터페이스로 지원한다.
+    stream=True일 때 스트리밍 모드를 지원한다.
     """
     try:
-        # Create LLM client
+        # LLM 클라이언트 생성
         client = LLMClient(
             provider=request.provider,
             model=request.model,
@@ -37,14 +37,14 @@ async def chat_completion(request: ChatCompletionRequest):
             max_tokens=request.max_tokens,
         )
 
-        # Convert messages to dict format
+        # 메시지를 dict 형식으로 변환
         messages = [msg.model_dump() for msg in request.messages]
 
-        # Streaming mode
+        # 스트리밍 모드
         if request.stream:
 
             async def stream_generator():
-                """Generate SSE stream from LLM response."""
+                """LLM 응답으로 SSE 스트림을 생성한다."""
                 try:
                     response_stream = await client.achat_completion(
                         messages=messages,
@@ -57,19 +57,19 @@ async def chat_completion(request: ChatCompletionRequest):
                     async for chunk in response_stream:
                         if chunk.choices[0].delta.content:
                             content = chunk.choices[0].delta.content
-                            # SSE format: "data: {json}\n\n"
+                            # SSE 형식: "data: {json}\n\n"
                             yield f"data: {json.dumps({'content': content})}\n\n"
 
-                    # Send completion signal
+                    # 완료 신호 전송
                     yield f"data: {json.dumps({'done': True})}\n\n"
 
                 except Exception as e:
-                    # Send error in SSE format
+                    # SSE 형식으로 에러 전송
                     yield f"data: {json.dumps({'error': str(e)})}\n\n"
 
             return StreamingResponse(stream_generator(), media_type="text/event-stream")
 
-        # Non-streaming mode
+        # 비스트리밍 모드
         content = await client.achat_completion(
             messages=messages,
             temperature=request.temperature,
@@ -89,15 +89,15 @@ async def chat_completion(request: ChatCompletionRequest):
 @router.post("/embeddings", response_model=EmbeddingResponse)
 async def generate_embedding(request: EmbeddingRequest) -> EmbeddingResponse:
     """
-    Generate embedding vector for given text.
+    주어진 텍스트의 임베딩 벡터를 생성한다.
 
-    Uses OpenAI's embedding models by default.
+    기본으로 OpenAI 임베딩 모델을 사용한다.
     """
     try:
-        # Create LLM client (always use OpenAI for embeddings)
+        # LLM 클라이언트 생성(임베딩은 OpenAI 고정)
         client = LLMClient(provider="openai")
 
-        # Generate embedding
+        # 임베딩 생성
         embedding = await client.agenerate_embedding(text=request.text, model=request.model)
 
         return EmbeddingResponse(
@@ -118,15 +118,15 @@ async def summarize_article(
     request: ArticleSummaryRequest,
 ) -> ArticleSummaryResponse:
     """
-    Summarize article in specified language.
+    지정한 언어로 아티클을 요약한다.
 
-    Default language is Korean (ko).
+    기본 언어는 한국어(ko)다.
     """
     try:
-        # Create LLM client
+        # LLM 클라이언트 생성
         client = LLMClient(provider=request.provider, temperature=0.5)
 
-        # Prepare prompt based on language
+        # 언어에 따른 프롬프트 준비
         if request.language == "ko":
             system_content = "You are an AI research expert. Summarize articles in Korean."
             user_content = f"""다음 논문을 한국어로 {request.max_sentences}문장 이내로 요약해주세요:
@@ -148,7 +148,7 @@ Content:
             {"role": "user", "content": user_content},
         ]
 
-        # Generate summary
+        # 요약 생성
         summary = await client.achat_completion(messages=messages, max_tokens=1000)
 
         return ArticleSummaryResponse(
@@ -167,15 +167,15 @@ Content:
 @router.post("/analyze", response_model=ArticleAnalysisResponse)
 async def analyze_article(request: ArticleAnalysisRequest) -> ArticleAnalysisResponse:
     """
-    Analyze research article and extract metadata.
+    연구 아티클을 분석해 메타데이터를 추출한다.
 
-    Returns category, importance score, keywords, field, and Korean summary.
+    category, importance_score, keywords, field, summary_korean을 반환한다.
     """
     try:
-        # Create LLM client
+        # LLM 클라이언트 생성
         client = LLMClient(provider=request.provider, temperature=0.3)
 
-        # Analysis prompt
+        # 분석 프롬프트
         analysis_messages = [
             {
                 "role": "system",
@@ -196,7 +196,7 @@ Content: {request.content}
             },
         ]
 
-        # Korean summary prompt
+        # 한국어 요약 프롬프트
         summary_messages = [
             {
                 "role": "system",
@@ -212,7 +212,7 @@ Content: {request.content}
             },
         ]
 
-        # Run both tasks concurrently
+        # 두 작업 동시 실행
         import asyncio
 
         analysis_task = client.achat_completion(
@@ -224,11 +224,11 @@ Content: {request.content}
 
         analysis_response, summary = await asyncio.gather(analysis_task, summary_task)
 
-        # Parse JSON response
+        # JSON 응답 파싱
         try:
             analysis = json.loads(analysis_response)
         except json.JSONDecodeError:
-            # Try to extract JSON from response
+            # 응답에서 JSON 추출 시도
             import re
 
             json_match = re.search(r"\{.*\}", analysis_response, re.DOTALL)

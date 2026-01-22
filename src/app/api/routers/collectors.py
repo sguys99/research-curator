@@ -1,4 +1,4 @@
-"""API endpoints for data collection."""
+"""데이터 수집을 위한 API 엔드포인트."""
 
 import logging
 
@@ -21,25 +21,25 @@ router = APIRouter(prefix="/collectors", tags=["collectors"])
 
 
 class CollectorRegistry:
-    """Registry for all available collectors."""
+    """사용 가능한 모든 수집기를 관리하는 레지스트리."""
 
     def __init__(self):
-        """Initialize collector registry."""
+        """수집기 레지스트리를 초기화한다."""
         self._collectors = {
             "arxiv": ArxivCollector(),
             "news": NewsCollector(),
         }
 
     def get(self, name: str):
-        """Get collector by name."""
+        """이름으로 수집기를 조회한다."""
         return self._collectors.get(name)
 
     def get_all_names(self) -> list[str]:
-        """Get all registered collector names."""
+        """등록된 수집기 이름 목록을 반환한다."""
         return list(self._collectors.keys())
 
     def get_source_info(self) -> list[SourceInfo]:
-        """Get information about all sources."""
+        """모든 소스 정보를 반환한다."""
         sources = [
             SourceInfo(
                 name="arxiv",
@@ -63,20 +63,20 @@ registry = CollectorRegistry()
 @router.post(
     "/search",
     response_model=CollectionResponse,
-    summary="Search across multiple sources",
-    description="Collect data from specified sources (arXiv, news, etc.)",
+    summary="여러 소스에서 검색",
+    description="지정된 소스(arXiv, 뉴스 등)에서 데이터를 수집합니다.",
 )
 async def search_multiple_sources(request: CollectionRequest) -> CollectionResponse:
-    """Search and collect data from multiple sources.
+    """여러 소스에서 데이터를 검색/수집한다.
 
     Args:
-        request: Collection request with query, sources, limit, and filters
+        request: 쿼리/소스/제한/필터가 포함된 수집 요청
 
     Returns:
-        Collection response with results and errors
+        결과와 에러가 포함된 수집 응답
 
     Raises:
-        HTTPException: If all collections fail
+        HTTPException: 모든 수집이 실패한 경우
     """
     sources = request.sources or registry.get_all_names()
 
@@ -131,20 +131,20 @@ async def search_multiple_sources(request: CollectionRequest) -> CollectionRespo
 @router.post(
     "/arxiv",
     response_model=CollectionResponse,
-    summary="Search arXiv papers",
-    description="Collect academic papers from arXiv.org",
+    summary="arXiv 논문 검색",
+    description="arXiv.org에서 학술 논문을 수집합니다.",
 )
 async def search_arxiv(request: CollectionRequest) -> CollectionResponse:
-    """Search arXiv for academic papers.
+    """arXiv에서 학술 논문을 검색한다.
 
     Args:
-        request: Collection request
+        request: 수집 요청
 
     Returns:
-        Collection response with arXiv papers
+        arXiv 논문이 포함된 수집 응답
 
     Raises:
-        HTTPException: If collection fails
+        HTTPException: 수집에 실패한 경우
     """
     try:
         collector = ArxivCollector()
@@ -182,20 +182,20 @@ async def search_arxiv(request: CollectionRequest) -> CollectionResponse:
 @router.post(
     "/news",
     response_model=CollectionResponse,
-    summary="Search news articles",
-    description="Collect tech and AI news from various sources",
+    summary="뉴스 아티클 검색",
+    description="여러 소스에서 기술/AI 뉴스를 수집합니다.",
 )
 async def search_news(request: CollectionRequest) -> CollectionResponse:
-    """Search for news articles.
+    """뉴스 아티클을 검색한다.
 
     Args:
-        request: Collection request
+        request: 수집 요청
 
     Returns:
-        Collection response with news articles
+        뉴스 아티클이 포함된 수집 응답
 
     Raises:
-        HTTPException: If collection fails
+        HTTPException: 수집에 실패한 경우
     """
     try:
         collector = NewsCollector()
@@ -233,14 +233,14 @@ async def search_news(request: CollectionRequest) -> CollectionResponse:
 @router.get(
     "/sources",
     response_model=SourcesResponse,
-    summary="List available sources",
-    description="Get information about all available data sources",
+    summary="사용 가능한 소스 목록",
+    description="사용 가능한 모든 데이터 소스 정보를 반환합니다.",
 )
 async def list_sources() -> SourcesResponse:
-    """List all available data sources.
+    """사용 가능한 데이터 소스 목록을 조회한다.
 
     Returns:
-        Information about all available sources
+        전체 소스 정보
     """
     sources = registry.get_source_info()
     return SourcesResponse(sources=sources)

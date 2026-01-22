@@ -1,4 +1,4 @@
-"""Pydantic schemas for LLM API endpoints."""
+"""LLM API 엔드포인트용 Pydantic 스키마."""
 
 from typing import Literal
 
@@ -6,27 +6,27 @@ from pydantic import BaseModel, Field
 
 
 class ChatMessage(BaseModel):
-    """Single chat message."""
+    """단일 채팅 메시지."""
 
-    role: Literal["system", "user", "assistant"] = Field(..., description="Role of the message sender")
-    content: str = Field(..., description="Content of the message")
+    role: Literal["system", "user", "assistant"] = Field(..., description="메시지 발신자 역할")
+    content: str = Field(..., description="메시지 내용")
 
 
 class ChatCompletionRequest(BaseModel):
-    """Request schema for chat completion endpoint."""
+    """채팅 완료 요청 스키마."""
 
-    messages: list[ChatMessage] = Field(..., description="List of chat messages")
-    provider: Literal["openai", "claude"] = Field(default="openai", description="LLM provider to use")
-    model: str | None = Field(default=None, description="Model name (optional)")
+    messages: list[ChatMessage] = Field(..., description="채팅 메시지 목록")
+    provider: Literal["openai", "claude"] = Field(default="openai", description="사용할 LLM 제공자")
+    model: str | None = Field(default=None, description="모델 이름(선택)")
     temperature: float = Field(
         default=0.7,
         ge=0.0,
         le=2.0,
-        description="Sampling temperature (0.0 to 2.0)",
+        description="샘플링 온도(0.0~2.0)",
     )
-    max_tokens: int = Field(default=2000, ge=1, le=4096, description="Maximum tokens in response")
-    response_format: Literal["text", "json"] = Field(default="text", description="Response format")
-    stream: bool = Field(default=False, description="Enable streaming mode")
+    max_tokens: int = Field(default=2000, ge=1, le=4096, description="응답 최대 토큰 수")
+    response_format: Literal["text", "json"] = Field(default="text", description="응답 형식")
+    stream: bool = Field(default=False, description="스트리밍 모드 사용")
 
     class Config:
         json_schema_extra = {
@@ -44,19 +44,19 @@ class ChatCompletionRequest(BaseModel):
 
 
 class ChatCompletionResponse(BaseModel):
-    """Response schema for chat completion endpoint."""
+    """채팅 완료 응답 스키마."""
 
-    content: str = Field(..., description="Generated response content")
-    provider: str = Field(..., description="Provider used for generation")
-    model: str = Field(..., description="Model used for generation")
-    finish_reason: str = Field(default="stop", description="Reason for completion")
+    content: str = Field(..., description="생성된 응답 내용")
+    provider: str = Field(..., description="사용한 제공자")
+    model: str = Field(..., description="사용한 모델")
+    finish_reason: str = Field(default="stop", description="완료 이유")
 
 
 class EmbeddingRequest(BaseModel):
-    """Request schema for embedding generation endpoint."""
+    """임베딩 생성 요청 스키마."""
 
-    text: str = Field(..., description="Text to embed")
-    model: str | None = Field(default=None, description="Embedding model name (optional)")
+    text: str = Field(..., description="임베딩할 텍스트")
+    model: str | None = Field(default=None, description="임베딩 모델 이름(선택)")
 
     class Config:
         json_schema_extra = {
@@ -68,26 +68,26 @@ class EmbeddingRequest(BaseModel):
 
 
 class EmbeddingResponse(BaseModel):
-    """Response schema for embedding generation endpoint."""
+    """임베딩 생성 응답 스키마."""
 
-    embedding: list[float] = Field(..., description="Embedding vector")
-    dimension: int = Field(..., description="Embedding dimension")
-    model: str = Field(..., description="Model used for embedding")
+    embedding: list[float] = Field(..., description="임베딩 벡터")
+    dimension: int = Field(..., description="임베딩 차원")
+    model: str = Field(..., description="사용한 모델")
 
 
 class ArticleSummaryRequest(BaseModel):
-    """Request schema for article summarization."""
+    """아티클 요약 요청 스키마."""
 
-    title: str = Field(..., description="Article title")
-    content: str = Field(..., description="Article content")
-    language: Literal["ko", "en"] = Field(default="ko", description="Summary language")
+    title: str = Field(..., description="아티클 제목")
+    content: str = Field(..., description="아티클 내용")
+    language: Literal["ko", "en"] = Field(default="ko", description="요약 언어")
     max_sentences: int = Field(
         default=4,
         ge=1,
         le=10,
-        description="Maximum number of sentences in summary",
+        description="요약 최대 문장 수",
     )
-    provider: Literal["openai", "claude"] = Field(default="openai", description="LLM provider to use")
+    provider: Literal["openai", "claude"] = Field(default="openai", description="사용할 LLM 제공자")
 
     class Config:
         json_schema_extra = {
@@ -102,19 +102,19 @@ class ArticleSummaryRequest(BaseModel):
 
 
 class ArticleSummaryResponse(BaseModel):
-    """Response schema for article summarization."""
+    """아티클 요약 응답 스키마."""
 
-    summary: str = Field(..., description="Generated summary")
-    original_length: int = Field(..., description="Original content length in chars")
-    summary_length: int = Field(..., description="Summary length in chars")
+    summary: str = Field(..., description="생성된 요약")
+    original_length: int = Field(..., description="원문 길이(문자 수)")
+    summary_length: int = Field(..., description="요약 길이(문자 수)")
 
 
 class ArticleAnalysisRequest(BaseModel):
-    """Request schema for article analysis."""
+    """아티클 분석 요청 스키마."""
 
-    title: str = Field(..., description="Article title")
-    content: str = Field(..., description="Article content or abstract")
-    provider: Literal["openai", "claude"] = Field(default="openai", description="LLM provider to use")
+    title: str = Field(..., description="아티클 제목")
+    content: str = Field(..., description="아티클 내용 또는 초록")
+    provider: Literal["openai", "claude"] = Field(default="openai", description="사용할 LLM 제공자")
 
     class Config:
         json_schema_extra = {
@@ -127,10 +127,10 @@ class ArticleAnalysisRequest(BaseModel):
 
 
 class ArticleAnalysisResponse(BaseModel):
-    """Response schema for article analysis."""
+    """아티클 분석 응답 스키마."""
 
-    category: Literal["paper", "news", "report"] = Field(..., description="Article category")
-    importance_score: float = Field(..., ge=0.0, le=1.0, description="Importance score (0.0 to 1.0)")
-    keywords: list[str] = Field(..., description="Extracted keywords")
-    field: str = Field(..., description="Research field")
-    summary_korean: str = Field(..., description="Korean summary")
+    category: Literal["paper", "news", "report"] = Field(..., description="아티클 카테고리")
+    importance_score: float = Field(..., ge=0.0, le=1.0, description="중요도 점수(0.0~1.0)")
+    keywords: list[str] = Field(..., description="추출된 키워드")
+    field: str = Field(..., description="연구 분야")
+    summary_korean: str = Field(..., description="한국어 요약")

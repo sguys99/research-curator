@@ -1,4 +1,4 @@
-"""Feedback router for user feedback management."""
+"""사용자 피드백 관리를 위한 라우터."""
 
 from uuid import UUID
 
@@ -36,20 +36,20 @@ def create_user_feedback(
     current_user: User = Depends(get_current_user),
 ) -> FeedbackResponse:
     """
-    Create new feedback for an article.
+    아티클에 대한 새 피드백을 생성한다.
 
     Args:
-        feedback_data: Feedback creation data
-        db: Database session
-        current_user: Current authenticated user
+        feedback_data: 피드백 생성 데이터
+        db: 데이터베이스 세션
+        current_user: 현재 인증된 사용자
 
     Returns:
-        Created feedback
+        생성된 피드백
 
     Raises:
-        HTTPException: If article not found or validation fails
+        HTTPException: 아티클을 찾지 못했거나 검증 실패 시
     """
-    # Verify article exists
+    # 아티클 존재 여부 확인
     article = get_article_by_id(db, feedback_data.article_id)
     if not article:
         raise HTTPException(
@@ -57,7 +57,7 @@ def create_user_feedback(
             detail="Article not found",
         )
 
-    # Create feedback
+    # 피드백 생성
     feedback = create_feedback(
         db,
         user_id=current_user.id,
@@ -83,18 +83,18 @@ def get_feedback(
     current_user: User = Depends(get_current_user),
 ) -> FeedbackResponse:
     """
-    Get single feedback by ID.
+    ID로 단일 피드백을 조회한다.
 
     Args:
-        feedback_id: Feedback UUID
-        db: Database session
-        current_user: Current authenticated user
+        feedback_id: 피드백 UUID
+        db: 데이터베이스 세션
+        current_user: 현재 인증된 사용자
 
     Returns:
-        Feedback details
+        피드백 상세 정보
 
     Raises:
-        HTTPException: If feedback not found or not authorized
+        HTTPException: 피드백을 찾지 못했거나 권한이 없는 경우
     """
     feedback = get_feedback_by_id(db, feedback_id)
     if not feedback:
@@ -103,7 +103,7 @@ def get_feedback(
             detail="Feedback not found",
         )
 
-    # Check authorization (users can only view their own feedback)
+    # 권한 확인(사용자는 자신의 피드백만 조회 가능)
     if str(feedback.user_id) != str(current_user.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -128,21 +128,21 @@ def update_user_feedback(
     current_user: User = Depends(get_current_user),
 ) -> FeedbackResponse:
     """
-    Update feedback.
+    피드백을 수정한다.
 
     Args:
-        feedback_id: Feedback UUID
-        feedback_data: Feedback update data
-        db: Database session
-        current_user: Current authenticated user
+        feedback_id: 피드백 UUID
+        feedback_data: 피드백 수정 데이터
+        db: 데이터베이스 세션
+        current_user: 현재 인증된 사용자
 
     Returns:
-        Updated feedback
+        수정된 피드백
 
     Raises:
-        HTTPException: If feedback not found or not authorized
+        HTTPException: 피드백을 찾지 못했거나 권한이 없는 경우
     """
-    # Check if feedback exists
+    # 피드백 존재 여부 확인
     existing_feedback = get_feedback_by_id(db, feedback_id)
     if not existing_feedback:
         raise HTTPException(
@@ -150,14 +150,14 @@ def update_user_feedback(
             detail="Feedback not found",
         )
 
-    # Check authorization
+    # 권한 확인
     if str(existing_feedback.user_id) != str(current_user.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to update this feedback",
         )
 
-    # Update feedback
+    # 피드백 수정
     updated_feedback = update_feedback(
         db,
         feedback_id,
@@ -188,20 +188,20 @@ def delete_user_feedback(
     current_user: User = Depends(get_current_user),
 ) -> dict[str, str]:
     """
-    Delete feedback.
+    피드백을 삭제한다.
 
     Args:
-        feedback_id: Feedback UUID
-        db: Database session
-        current_user: Current authenticated user
+        feedback_id: 피드백 UUID
+        db: 데이터베이스 세션
+        current_user: 현재 인증된 사용자
 
     Returns:
-        Success message
+        성공 메시지
 
     Raises:
-        HTTPException: If feedback not found or not authorized
+        HTTPException: 피드백을 찾지 못했거나 권한이 없는 경우
     """
-    # Check if feedback exists
+    # 피드백 존재 여부 확인
     existing_feedback = get_feedback_by_id(db, feedback_id)
     if not existing_feedback:
         raise HTTPException(
@@ -209,14 +209,14 @@ def delete_user_feedback(
             detail="Feedback not found",
         )
 
-    # Check authorization
+    # 권한 확인
     if str(existing_feedback.user_id) != str(current_user.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to delete this feedback",
         )
 
-    # Delete feedback
+    # 피드백 삭제
     success = delete_feedback(db, feedback_id)
     if not success:
         raise HTTPException(
@@ -236,22 +236,22 @@ def get_user_feedback_list(
     current_user: User = Depends(get_current_user),
 ) -> FeedbackListResponse:
     """
-    Get user's feedback list.
+    사용자의 피드백 목록을 조회한다.
 
     Args:
-        user_id: User UUID
-        skip: Number of records to skip
-        limit: Maximum number of records to return
-        db: Database session
-        current_user: Current authenticated user
+        user_id: 사용자 UUID
+        skip: 건너뛸 레코드 수
+        limit: 반환할 최대 레코드 수
+        db: 데이터베이스 세션
+        current_user: 현재 인증된 사용자
 
     Returns:
-        List of user's feedback
+        사용자 피드백 목록
 
     Raises:
-        HTTPException: If not authorized
+        HTTPException: 권한이 없는 경우
     """
-    # Check authorization (users can only view their own feedback)
+    # 권한 확인(사용자는 자신의 피드백만 조회 가능)
     if str(user_id) != str(current_user.id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -289,19 +289,19 @@ def get_article_feedback_list(
     current_user: User = Depends(get_current_user),
 ) -> FeedbackListResponse:
     """
-    Get feedback for a specific article.
+    특정 아티클의 피드백 목록을 조회한다.
 
     Args:
-        article_id: Article UUID
-        skip: Number of records to skip
-        limit: Maximum number of records to return
-        db: Database session
-        current_user: Current authenticated user
+        article_id: 아티클 UUID
+        skip: 건너뛸 레코드 수
+        limit: 반환할 최대 레코드 수
+        db: 데이터베이스 세션
+        current_user: 현재 인증된 사용자
 
     Returns:
-        List of article's feedback
+        아티클 피드백 목록
     """
-    # Verify article exists
+    # 아티클 존재 여부 확인
     article = get_article_by_id(db, article_id)
     if not article:
         raise HTTPException(
@@ -338,20 +338,20 @@ def get_article_stats(
     current_user: User = Depends(get_current_user),
 ) -> FeedbackStatsResponse:
     """
-    Get feedback statistics for an article.
+    특정 아티클의 피드백 통계를 조회한다.
 
     Args:
-        article_id: Article UUID
-        db: Database session
-        current_user: Current authenticated user
+        article_id: 아티클 UUID
+        db: 데이터베이스 세션
+        current_user: 현재 인증된 사용자
 
     Returns:
-        Feedback statistics (count, average_rating, rating_distribution)
+        피드백 통계(count, average_rating, rating_distribution)
 
     Raises:
-        HTTPException: If article not found
+        HTTPException: 아티클을 찾지 못한 경우
     """
-    # Verify article exists
+    # 아티클 존재 여부 확인
     article = get_article_by_id(db, article_id)
     if not article:
         raise HTTPException(

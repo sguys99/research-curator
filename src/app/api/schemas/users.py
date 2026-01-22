@@ -1,128 +1,128 @@
-"""User and preference-related Pydantic schemas."""
+"""사용자 및 선호도 관련 Pydantic 스키마."""
 
 from datetime import datetime
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field
 
-# ========== User Schemas ==========
+# ========== 사용자 스키마 ==========
 
 
 class UserBase(BaseModel):
-    """Base user schema."""
+    """사용자 기본 스키마."""
 
-    email: EmailStr = Field(..., description="User email address")
-    name: str | None = Field(None, description="User name")
+    email: EmailStr = Field(..., description="사용자 이메일 주소")
+    name: str | None = Field(None, description="사용자 이름")
 
 
 class UserCreate(UserBase):
-    """Schema for creating a new user."""
+    """새 사용자 생성 스키마."""
 
     pass
 
 
 class UserUpdate(BaseModel):
-    """Schema for updating user."""
+    """사용자 업데이트 스키마."""
 
-    name: str | None = Field(None, description="User name")
+    name: str | None = Field(None, description="사용자 이름")
 
 
 class UserResponse(UserBase):
-    """User response schema."""
+    """사용자 응답 스키마."""
 
-    id: UUID = Field(..., description="User ID")
-    created_at: datetime = Field(..., description="Account creation time")
-    last_login: datetime = Field(..., description="Last login time")
+    id: UUID = Field(..., description="사용자 ID")
+    created_at: datetime = Field(..., description="계정 생성 시각")
+    last_login: datetime = Field(..., description="마지막 로그인 시각")
 
     model_config = {"from_attributes": True}
 
 
-# ========== User Preference Schemas ==========
+# ========== 사용자 선호도 스키마 ==========
 
 
 class UserPreferenceBase(BaseModel):
-    """Base user preference schema."""
+    """사용자 선호도 기본 스키마."""
 
     research_fields: list[str] = Field(
         default_factory=list,
-        description="Research fields of interest",
+        description="관심 연구 분야",
     )
     keywords: list[str] = Field(
         default_factory=list,
-        description="Keywords to track",
+        description="추적할 키워드",
     )
     sources: list[str] = Field(
         default_factory=list,
-        description="Preferred data sources",
+        description="선호 데이터 소스",
     )
     info_types: dict[str, float] = Field(
         default={"paper": 0.4, "news": 0.4, "report": 0.2},
-        description="Information type preferences (paper/news/report ratio)",
+        description="정보 유형 선호도(paper/news/report 비율)",
     )
     email_time: str = Field(
         "08:00",
         pattern=r"^\d{2}:\d{2}$",
-        description="Preferred email delivery time (HH:MM)",
+        description="이메일 발송 시간(HH:MM)",
     )
     daily_limit: int = Field(
         5,
         ge=1,
         le=20,
-        description="Maximum articles per day",
+        description="하루 최대 아티클 수",
     )
     email_enabled: bool = Field(
         True,
-        description="Whether to send daily emails",
+        description="일일 이메일 발송 여부",
     )
 
 
 class UserPreferenceCreate(UserPreferenceBase):
-    """Schema for creating user preferences."""
+    """사용자 선호도 생성 스키마."""
 
-    user_id: UUID = Field(..., description="User ID")
+    user_id: UUID = Field(..., description="사용자 ID")
 
 
 class UserPreferenceUpdate(BaseModel):
-    """Schema for updating user preferences."""
+    """사용자 선호도 업데이트 스키마."""
 
-    research_fields: list[str] | None = Field(None, description="Research fields")
-    keywords: list[str] | None = Field(None, description="Keywords")
-    sources: list[str] | None = Field(None, description="Data sources")
-    info_types: dict[str, float] | None = Field(None, description="Information type preferences")
-    email_time: str | None = Field(None, description="Email delivery time")
-    daily_limit: int | None = Field(None, ge=1, le=20, description="Daily article limit")
-    email_enabled: bool | None = Field(None, description="Enable/disable emails")
+    research_fields: list[str] | None = Field(None, description="연구 분야")
+    keywords: list[str] | None = Field(None, description="키워드")
+    sources: list[str] | None = Field(None, description="데이터 소스")
+    info_types: dict[str, float] | None = Field(None, description="정보 유형 선호도")
+    email_time: str | None = Field(None, description="이메일 발송 시간")
+    daily_limit: int | None = Field(None, ge=1, le=20, description="일일 아티클 제한")
+    email_enabled: bool | None = Field(None, description="이메일 발송 여부")
 
 
 class UserPreferenceResponse(UserPreferenceBase):
-    """User preference response schema."""
+    """사용자 선호도 응답 스키마."""
 
-    id: UUID = Field(..., description="Preference ID")
-    user_id: UUID = Field(..., description="User ID")
-    created_at: datetime = Field(..., description="Creation time")
-    updated_at: datetime = Field(..., description="Last update time")
+    id: UUID = Field(..., description="선호도 ID")
+    user_id: UUID = Field(..., description="사용자 ID")
+    created_at: datetime = Field(..., description="생성 시각")
+    updated_at: datetime = Field(..., description="마지막 수정 시각")
 
     model_config = {"from_attributes": True}
 
 
-# ========== Digest Schemas ==========
+# ========== 다이제스트 스키마 ==========
 
 
 class DigestResponse(BaseModel):
-    """Digest response schema."""
+    """다이제스트 응답 스키마."""
 
-    id: UUID = Field(..., description="Digest ID")
-    user_id: UUID = Field(..., description="User ID")
-    article_ids: list[str] = Field(..., description="Article IDs in this digest")
-    sent_at: datetime = Field(..., description="Send time")
-    email_opened: bool = Field(..., description="Whether email was opened")
-    opened_at: datetime | None = Field(None, description="Email open time")
+    id: UUID = Field(..., description="다이제스트 ID")
+    user_id: UUID = Field(..., description="사용자 ID")
+    article_ids: list[str] = Field(..., description="다이제스트 포함 아티클 ID")
+    sent_at: datetime = Field(..., description="발송 시각")
+    email_opened: bool = Field(..., description="이메일 열람 여부")
+    opened_at: datetime | None = Field(None, description="이메일 열람 시각")
 
     model_config = {"from_attributes": True}
 
 
 class DigestListResponse(BaseModel):
-    """List of digests with pagination."""
+    """페이지네이션이 포함된 다이제스트 목록."""
 
-    digests: list[DigestResponse] = Field(..., description="List of digests")
-    total: int = Field(..., description="Total number of digests")
+    digests: list[DigestResponse] = Field(..., description="다이제스트 목록")
+    total: int = Field(..., description="전체 다이제스트 수")

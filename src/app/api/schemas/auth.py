@@ -1,4 +1,4 @@
-"""Authentication-related Pydantic schemas."""
+"""인증 관련 Pydantic 스키마."""
 
 from datetime import datetime
 
@@ -6,32 +6,32 @@ from pydantic import BaseModel, EmailStr, Field
 
 
 class MagicLinkRequest(BaseModel):
-    """Request schema for magic link generation."""
+    """매직 링크 생성 요청 스키마."""
 
-    email: EmailStr = Field(..., description="User email address")
+    email: EmailStr = Field(..., description="사용자 이메일 주소")
 
 
 class MagicLinkResponse(BaseModel):
-    """Response schema for magic link request."""
+    """매직 링크 요청 응답 스키마."""
 
-    message: str = Field(..., description="Success message")
+    message: str = Field(..., description="성공 메시지")
     token: str | None = Field(
         None,
-        description="JWT token (only in development mode)",
+        description="JWT 토큰(개발 모드에서만 반환)",
     )
 
 
 class TokenResponse(BaseModel):
-    """JWT token response."""
+    """JWT 토큰 응답."""
 
-    access_token: str = Field(..., description="JWT access token")
-    token_type: str = Field("bearer", description="Token type")
-    user: dict = Field(..., description="User information")
+    access_token: str = Field(..., description="JWT 액세스 토큰")
+    token_type: str = Field("bearer", description="토큰 타입")
+    user: dict = Field(..., description="사용자 정보")
 
 
 class TokenPayload(BaseModel):
-    """JWT token payload."""
+    """JWT 토큰 페이로드."""
 
-    sub: str = Field(..., description="Subject (user email)")
-    exp: datetime = Field(..., description="Expiration time")
-    iat: datetime = Field(..., description="Issued at time")
+    sub: str = Field(..., description="주체(사용자 이메일)")
+    exp: datetime = Field(..., description="만료 시각")
+    iat: datetime = Field(..., description="발급 시각")

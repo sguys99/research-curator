@@ -43,10 +43,10 @@ async def summarize_article(request: SummarizeRequest) -> SummarizeResponse:
     제목과 내용을 받아 지정된 언어와 길이로 요약을 생성합니다.
     """
     try:
-        # Create summarizer
+        # 요약기 생성
         summarizer = ArticleSummarizer()
 
-        # Generate summary
+        # 요약 생성
         summary = await summarizer.summarize(
             title=request.title,
             content=request.content,
@@ -75,10 +75,10 @@ async def evaluate_article(request: EvaluateRequest) -> EvaluateResponse:
     제목, 내용, 메타데이터를 분석하여 중요도 점수를 계산합니다.
     """
     try:
-        # Create evaluator
+        # 평가기 생성
         evaluator = ImportanceEvaluator()
 
-        # Evaluate article
+        # 아티클 평가
         result = await evaluator.evaluate(
             title=request.title,
             content=request.content,
@@ -111,10 +111,10 @@ async def classify_article(request: ClassifyRequest) -> ClassifyResponse:
     제목과 내용을 분석하여 카테고리, 키워드, 연구 분야를 추출합니다.
     """
     try:
-        # Create classifier
+        # 분류기 생성
         classifier = ContentClassifier()
 
-        # Classify article
+        # 아티클 분류
         result = await classifier.classify(
             title=request.title,
             content=request.content,
@@ -146,13 +146,13 @@ async def process_article(request: ProcessArticleRequest) -> ProcessedArticleRes
     요약, 평가, 분류, 임베딩을 모두 수행하여 처리된 아티클을 반환합니다.
     """
     try:
-        # Create pipeline
+        # 파이프라인 생성
         pipeline = ProcessingPipeline(
             summary_language=request.summary_language,
             summary_length=request.summary_length,
         )
 
-        # Process article
+        # 아티클 처리
         result = await pipeline.process_article(
             title=request.title,
             content=request.content,
@@ -203,19 +203,19 @@ async def batch_process_articles(request: BatchProcessRequest) -> BatchProcessRe
     try:
         start_time = time.time()
 
-        # Create pipeline
+        # 파이프라인 생성
         pipeline = ProcessingPipeline()
 
-        # Convert requests to dict format
+        # 요청을 dict 형식으로 변환
         articles_data = [article.model_dump() for article in request.articles]
 
-        # Process batch
+        # 배치 처리
         results = await pipeline.process_batch(
             articles=articles_data,
             max_concurrent=request.max_concurrent,
         )
 
-        # Convert to response format
+        # 응답 형식으로 변환
         processed_responses = [
             ProcessedArticleResponse(
                 # 원본 데이터
@@ -283,16 +283,16 @@ async def get_processing_statistics(
                 high_quality_count=0,
             )
 
-        # Calculate statistics
+        # 통계 계산
         category_dist: dict[str, int] = {}
         scores = []
 
         for article in articles:
-            # Category distribution
+            # 카테고리 분포
             cat = article.category
             category_dist[cat] = category_dist.get(cat, 0) + 1
 
-            # Scores
+            # 점수
             scores.append(article.importance_score)
 
         return StatisticsResponse(

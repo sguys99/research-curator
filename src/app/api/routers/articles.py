@@ -1,4 +1,4 @@
-"""Articles router for article management and search."""
+"""아티클 관리 및 검색을 위한 라우터."""
 
 from datetime import datetime
 from uuid import UUID
@@ -51,23 +51,23 @@ def list_articles(
     current_user: User = Depends(get_current_user),
 ) -> ArticleListResponse:
     """
-    Get list of articles with filtering, sorting, and pagination.
+    필터/정렬/페이지네이션을 적용해 아티클 목록을 조회한다.
 
     Args:
-        skip: Number of records to skip (pagination)
-        limit: Maximum number of records to return
-        source_type: Filter by source type (paper, news, report)
-        category: Filter by category
-        min_importance_score: Minimum importance score (0.0-1.0)
-        date_from: Filter articles from this date
-        date_to: Filter articles until this date
-        order_by: Field to order by (collected_at, importance_score)
-        order_desc: Order descending if True
-        db: Database session
-        current_user: Current authenticated user
+        skip: 건너뛸 레코드 수(페이지네이션)
+        limit: 반환할 최대 레코드 수
+        source_type: 소스 유형 필터(paper, news, report)
+        category: 카테고리 필터
+        min_importance_score: 최소 중요도 점수(0.0-1.0)
+        date_from: 시작 날짜 필터
+        date_to: 종료 날짜 필터
+        order_by: 정렬 필드(collected_at, importance_score)
+        order_desc: True면 내림차순 정렬
+        db: 데이터베이스 세션
+        current_user: 현재 인증된 사용자
 
     Returns:
-        List of articles with pagination info
+        페이지네이션 정보가 포함된 아티클 목록
     """
     articles, total = get_articles(
         db,
@@ -114,18 +114,18 @@ def get_article(
     current_user: User = Depends(get_current_user),
 ) -> ArticleResponse:
     """
-    Get single article by ID.
+    ID로 단일 아티클을 조회한다.
 
     Args:
-        article_id: Article UUID
-        db: Database session
-        current_user: Current authenticated user
+        article_id: 아티클 UUID
+        db: 데이터베이스 세션
+        current_user: 현재 인증된 사용자
 
     Returns:
-        Article details
+        아티클 상세 정보
 
     Raises:
-        HTTPException: If article not found
+        HTTPException: 아티클을 찾지 못한 경우
     """
     article = get_article_by_id(db, article_id)
     if not article:
@@ -156,23 +156,23 @@ async def search_semantic(
     current_user: User = Depends(get_current_user),
 ) -> ArticleSearchResponse:
     """
-    Semantic search for articles using natural language query.
+    자연어 쿼리로 아티클을 시맨틱 검색한다.
 
-    Uses Vector DB (Qdrant) for similarity search based on embeddings.
+    임베딩 기반 유사도 검색을 위해 Vector DB(Qdrant)를 사용한다.
 
     Args:
-        request: Search request with query and filters
-        db: Database session
-        current_user: Current authenticated user
+        request: 쿼리/필터가 포함된 검색 요청
+        db: 데이터베이스 세션
+        current_user: 현재 인증된 사용자
 
     Returns:
-        Search results with similarity scores
+        유사도 점수가 포함된 검색 결과
     """
     try:
-        # Get vector operations client
+        # 벡터 연산 클라이언트 획득
         vector_ops = get_vector_operations()
 
-        # Perform semantic search
+        # 시맨틱 검색 수행
         results = await vector_ops.search_similar_articles(
             query=request.query,
             limit=request.limit or 10,
@@ -184,14 +184,14 @@ async def search_semantic(
             date_to=request.date_to.isoformat() if request.date_to else None,
         )
 
-        # Convert results to response format
+        # 응답 형식으로 변환
         article_results = []
         for result in results:
-            # Get article details from DB
+            # DB에서 아티클 상세 조회
             article_id = UUID(result["article_id"])
             article = get_article_by_id(db, article_id)
             if article:
-                # Create ArticleSearchResult which extends ArticleResponse
+                # ArticleResponse를 확장한 ArticleSearchResult 생성
                 article_results.append(
                     ArticleSearchResult(
                         id=article.id,
@@ -231,21 +231,21 @@ async def get_similar_articles(
     current_user: User = Depends(get_current_user),
 ) -> ArticleSearchResponse:
     """
-    Get similar articles based on article ID.
+    아티클 ID를 기준으로 유사 아티클을 조회한다.
 
     Args:
-        article_id: Article UUID
-        limit: Number of similar articles to return
-        db: Database session
-        current_user: Current authenticated user
+        article_id: 아티클 UUID
+        limit: 반환할 유사 아티클 수
+        db: 데이터베이스 세션
+        current_user: 현재 인증된 사용자
 
     Returns:
-        List of similar articles with similarity scores
+        유사도 점수가 포함된 유사 아티클 목록
 
     Raises:
-        HTTPException: If article not found
+        HTTPException: 아티클을 찾지 못한 경우
     """
-    # Get original article
+    # 원본 아티클 조회
     article = get_article_by_id(db, article_id)
     if not article:
         raise HTTPException(
@@ -260,24 +260,24 @@ async def get_similar_articles(
         )
 
     try:
-        # Get vector operations client
+        # 벡터 연산 클라이언트 획득
         vector_ops = get_vector_operations()
 
-        # Find similar articles
+        # 유사 아티클 검색
         results = await vector_ops.find_similar_articles(
             vector_id=article.vector_id,
-            limit=limit + 1,  # +1 to exclude self
+            limit=limit + 1,  # 자기 자신 제외를 위해 +1
             score_threshold=0.7,
         )
 
-        # Filter out the original article and convert to response
+        # 원본 아티클을 제외하고 응답 형식으로 변환
         article_results = []
         for result in results:
-            # Skip if it's the same article
+            # 동일 아티클 제외
             if result["article_id"] == str(article_id):
                 continue
 
-            # Get article details from DB
+            # DB에서 아티클 상세 조회
             similar_article_id = UUID(result["article_id"])
             similar_article = get_article_by_id(db, similar_article_id)
             if similar_article:
@@ -321,15 +321,15 @@ def get_articles_batch(
     current_user: User = Depends(get_current_user),
 ) -> ArticleListResponse:
     """
-    Get multiple articles by IDs (batch retrieval).
+    여러 ID로 아티클을 일괄 조회한다.
 
     Args:
-        request: Batch request with article IDs
-        db: Database session
-        current_user: Current authenticated user
+        request: 아티클 ID 목록이 포함된 요청
+        db: 데이터베이스 세션
+        current_user: 현재 인증된 사용자
 
     Returns:
-        List of articles
+        아티클 목록
     """
     articles = get_articles_by_ids(db, request.article_ids)
 
@@ -366,16 +366,16 @@ def get_statistics(
     current_user: User = Depends(get_current_user),
 ) -> ArticleStatisticsResponse:
     """
-    Get article statistics (counts by category, source type, etc.).
+    아티클 통계를 조회한다(카테고리/소스 유형 등).
 
     Args:
-        date_from: Filter from this date
-        date_to: Filter until this date
-        db: Database session
-        current_user: Current authenticated user
+        date_from: 시작 날짜 필터
+        date_to: 종료 날짜 필터
+        db: 데이터베이스 세션
+        current_user: 현재 인증된 사용자
 
     Returns:
-        Statistics summary
+        통계 요약
     """
     stats = get_article_statistics(db, date_from=date_from, date_to=date_to)
 
@@ -394,18 +394,18 @@ def delete_article_by_id(
     current_user: User = Depends(get_current_user),
 ) -> dict[str, str]:
     """
-    Delete article by ID.
+    ID로 아티클을 삭제한다.
 
     Args:
-        article_id: Article UUID
-        db: Database session
-        current_user: Current authenticated user
+        article_id: 아티클 UUID
+        db: 데이터베이스 세션
+        current_user: 현재 인증된 사용자
 
     Returns:
-        Success message
+        성공 메시지
 
     Raises:
-        HTTPException: If article not found
+        HTTPException: 아티클을 찾지 못한 경우
     """
     success = delete_article(db, article_id)
     if not success:
@@ -426,19 +426,19 @@ def keyword_search(
     current_user: User = Depends(get_current_user),
 ) -> ArticleListResponse:
     """
-    Keyword-based search in article title, content, and summary.
+    제목/본문/요약에 대해 키워드 검색을 수행한다.
 
-    Note: For semantic search, use POST /articles/search instead.
+    참고: 시맨틱 검색은 POST /articles/search를 사용한다.
 
     Args:
-        q: Search query
-        skip: Number of records to skip
-        limit: Maximum number of records to return
-        db: Database session
-        current_user: Current authenticated user
+        q: 검색 쿼리
+        skip: 건너뛸 레코드 수
+        limit: 반환할 최대 레코드 수
+        db: 데이터베이스 세션
+        current_user: 현재 인증된 사용자
 
     Returns:
-        List of matching articles
+        매칭된 아티클 목록
     """
     articles, total = search_articles(db, search_query=q, skip=skip, limit=limit)
 

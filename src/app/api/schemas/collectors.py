@@ -1,4 +1,4 @@
-"""Pydantic schemas for data collection endpoints."""
+"""데이터 수집 엔드포인트용 Pydantic 스키마."""
 
 from datetime import datetime
 from typing import Any
@@ -7,14 +7,14 @@ from pydantic import BaseModel, Field
 
 
 class CollectionFilters(BaseModel):
-    """Filters for data collection."""
+    """데이터 수집 필터."""
 
-    date_from: str | None = Field(None, description="Start date filter (YYYY-MM-DD)")
-    date_to: str | None = Field(None, description="End date filter (YYYY-MM-DD)")
-    domains: list[str] | None = Field(None, description="Domain filter for news")
-    categories: list[str] | None = Field(None, description="arXiv categories")
-    sort_by: str | None = Field("relevance", description="Sort criterion")
-    sort_order: str | None = Field("descending", description="Sort order")
+    date_from: str | None = Field(None, description="시작 날짜 필터(YYYY-MM-DD)")
+    date_to: str | None = Field(None, description="종료 날짜 필터(YYYY-MM-DD)")
+    domains: list[str] | None = Field(None, description="뉴스 도메인 필터")
+    categories: list[str] | None = Field(None, description="arXiv 카테고리")
+    sort_by: str | None = Field("relevance", description="정렬 기준")
+    sort_order: str | None = Field("descending", description="정렬 순서")
 
     class Config:
         json_schema_extra = {
@@ -29,15 +29,15 @@ class CollectionFilters(BaseModel):
 
 
 class CollectionRequest(BaseModel):
-    """Request for data collection."""
+    """데이터 수집 요청."""
 
-    query: str = Field(..., description="Search query", min_length=1)
+    query: str = Field(..., description="검색 쿼리", min_length=1)
     sources: list[str] | None = Field(
         None,
-        description="Data sources to search (arxiv, news). If None, search all sources",
+        description="검색할 데이터 소스(arxiv, news). None이면 전체 검색",
     )
-    limit: int = Field(10, ge=1, le=50, description="Maximum results per source")
-    filters: CollectionFilters | None = Field(None, description="Additional filters")
+    limit: int = Field(10, ge=1, le=50, description="소스별 최대 결과 수")
+    filters: CollectionFilters | None = Field(None, description="추가 필터")
 
     class Config:
         json_schema_extra = {
@@ -54,7 +54,7 @@ class CollectionRequest(BaseModel):
 
 
 class CollectedItemResponse(BaseModel):
-    """Response for a single collected item."""
+    """단일 수집 항목 응답."""
 
     title: str
     content: str
@@ -83,11 +83,11 @@ class CollectedItemResponse(BaseModel):
 
 
 class CollectionResponse(BaseModel):
-    """Response for data collection."""
+    """데이터 수집 응답."""
 
-    total: int = Field(..., description="Total number of collected items")
-    results: list[CollectedItemResponse] = Field(..., description="Collected items")
-    errors: list[str] = Field(default_factory=list, description="Collection errors")
+    total: int = Field(..., description="수집된 항목 총 수")
+    results: list[CollectedItemResponse] = Field(..., description="수집 항목")
+    errors: list[str] = Field(default_factory=list, description="수집 에러")
 
     class Config:
         json_schema_extra = {
@@ -110,7 +110,7 @@ class CollectionResponse(BaseModel):
 
 
 class SourceInfo(BaseModel):
-    """Information about a data source."""
+    """데이터 소스 정보."""
 
     name: str
     type: str
@@ -129,7 +129,7 @@ class SourceInfo(BaseModel):
 
 
 class SourcesResponse(BaseModel):
-    """Response for available sources."""
+    """사용 가능한 소스 응답."""
 
     sources: list[SourceInfo]
 

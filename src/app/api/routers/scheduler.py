@@ -1,4 +1,4 @@
-"""Scheduler management API endpoints."""
+"""스케줄러 관리를 위한 API 엔드포인트."""
 
 import logging
 from datetime import datetime
@@ -26,10 +26,9 @@ KST = timezone("Asia/Seoul")
 @router.get("/status", response_model=SchedulerStatusResponse)
 async def get_status() -> SchedulerStatusResponse:
     """
-    Get current scheduler status.
+    현재 스케줄러 상태를 조회한다.
 
-    Returns information about scheduler running state, timezone,
-    current time, and all registered jobs.
+    스케줄러 실행 상태, 타임존, 현재 시각, 등록된 작업 정보를 반환한다.
     """
     try:
         status = get_scheduler_status()
@@ -62,10 +61,9 @@ async def get_status() -> SchedulerStatusResponse:
 @router.get("/jobs", response_model=JobListResponse)
 async def list_jobs() -> JobListResponse:
     """
-    List all registered scheduler jobs.
+    등록된 모든 스케줄러 작업을 조회한다.
 
-    Returns a list of all jobs with their IDs, names, next run times,
-    and trigger configurations.
+    작업 ID, 이름, 다음 실행 시각, 트리거 정보를 반환한다.
     """
     try:
         jobs = scheduler.get_jobs()
@@ -98,15 +96,14 @@ async def trigger_job(
     request: TriggerJobRequest,
 ) -> TriggerJobResponse:
     """
-    Manually trigger a scheduled job.
+    스케줄된 작업을 수동으로 실행한다.
 
-    This endpoint allows you to run a job immediately, outside of its
-    normal schedule. Useful for testing or manual data collection.
+    정상 스케줄과 별개로 즉시 실행할 수 있다. 테스트나 수동 수집에 유용하다.
 
-    Available job IDs:
-    - `collect_data`: Collect articles from arXiv and news sources
-    - `process_articles`: Process collected articles with LLM
-    - `send_digests`: Send email digests to users
+    사용 가능한 작업 ID:
+    - `collect_data`: arXiv 및 뉴스 소스에서 아티클 수집
+    - `process_articles`: 수집된 아티클을 LLM으로 처리
+    - `send_digests`: 사용자에게 이메일 다이제스트 발송
     """
     try:
         job = scheduler.get_job(request.job_id)
@@ -117,13 +114,13 @@ async def trigger_job(
                 detail=f"Job with ID '{request.job_id}' not found",
             )
 
-        # Execute the job function synchronously
+        # 작업 함수를 동기적으로 실행
         logger.info(f"Manually triggering job: {job.name} (ID: {request.job_id})")
 
         triggered_at = datetime.now(KST).isoformat()
 
         try:
-            # Run the job synchronously and wait for completion
+            # 동기 실행 후 완료 대기
             job.func()
 
             return TriggerJobResponse(
@@ -156,14 +153,13 @@ async def trigger_job(
 @router.post("/control", response_model=SchedulerControlResponse)
 async def control_scheduler(request: SchedulerControlRequest) -> SchedulerControlResponse:
     """
-    Control scheduler (start/stop).
+    스케줄러를 제어한다(start/stop).
 
     Actions:
-    - `start`: Start the scheduler with all registered jobs
-    - `stop`: Stop the scheduler gracefully
+    - `start`: 등록된 모든 작업으로 스케줄러 시작
+    - `stop`: 스케줄러를 정상 종료
 
-    Note: Typically the scheduler is started automatically when the
-    application starts. This endpoint is mainly for administrative purposes.
+    참고: 일반적으로 앱 시작 시 자동으로 실행된다. 이 엔드포인트는 주로 관리용이다.
     """
     try:
         if request.action == "start":
