@@ -1,7 +1,7 @@
 """
-프롬프트 관리 유틸리티
+프롬프트 관리 유틸리티.
 
-configs/prompts.yaml 파일에서 LLM 프롬프트를 로드하고 관리합니다.
+configs/prompts.yaml 파일에서 LLM 프롬프트를 로드하고 관리한다.
 """
 
 import logging
@@ -16,12 +16,12 @@ logger = logging.getLogger(__name__)
 
 
 class PromptManager:
-    """프롬프트 로드 및 관리 클래스"""
+    """프롬프트 로드 및 관리 클래스."""
 
     def __init__(self, prompts_path: Path | None = None):
         """
         Args:
-            prompts_path: prompts.yaml 파일 경로 (None일 경우 기본 경로 사용)
+            prompts_path: prompts.yaml 파일 경로(None이면 기본 경로 사용)
         """
         if prompts_path is None:
             # 기본 경로: configs/prompts.yaml
@@ -33,13 +33,13 @@ class PromptManager:
 
     @property
     def prompts(self) -> dict[str, Any]:
-        """프롬프트 데이터 (lazy loading)"""
+        """프롬프트 데이터(lazy loading)."""
         if self._prompts is None:
             self._prompts = self._load_prompts()
         return self._prompts
 
     def _load_prompts(self) -> dict[str, Any]:
-        """YAML 파일에서 프롬프트 로드"""
+        """YAML 파일에서 프롬프트를 로드한다."""
         try:
             with open(self.prompts_path, encoding="utf-8") as f:
                 data = yaml.safe_load(f)
@@ -53,22 +53,22 @@ class PromptManager:
             raise
 
     def reload(self) -> None:
-        """프롬프트 파일 재로드"""
+        """프롬프트 파일을 재로드한다."""
         self._prompts = None
         logger.info("Prompts reloaded")
 
     def get(self, key_path: str, default: Any = None) -> Any:
         """
-        프롬프트 가져오기
+        프롬프트를 가져온다.
 
         Args:
-            key_path: 점(.)으로 구분된 키 경로 (예: "summarize.korean.medium")
+            key_path: 점(.)으로 구분된 키 경로(예: "summarize.korean.medium")
             default: 키가 없을 때 반환할 기본값
 
         Returns:
             프롬프트 데이터
 
-        Examples:
+        예시:
             >>> manager = PromptManager()
             >>> system_prompt = manager.get("summarize.korean.medium.system")
         """
@@ -85,16 +85,16 @@ class PromptManager:
 
     def get_system_prompt(self, category: str, subcategory: str | None = None) -> str | None:
         """
-        시스템 프롬프트 가져오기
+        시스템 프롬프트를 가져온다.
 
         Args:
-            category: 프롬프트 카테고리 (예: "summarize", "evaluate_importance")
-            subcategory: 하위 카테고리 (예: "korean.medium")
+            category: 프롬프트 카테고리(예: "summarize", "evaluate_importance")
+            subcategory: 하위 카테고리(예: "korean.medium")
 
         Returns:
             시스템 프롬프트 문자열
 
-        Examples:
+        예시:
             >>> manager.get_system_prompt("summarize", "korean.medium")
             >>> manager.get_system_prompt("evaluate_importance")
         """
@@ -104,7 +104,7 @@ class PromptManager:
 
     def get_user_template(self, category: str, subcategory: str | None = None) -> str | None:
         """
-        유저 프롬프트 템플릿 가져오기
+        유저 프롬프트 템플릿을 가져온다.
 
         Args:
             category: 프롬프트 카테고리
@@ -119,7 +119,7 @@ class PromptManager:
 
     def format_prompt(self, template: str, **kwargs) -> str:
         """
-        프롬프트 템플릿에 변수 치환
+        프롬프트 템플릿에 변수를 치환한다.
 
         Args:
             template: 프롬프트 템플릿 문자열
@@ -128,13 +128,13 @@ class PromptManager:
         Returns:
             변수가 치환된 프롬프트 문자열
 
-        Examples:
+        예시:
             >>> template = "제목: {title}\\n내용: {content}"
             >>> manager.format_prompt(template, title="Test", content="Content")
             "제목: Test\\n내용: Content"
         """
         try:
-            # Python string.Template 사용 (안전한 치환)
+            # Python string.Template 사용(안전한 치환)
             # {key} 형식을 $key로 변경
             safe_template = template.replace("{", "${")
             t = Template(safe_template)
@@ -150,7 +150,7 @@ class PromptManager:
         **template_vars,
     ) -> list[dict[str, str]]:
         """
-        LLM API용 메시지 리스트 생성
+        LLM API용 메시지 리스트를 생성한다.
 
         Args:
             category: 프롬프트 카테고리
@@ -160,7 +160,7 @@ class PromptManager:
         Returns:
             [{"role": "system", "content": "..."}, {"role": "user", "content": "..."}]
 
-        Examples:
+        예시:
             >>> messages = manager.build_messages(
             ...     "summarize",
             ...     "korean.medium",
@@ -185,40 +185,40 @@ class PromptManager:
         ]
 
     def get_categories(self) -> list[str]:
-        """사용 가능한 카테고리 목록 반환"""
+        """사용 가능한 카테고리 목록을 반환한다."""
         return list(self.prompts.keys())
 
     def get_summary_lengths(self) -> list[str]:
-        """요약 길이 옵션 반환"""
+        """요약 길이 옵션을 반환한다."""
         korean_prompts = self.get("summarize.korean", {})
         return list(korean_prompts.keys())
 
     def get_classification_categories(self) -> list[str]:
-        """분류 카테고리 목록 반환"""
+        """분류 카테고리 목록을 반환한다."""
         return self.get("classify_category.categories", [])
 
     def get_research_fields(self) -> list[str]:
-        """연구 분야 목록 반환"""
+        """연구 분야 목록을 반환한다."""
         return self.get("classify_category.research_fields", [])
 
     def get_evaluation_criteria(self) -> list[str]:
-        """평가 기준 목록 반환"""
+        """평가 기준 목록을 반환한다."""
         return self.get("evaluate_importance.criteria", [])
 
     def get_evaluation_weights(self) -> dict[str, float]:
-        """평가 기준별 가중치 반환"""
+        """평가 기준별 가중치를 반환한다."""
         return self.get("evaluate_importance.weights", {})
 
 
 @lru_cache(maxsize=1)
 def get_prompt_manager() -> PromptManager:
     """
-    PromptManager 싱글톤 인스턴스 반환
+    PromptManager 싱글톤 인스턴스를 반환한다.
 
     Returns:
         PromptManager 인스턴스
 
-    Examples:
+    예시:
         >>> manager = get_prompt_manager()
         >>> messages = manager.build_messages("summarize", "korean.medium", ...)
     """
@@ -227,7 +227,7 @@ def get_prompt_manager() -> PromptManager:
 
 # 편의 함수들
 def get_prompt(key_path: str, default: Any = None) -> Any:
-    """프롬프트 가져오기 (편의 함수)"""
+    """프롬프트를 가져오는 편의 함수."""
     return get_prompt_manager().get(key_path, default)
 
 
@@ -236,12 +236,12 @@ def build_messages(
     subcategory: str | None = None,
     **template_vars,
 ) -> list[dict[str, str]]:
-    """메시지 빌드 (편의 함수)"""
+    """메시지 빌드를 위한 편의 함수."""
     return get_prompt_manager().build_messages(category, subcategory, **template_vars)
 
 
 def format_prompt(template: str, **kwargs) -> str:
-    """프롬프트 포맷 (편의 함수)"""
+    """프롬프트 포맷을 위한 편의 함수."""
     return get_prompt_manager().format_prompt(template, **kwargs)
 
 

@@ -1,4 +1,4 @@
-"""Security utilities for authentication and authorization."""
+"""인증 및 권한 부여를 위한 보안 유틸리티."""
 
 from datetime import UTC, datetime, timedelta
 
@@ -22,13 +22,13 @@ from app.core.config import settings
 # 6. 토큰이 유효하면 로그인 완료 + 세션 토큰 발급 (create_access_token)
 def create_magic_link_token(email: str) -> str:
     """
-    Create a JWT token for magic link authentication.
+    매직 링크 인증용 JWT 토큰을 생성한다.
 
     Args:
-        email: User email address
+        email: 사용자 이메일 주소
 
     Returns:
-        JWT token string
+        JWT 토큰 문자열
     """
     expire = datetime.now(UTC) + timedelta(minutes=settings.MAGIC_LINK_EXPIRE_MINUTES)
     payload = {
@@ -42,13 +42,13 @@ def create_magic_link_token(email: str) -> str:
 # 용도, 수명 주기가 달라서 위와 구분함, 단일 책임 원칙(SRP)를 따라 구분
 def create_access_token(email: str) -> str:
     """
-    Create a JWT access token for authenticated sessions.
+    인증 세션용 JWT 액세스 토큰을 생성한다.
 
     Args:
-        email: User email address
+        email: 사용자 이메일 주소
 
     Returns:
-        JWT token string
+        JWT 토큰 문자열
     """
     expire = datetime.now(UTC) + timedelta(days=settings.ACCESS_TOKEN_EXPIRE_DAYS)
     payload = {
@@ -62,14 +62,14 @@ def create_access_token(email: str) -> str:
 # 토큰을 검증하여, 사용자 식별을 위해 이메일을 리턴
 def verify_token(token: str, expected_type: str = "access") -> str | None:
     """
-    Verify JWT token and return email if valid.
+    JWT 토큰을 검증하고 유효하면 이메일을 반환한다.
 
     Args:
-        token: JWT token to verify
-        expected_type: Expected token type (magic_link or access)
+        token: 검증할 JWT 토큰
+        expected_type: 기대 토큰 유형(magic_link 또는 access)
 
     Returns:
-        Email if token is valid, None otherwise
+        토큰이 유효하면 이메일, 아니면 None
     """
     try:
         payload = jwt.decode(

@@ -1,47 +1,45 @@
-"""Application configuration settings."""
+"""애플리케이션 설정."""
 
 import warnings
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field, model_validator  # 메타 데이터 검증규칙을 정의할 떄 사용
+from pydantic import Field, model_validator  # 메타 데이터 검증 규칙 정의에 사용
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    """Application settings loaded from environment variables."""
+    """환경 변수로부터 로드되는 애플리케이션 설정."""
 
-    # pydantic v2에서 제공하는 설정 딕셔너리, extra="ignore"는 정의되지 않은 필드는 무시하겠다는 의미
-    # 설정 정보 자체를 담는 것이 아니라 설정을 어떻게 로드하고 처리할지에 대한 메타설정을 담은 딕셔너리
-    # Settings 클래스가 인스턴스화 될때, .env를 읽고 이 안에 정보가 각 변수에 저장됨(예: OPENAI_API_KEY)
-
-    # Pydantic Settings는 다음 순서로 값을 찾는다.
-    # 환경변수 (실제 OS 환경변수)
-    # .env 파일 (model_config에서 지정한 파일)
-    # 기본값 (Field의 default)
-    # 따라서:
-    # 아래 줄이 없다면 → .env 파일을 읽지 못하고 default="" 사용
-    # 아래 줄이 있으면 → .env 파일의 실제 API 키 값 자동 로드 ✅
+    # pydantic v2 설정 딕셔너리: extra="ignore"는 정의되지 않은 필드를 무시
+    # 설정 값을 담는 것이 아니라, 로드/처리 방식에 대한 메타설정
+    # Settings 인스턴스화 시 .env를 읽어 각 변수에 저장됨(예: OPENAI_API_KEY)
+    # 값 조회 우선순위:
+    # 1) 환경변수 (실제 OS 환경변수)
+    # 2) .env 파일 (model_config에서 지정)
+    # 3) 기본값 (Field의 default)
+    # 아래 설정이 없으면 .env를 읽지 못하고 default=""를 사용한다.
+    # 아래 설정이 있으면 .env의 실제 키 값이 자동 로드된다.
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
-    # Application
+    # 애플리케이션
     APP_NAME: str = "Research Curator"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = False
     ENVIRONMENT: Literal["development", "production"] = "development"
 
-    # Database
+    # 데이터베이스
     DATABASE_URL: str = Field(
         default="postgresql://postgres:postgres@localhost:5432/research_curator",
     )
 
-    # Vector Database (Qdrant)
+    # 벡터 DB(Qdrant)
     QDRANT_HOST: str = "localhost"
     QDRANT_PORT: int = 6333
     QDRANT_COLLECTION_NAME: str = "research_articles"
-    QDRANT_VECTOR_SIZE: int = 1536  # OpenAI embedding size
+    QDRANT_VECTOR_SIZE: int = 1536  # OpenAI 임베딩 크기
 
-    # LLM Configuration
+    # LLM 설정
     LLM_PROVIDER: Literal["openai", "claude"] = "openai"
 
     # OpenAI
@@ -53,11 +51,11 @@ class Settings(BaseSettings):
     ANTHROPIC_API_KEY: str = Field(default="")
     ANTHROPIC_MODEL: str = "claude-3-5-sonnet-20240620"
 
-    # Search APIs
+    # 검색 API
     SERPER_API_KEY: str = Field(default="")
     BRAVE_API_KEY: str = Field(default="")
 
-    # Email (SMTP)
+    # 이메일(SMTP)
     SMTP_HOST: str = Field(default="smtp.gmail.com")
     SMTP_PORT: int = 587
     SMTP_USER: str = Field(default="")
@@ -65,39 +63,39 @@ class Settings(BaseSettings):
     SMTP_FROM_EMAIL: str = Field(default="")
     SMTP_FROM_NAME: str = Field(default="Research Curator")
 
-    # Authentication
+    # 인증
     JWT_SECRET_KEY: str | None = Field(default=None)
     JWT_ALGORITHM: str = "HS256"
     MAGIC_LINK_EXPIRE_MINUTES: int = 15
     ACCESS_TOKEN_EXPIRE_DAYS: int = 30
 
-    # Scheduler
+    # 스케줄러
     COLLECT_SCHEDULE_HOUR: int = 1  # 01:00
     COLLECT_SCHEDULE_MINUTE: int = 0
     SEND_EMAIL_SCHEDULE_HOUR: int = 8  # 08:00
     SEND_EMAIL_SCHEDULE_MINUTE: int = 0
 
-    # Data Collection
+    # 데이터 수집
     DEFAULT_ARTICLES_PER_DAY: int = 5
     MAX_ARTICLES_PER_SOURCE: int = 10
 
-    # CORS(Cross-Origin Resource Sharing), 보안 정책으로 두 도메인의 요청만 받기위해 설정
-    # 3000은 리엑트, 뷰에서 사용하는포트, 8501은 streamlit에서 사용하는 포트
+    # CORS(교차 출처 리소스 공유): 보안 정책상 허용 도메인만 요청 허용
+    # 3000은 React/Vue, 8501은 Streamlit에서 사용하는 포트
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:8501"
 
     @property  # origin 문자열을 리스트로 변환
     def cors_origins_list(self) -> list[str]:
-        """Get CORS origins as list."""
+        """CORS origin 문자열을 리스트로 변환한다."""
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
 
     @property
     def database_url_str(self) -> str:
-        """Get database URL as string."""
+        """DB URL을 문자열로 반환한다."""
         return str(self.DATABASE_URL)
 
     @model_validator(mode="after")
     def validate_jwt_secret(self) -> "Settings":
-        """Ensure JWT secret is set appropriately for the environment."""
+        """환경에 맞는 JWT 시크릿 설정을 보장한다."""
         if self.JWT_SECRET_KEY:
             return self
 
@@ -114,7 +112,7 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_api_keys(self) -> "Settings":
-        """Validate required API keys based on provider and environment."""
+        """제공자/환경에 따라 필요한 API 키를 검증한다."""
         if self.LLM_PROVIDER == "openai":
             if not self.OPENAI_API_KEY:
                 if self.ENVIRONMENT == "production":
@@ -137,16 +135,16 @@ class Settings(BaseSettings):
         return self
 
 
-# lru_cache: 함수가 호출되면 결과를 캐시에 저장
-# 같은 인자로 다시 호출되면 캐시된 결과를 즉시 반환(함수실행 안함)
+# lru_cache: 함수 호출 결과를 캐시에 저장
+# 같은 인자로 다시 호출되면 캐시된 결과를 즉시 반환(함수 실행 안 함)
 @lru_cache
 def get_settings() -> Settings:
-    """Get cached settings instance."""
+    """캐시된 Settings 인스턴스를 반환한다."""
     return Settings()
 
 
-# Global settings instance
-# 전역 인스턴스, 이렇게 미리 생성해두면 import로 바로 사용 가능
+# 전역 설정 인스턴스
+# 전역 인스턴스는 미리 생성해두면 import로 바로 사용 가능
 # from app.core.config import settings
-# pring(settings.APP_NAME) # "Research Curator"
+# print(settings.APP_NAME)  # "Research Curator"
 settings = get_settings()

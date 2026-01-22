@@ -1,1 +1,1 @@
-"""Core module for configuration and shared utilities."""
+"""설정과 공용 유틸리티를 제공하는 코어 모듈."""

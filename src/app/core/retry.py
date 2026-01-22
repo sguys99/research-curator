@@ -1,4 +1,4 @@
-"""Retry logic and error handling utilities."""
+"""재시도 로직과 에러 처리 유틸리티."""
 
 import asyncio
 import logging
@@ -20,20 +20,20 @@ async def async_with_retry(
     exceptions: tuple[type[Exception], ...] = (Exception,),
 ) -> T:
     """
-    Execute an async function with retry logic.
+    비동기 함수를 재시도 로직과 함께 실행한다.
 
     Args:
-        func: Async function to execute
-        max_attempts: Maximum number of attempts
-        initial_delay: Initial delay in seconds
-        backoff_factor: Multiplier for delay after each retry
-        exceptions: Tuple of exceptions to catch and retry
+        func: 실행할 비동기 함수
+        max_attempts: 최대 시도 횟수
+        initial_delay: 초기 대기 시간(초)
+        backoff_factor: 재시도마다 증가하는 대기 시간 배수
+        exceptions: 재시도 대상으로 처리할 예외 튜플
 
     Returns:
-        Result from the function
+        함수 실행 결과
 
     Raises:
-        Last exception if all attempts fail
+        모든 시도가 실패하면 마지막 예외 발생
     """
     delay = initial_delay
     last_exception: Exception | None = None
@@ -58,7 +58,7 @@ async def async_with_retry(
     if last_exception:
         raise last_exception
 
-    raise RuntimeError("async_with_retry completed without returning or raising")
+    raise RuntimeError("async_with_retry가 반환 또는 예외 없이 종료되었습니다.")
 
 
 def retry_with_backoff(
@@ -68,19 +68,19 @@ def retry_with_backoff(
     backoff_factor: float = 2.0,
     exceptions: tuple[type[Exception], ...] = (Exception,),
 ):
-    """Decorator to retry a function with exponential backoff.
+    """지수 백오프로 함수를 재시도하는 데코레이터.
 
     Args:
-        max_retries: Maximum number of retry attempts
-        initial_delay: Initial delay in seconds
-        max_delay: Maximum delay in seconds
-        backoff_factor: Multiplier for delay after each retry
-        exceptions: Tuple of exceptions to catch and retry
+        max_retries: 최대 재시도 횟수
+        initial_delay: 초기 대기 시간(초)
+        max_delay: 최대 대기 시간(초)
+        backoff_factor: 재시도마다 증가하는 대기 시간 배수
+        exceptions: 재시도 대상으로 처리할 예외 튜플
 
-    Example:
+    예시:
         @retry_with_backoff(max_retries=3, initial_delay=1.0)
         async def fetch_data():
-            # Your code here
+            # 로직 작성
             pass
     """
 
@@ -155,20 +155,20 @@ def with_retry(
     exceptions: tuple[type[Exception], ...] = (Exception,),
 ) -> T:
     """
-    Execute a function with retry logic.
+    함수를 재시도 로직과 함께 실행한다.
 
     Args:
-        func: Function to execute
-        max_attempts: Maximum number of attempts
-        initial_delay: Initial delay in seconds
-        backoff_factor: Multiplier for delay after each retry
-        exceptions: Tuple of exceptions to catch and retry
+        func: 실행할 함수
+        max_attempts: 최대 시도 횟수
+        initial_delay: 초기 대기 시간(초)
+        backoff_factor: 재시도마다 증가하는 대기 시간 배수
+        exceptions: 재시도 대상으로 처리할 예외 튜플
 
     Returns:
-        Result from the function
+        함수 실행 결과
 
     Raises:
-        Last exception if all attempts fail
+        모든 시도가 실패하면 마지막 예외 발생
     """
     delay = initial_delay
     last_exception: Exception | None = None
@@ -193,26 +193,26 @@ def with_retry(
     if last_exception:
         raise last_exception
 
-    # This should never be reached, but for type safety
-    raise RuntimeError("with_retry completed without returning or raising")
+    # 타입 안정성을 위한 방어 코드(정상 경로에서는 도달하지 않음)
+    raise RuntimeError("with_retry가 반환 또는 예외 없이 종료되었습니다.")
 
 
 class RateLimiter:
-    """Simple rate limiter for API calls."""
+    """API 호출을 위한 간단한 레이트 리미터."""
 
     def __init__(self, max_calls: int, time_window: float):
-        """Initialize rate limiter.
+        """레이트 리미터를 초기화한다.
 
         Args:
-            max_calls: Maximum number of calls allowed
-            time_window: Time window in seconds
+            max_calls: 허용되는 최대 호출 수
+            time_window: 시간 창(초)
         """
         self.max_calls = max_calls
         self.time_window = time_window
         self.calls: list[float] = []
 
     async def acquire(self):
-        """Wait until a call slot is available."""
+        """호출 슬롯이 열릴 때까지 대기한다."""
         import time
 
         now = time.time()
