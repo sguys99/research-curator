@@ -236,7 +236,7 @@
 - [x] 2.2 CRUD 중복 제거
 
 ### Phase 3 (asyncio)
-- [ ] 3.1 asyncio.run() 패턴 개선
+- [x] 3.1 asyncio.run() 패턴 개선
 
 ### Phase 4 (스레드 안전성)
 - [ ] 4.1 Vector DB 락 추가
