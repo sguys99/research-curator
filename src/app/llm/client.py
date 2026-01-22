@@ -1,6 +1,7 @@
 """LLM client wrapper using LiteLLM for unified API access."""
 
 import json
+import warnings
 from functools import lru_cache
 from typing import Any, Literal
 
@@ -63,12 +64,27 @@ class LLMClient:
         # Set API keys based on provider
         if provider == "openai":
             litellm.openai_key = settings.OPENAI_API_KEY
+            self._validate_api_key(settings.OPENAI_API_KEY, "OPENAI_API_KEY")
             self.model = model or settings.OPENAI_MODEL
         elif provider == "claude":
             litellm.anthropic_key = settings.ANTHROPIC_API_KEY
+            self._validate_api_key(settings.ANTHROPIC_API_KEY, "ANTHROPIC_API_KEY")
             self.model = model or settings.ANTHROPIC_MODEL
         else:
             raise ValueError(f"Unsupported provider: {provider}")
+
+    def _validate_api_key(self, api_key: str | None, env_var: str) -> None:
+        if api_key:
+            return
+
+        if settings.ENVIRONMENT == "production":
+            raise ValueError(f"{env_var} must be set in production.")
+
+        warnings.warn(
+            f"{env_var} is not set; LLM requests will fail in development.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
 
     @retry(
         stop=stop_after_attempt(3),

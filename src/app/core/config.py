@@ -112,6 +112,30 @@ class Settings(BaseSettings):
         self.JWT_SECRET_KEY = "dev-insecure-secret"
         return self
 
+    @model_validator(mode="after")
+    def validate_api_keys(self) -> "Settings":
+        """Validate required API keys based on provider and environment."""
+        if self.LLM_PROVIDER == "openai":
+            if not self.OPENAI_API_KEY:
+                if self.ENVIRONMENT == "production":
+                    raise ValueError("OPENAI_API_KEY must be set in production.")
+                warnings.warn(
+                    "OPENAI_API_KEY is not set; OpenAI calls will fail in development.",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
+        elif self.LLM_PROVIDER == "claude":
+            if not self.ANTHROPIC_API_KEY:
+                if self.ENVIRONMENT == "production":
+                    raise ValueError("ANTHROPIC_API_KEY must be set in production.")
+                warnings.warn(
+                    "ANTHROPIC_API_KEY is not set; Claude calls will fail in development.",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
+
+        return self
+
 
 # lru_cache: 함수가 호출되면 결과를 캐시에 저장
 # 같은 인자로 다시 호출되면 캐시된 결과를 즉시 반환(함수실행 안함)

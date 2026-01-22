@@ -7,7 +7,9 @@ and caching for improved performance.
 
 import asyncio
 import hashlib
+import json
 import logging
+from pathlib import Path
 from typing import Any
 
 import tiktoken
@@ -28,8 +30,8 @@ logger = logging.getLogger(__name__)
 class TextEmbedder:
     """Text embedding generator with caching and retry logic."""
 
-    # OpenAI embedding model token limits
-    MAX_TOKENS = 8191  # text-embedding-3-small max tokens, 해당 모델의 최대 토큰수
+    # Default embedding model token limit (fallback when config is missing)
+    DEFAULT_MAX_TOKENS = 8191
 
     def __init__(
         self,
@@ -59,10 +61,12 @@ class TextEmbedder:
 
         # Initialize tokenizer for token counting
         try:
-            self.tokenizer = tiktoken.encoding_for_model("text-embedding-3-small")
+            self.tokenizer = tiktoken.encoding_for_model(self.model)
         except KeyError:
             # Fallback to cl100k_base encoding if model not found
             self.tokenizer = tiktoken.get_encoding("cl100k_base")
+
+        self.max_tokens = self._get_model_token_limit()
 
         # In-memory cache
         self._cache: dict[str, list[float]] = {}
@@ -80,6 +84,25 @@ class TextEmbedder:
             SHA-256 hash of the text
         """
         return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+    def _get_model_token_limit(self) -> int:
+        """Load model token limits from config file and resolve for current model."""
+        config_path = Path(__file__).resolve().parents[3] / "configs" / "model_limits.json"
+        if not config_path.exists():
+            return self.DEFAULT_MAX_TOKENS
+
+        try:
+            with config_path.open("r", encoding="utf-8") as fp:
+                limits = json.load(fp)
+        except Exception as e:
+            logger.warning(f"Failed to load model limits from {config_path}: {e}")
+            return self.DEFAULT_MAX_TOKENS
+
+        limit = limits.get(self.model)
+        if isinstance(limit, int) and limit > 0:
+            return limit
+
+        return self.DEFAULT_MAX_TOKENS
 
     def count_tokens(self, text: str) -> int:
         """Count the number of tokens in text.
@@ -104,12 +127,12 @@ class TextEmbedder:
 
         Args:
             text: Input text
-            max_tokens: Maximum number of tokens (defaults to MAX_TOKENS)
+            max_tokens: Maximum number of tokens (defaults to model limit)
 
         Returns:
             Truncated text
         """
-        max_tokens = max_tokens or self.MAX_TOKENS
+        max_tokens = max_tokens or self.max_tokens
         token_count = self.count_tokens(text)
 
         if token_count <= max_tokens:
@@ -189,7 +212,7 @@ class TextEmbedder:
         # Truncate if needed, 토큰 제한 초과시 문서 텍스트 자름
         if truncate:
             token_count = self.count_tokens(text)
-            if token_count > self.MAX_TOKENS:
+            if token_count > self.max_tokens:
                 text = self.truncate_text(text)
 
         # Generate embedding with retry
