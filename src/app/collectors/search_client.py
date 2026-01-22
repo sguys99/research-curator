@@ -24,7 +24,7 @@ class SearchClient:
     @retry_with_backoff(
         max_retries=3,
         initial_delay=1.0,
-        exceptions=(httpx.HTTPError, APIError),
+        exceptions=(httpx.HTTPError, APIError, RateLimitError),
     )
     async def serper_search(
         self,
@@ -137,7 +137,7 @@ class SearchClient:
     @retry_with_backoff(
         max_retries=3,
         initial_delay=1.0,
-        exceptions=(httpx.HTTPError, APIError),
+        exceptions=(httpx.HTTPError, APIError, RateLimitError),
     )
     async def brave_search(
         self,

@@ -6,11 +6,30 @@ from typing import Any, Literal
 
 import litellm
 from litellm import completion, embedding
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
 from app.core.config import settings
 
 # Disable verbose logging for litellm
 litellm.suppress_debug_info = True
+
+_RETRYABLE_LLM_ERROR_NAMES = {
+    "APIConnectionError",
+    "APIError",
+    "BadGatewayError",
+    "InternalServerError",
+    "RateLimitError",
+    "ServiceUnavailableError",
+    "Timeout",
+    "TimeoutError",
+}
+
+
+def _is_retryable_llm_error(exc: BaseException) -> bool:
+    for candidate in (exc, getattr(exc, "__cause__", None), getattr(exc, "__context__", None)):
+        if candidate and candidate.__class__.__name__ in _RETRYABLE_LLM_ERROR_NAMES:
+            return True
+    return False
 
 
 class LLMClient:
@@ -51,6 +70,12 @@ class LLMClient:
         else:
             raise ValueError(f"Unsupported provider: {provider}")
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=retry_if_exception(_is_retryable_llm_error),
+        reraise=True,
+    )
     def chat_completion(
         self,
         messages: list[dict[str, str]],
@@ -131,6 +156,8 @@ class LLMClient:
             return content
 
         except Exception as e:
+            if _is_retryable_llm_error(e):
+                raise
             raise RuntimeError(f"LLM completion failed: {e}") from e
 
     # json형식 사용 예시
@@ -154,6 +181,12 @@ class LLMClient:
     # )
     # # result: '{"category": "paper", "confidence": 0.95}'
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=retry_if_exception(_is_retryable_llm_error),
+        reraise=True,
+    )
     def generate_embedding(self, text: str, model: str | None = None) -> list[float]:
         """
         Generate embedding vector for given text.
@@ -189,8 +222,16 @@ class LLMClient:
         # }
 
         except Exception as e:
+            if _is_retryable_llm_error(e):
+                raise
             raise RuntimeError(f"Embedding generation failed: {e}") from e
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=retry_if_exception(_is_retryable_llm_error),
+        reraise=True,
+    )
     async def achat_completion(
         self,
         messages: list[dict[str, str]],
@@ -257,8 +298,16 @@ class LLMClient:
             return content
 
         except Exception as e:
+            if _is_retryable_llm_error(e):
+                raise
             raise RuntimeError(f"Async LLM completion failed: {e}") from e
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=retry_if_exception(_is_retryable_llm_error),
+        reraise=True,
+    )
     async def agenerate_embedding(self, text: str, model: str | None = None) -> list[float]:
         """
         Async version of generate_embedding.
@@ -277,6 +326,8 @@ class LLMClient:
             return response.data[0]["embedding"]
 
         except Exception as e:
+            if _is_retryable_llm_error(e):
+                raise
             raise RuntimeError(f"Async embedding generation failed: {e}") from e
 
 

@@ -33,7 +33,7 @@ class NewsCollector(BaseCollector):
         self.search_client = SearchClient()
         self.search_provider = search_provider
 
-    @retry_with_backoff(max_retries=3, initial_delay=1.0, exceptions=(Exception,))
+    @retry_with_backoff(max_retries=3, initial_delay=1.0, exceptions=(CollectorError,))
     async def collect(
         self,
         query: str,

@@ -19,7 +19,7 @@ class ArxivCollector(BaseCollector):
         super().__init__(source_name="arXiv", source_type=SourceType.PAPER)
         self.client = arxiv.Client()
 
-    @retry_with_backoff(max_retries=3, initial_delay=1.0, exceptions=(Exception,))
+    @retry_with_backoff(max_retries=3, initial_delay=1.0, exceptions=(CollectorError,))
     async def collect(
         self,
         query: str,
