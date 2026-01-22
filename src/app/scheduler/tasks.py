@@ -4,55 +4,50 @@ import asyncio
 import logging
 from datetime import UTC, datetime, timedelta
 
-import nest_asyncio
-
 from app.collectors.arxiv import ArxivCollector
 from app.collectors.news import NewsCollector
-from app.core.retry import with_retry
+from app.core.retry import async_with_retry
 from app.db import crud
 from app.db.session import SessionLocal
 from app.email.builder import EmailBuilder
-from app.email.selection import select_articles_for_user
+from app.email.selection import select_articles_for_user_async
 from app.email.sender import EmailSender
 from app.processors.classifier import ContentClassifier
 from app.processors.embedder import TextEmbedder
 from app.processors.evaluator import ImportanceEvaluator
 from app.processors.summarizer import ArticleSummarizer
 
-# Allow nested event loops
-nest_asyncio.apply()
-
 logger = logging.getLogger(__name__)
 
 
 # Helper functions to wrap async calls
-def summarize_article(title: str, content: str) -> str:
-    """Synchronous wrapper for article summarization."""
+async def summarize_article(title: str, content: str) -> str:
+    """Async wrapper for article summarization."""
     summarizer = ArticleSummarizer()
-    return asyncio.run(summarizer.summarize(title=title, content=content))
+    return await summarizer.summarize(title=title, content=content)
 
 
-def evaluate_importance(title: str, content: str) -> float:
-    """Synchronous wrapper for importance evaluation."""
+async def evaluate_importance(title: str, content: str) -> float:
+    """Async wrapper for importance evaluation."""
     evaluator = ImportanceEvaluator()
-    result = asyncio.run(evaluator.evaluate(title=title, content=content))
+    result = await evaluator.evaluate(title=title, content=content)
     return result.get("importance_score", 0.5)
 
 
-def classify_article_type(title: str, content: str) -> str:
-    """Synchronous wrapper for article classification."""
+async def classify_article_type(title: str, content: str) -> str:
+    """Async wrapper for article classification."""
     classifier = ContentClassifier()
-    result = asyncio.run(classifier.classify(title=title, content=content))
+    result = await classifier.classify(title=title, content=content)
     return result.get("category", "other")
 
 
-def generate_embedding(text: str) -> list[float]:
-    """Synchronous wrapper for embedding generation."""
+async def generate_embedding(text: str) -> list[float]:
+    """Async wrapper for embedding generation."""
     embedder = TextEmbedder()
-    return asyncio.run(embedder.embed(text))
+    return await embedder.embed(text)
 
 
-def collect_data_task() -> None:
+async def collect_data_task_async() -> None:
     """
     Scheduled task for collecting data from various sources.
 
@@ -99,8 +94,8 @@ def collect_data_task() -> None:
 
         for field in all_fields:
             try:
-                articles = with_retry(
-                    lambda f=field: asyncio.run(arxiv_collector.collect(query=f, limit=5)),
+                articles = await async_with_retry(
+                    lambda f=field: arxiv_collector.collect(query=f, limit=5),
                     max_attempts=3,
                 )
 
@@ -143,8 +138,8 @@ def collect_data_task() -> None:
 
         for keyword in list(all_keywords)[:5]:  # Limit to 5 keywords to avoid rate limits
             try:
-                articles = with_retry(
-                    lambda k=keyword: asyncio.run(news_collector.collect(query=k, limit=3)),
+                articles = await async_with_retry(
+                    lambda k=keyword: news_collector.collect(query=k, limit=3),
                     max_attempts=3,
                 )
 
@@ -191,7 +186,12 @@ def collect_data_task() -> None:
         db.close()
 
 
-def process_articles_task() -> None:
+def collect_data_task() -> None:
+    """Synchronous entrypoint for schedulers."""
+    asyncio.run(collect_data_task_async())
+
+
+async def process_articles_task_async() -> None:
     """
     Scheduled task for processing collected articles.
 
@@ -230,7 +230,7 @@ def process_articles_task() -> None:
             try:
                 # 1. Generate summary if not exists
                 if not article.summary:
-                    summary = with_retry(
+                    summary = await async_with_retry(
                         lambda a=article: summarize_article(
                             title=a.title,
                             content=a.content or "",
@@ -241,7 +241,7 @@ def process_articles_task() -> None:
 
                 # 2. Evaluate importance if not exists
                 if article.importance_score is None:
-                    score = with_retry(
+                    score = await async_with_retry(
                         lambda a=article: evaluate_importance(
                             title=a.title,
                             content=a.content or a.summary or "",
@@ -252,7 +252,7 @@ def process_articles_task() -> None:
 
                 # 3. Classify article type if category not set
                 if not article.category:
-                    category = with_retry(
+                    category = await async_with_retry(
                         lambda a=article: classify_article_type(
                             title=a.title,
                             content=a.content or a.summary or "",
@@ -268,17 +268,15 @@ def process_articles_task() -> None:
 
                         # Store in Qdrant (embedding is generated internally)
                         vector_ops = VectorOperations()
-                        vector_id = asyncio.run(
-                            vector_ops.insert_article(
-                                article_id=str(article.id),
-                                title=article.title,
-                                content=article.content or "",
-                                summary=article.summary or "",
-                                source_type=article.source_type,
-                                category=article.category or "general",
-                                importance_score=article.importance_score or 0.5,
-                                metadata=article.article_metadata or {},
-                            ),
+                        vector_id = await vector_ops.insert_article(
+                            article_id=str(article.id),
+                            title=article.title,
+                            content=article.content or "",
+                            summary=article.summary or "",
+                            source_type=article.source_type,
+                            category=article.category or "general",
+                            importance_score=article.importance_score or 0.5,
+                            metadata=article.article_metadata or {},
                         )
 
                         article.vector_id = vector_id
@@ -318,7 +316,12 @@ def process_articles_task() -> None:
         db.close()
 
 
-def send_digest_task() -> None:
+def process_articles_task() -> None:
+    """Synchronous entrypoint for schedulers."""
+    asyncio.run(process_articles_task_async())
+
+
+async def send_digest_task_async() -> None:
     """
     Scheduled task for sending email digests to users.
 
@@ -403,7 +406,7 @@ def send_digest_task() -> None:
                 )
 
                 # Select personalized articles based on user preferences
-                personalized_articles = select_articles_for_user(
+                personalized_articles = await select_articles_for_user_async(
                     articles=unsent_articles,
                     preferences=pref,
                     limit=pref.daily_limit,
@@ -439,12 +442,10 @@ def send_digest_task() -> None:
 
                     # Send email
                     sender = EmailSender()
-                    asyncio.run(
-                        sender.send_email(
-                            to_email=user.email,
-                            subject=subject,
-                            html_content=html_content,
-                        ),
+                    await sender.send_email(
+                        to_email=user.email,
+                        subject=subject,
+                        html_content=html_content,
                     )
 
                     # Record in database
@@ -477,7 +478,12 @@ def send_digest_task() -> None:
         db.close()
 
 
-def unified_collect_and_send_task() -> None:
+def send_digest_task() -> None:
+    """Synchronous entrypoint for schedulers."""
+    asyncio.run(send_digest_task_async())
+
+
+async def unified_collect_and_send_task_async() -> None:
     """
     Unified task: Collect, match, process, and send digests.
 
@@ -534,8 +540,8 @@ def unified_collect_and_send_task() -> None:
 
         for field in all_fields:
             try:
-                articles = with_retry(
-                    lambda f=field: asyncio.run(arxiv_collector.collect(query=f, limit=5)),
+                articles = await async_with_retry(
+                    lambda f=field: arxiv_collector.collect(query=f, limit=5),
                     max_attempts=3,
                 )
                 raw_articles.extend(articles)
@@ -550,8 +556,8 @@ def unified_collect_and_send_task() -> None:
 
         for keyword in list(all_keywords)[:5]:  # Limit to 5 keywords
             try:
-                articles = with_retry(
-                    lambda k=keyword: asyncio.run(news_collector.collect(query=k, limit=3)),
+                articles = await async_with_retry(
+                    lambda k=keyword: news_collector.collect(query=k, limit=3),
                     max_attempts=3,
                 )
                 raw_articles.extend(articles)
@@ -615,7 +621,7 @@ def unified_collect_and_send_task() -> None:
                     continue
 
                 # LLM Processing: Summary
-                summary = with_retry(
+                summary = await async_with_retry(
                     lambda data=article_data: summarize_article(
                         title=data.title,
                         content=data.content or "",
@@ -624,7 +630,7 @@ def unified_collect_and_send_task() -> None:
                 )
 
                 # LLM Processing: Importance Score
-                importance_score = with_retry(
+                importance_score = await async_with_retry(
                     lambda data=article_data, s=summary: evaluate_importance(
                         title=data.title,
                         content=data.content or s,
@@ -633,7 +639,7 @@ def unified_collect_and_send_task() -> None:
                 )
 
                 # LLM Processing: Category
-                category = with_retry(
+                category = await async_with_retry(
                     lambda data=article_data, s=summary: classify_article_type(
                         title=data.title,
                         content=data.content or s,
@@ -659,17 +665,15 @@ def unified_collect_and_send_task() -> None:
                     from app.vector_db.operations import VectorOperations
 
                     vector_ops = VectorOperations()
-                    vector_id = asyncio.run(
-                        vector_ops.insert_article(
-                            article_id=str(db_article.id),
-                            title=db_article.title,
-                            content=db_article.content or "",
-                            summary=db_article.summary or "",
-                            source_type=db_article.source_type,
-                            category=db_article.category or "general",
-                            importance_score=db_article.importance_score or 0.5,
-                            metadata=db_article.article_metadata or {},
-                        ),
+                    vector_id = await vector_ops.insert_article(
+                        article_id=str(db_article.id),
+                        title=db_article.title,
+                        content=db_article.content or "",
+                        summary=db_article.summary or "",
+                        source_type=db_article.source_type,
+                        category=db_article.category or "general",
+                        importance_score=db_article.importance_score or 0.5,
+                        metadata=db_article.article_metadata or {},
                     )
 
                     crud.update_article(db, db_article.id, vector_id=vector_id)
@@ -752,12 +756,10 @@ def unified_collect_and_send_task() -> None:
                 subject = f"🔬 Research Curator - {date_str} AI 연구 동향"
 
                 sender = EmailSender()
-                asyncio.run(
-                    sender.send_email(
-                        to_email=user.email,
-                        subject=subject,
-                        html_content=html_content,
-                    ),
+                await sender.send_email(
+                    to_email=user.email,
+                    subject=subject,
+                    html_content=html_content,
                 )
 
                 # Record in database
@@ -789,6 +791,11 @@ def unified_collect_and_send_task() -> None:
         logger.error(f"Fatal error in unified task: {e}", exc_info=True)
     finally:
         db.close()
+
+
+def unified_collect_and_send_task() -> None:
+    """Synchronous entrypoint for schedulers."""
+    asyncio.run(unified_collect_and_send_task_async())
 
 
 def _match_articles_to_user(raw_articles: list, preferences) -> list:

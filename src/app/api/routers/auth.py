@@ -13,7 +13,7 @@ router = APIRouter(tags=["auth"])
 
 
 @router.post("/magic-link", response_model=MagicLinkResponse)
-def request_magic_link(
+async def request_magic_link(
     request: MagicLinkRequest,
     db: Session = Depends(get_db),
 ) -> MagicLinkResponse:
@@ -53,14 +53,10 @@ def request_magic_link(
 
         # Send email
         sender = EmailSender()
-        import asyncio
-
-        asyncio.run(
-            sender.send_email(
-                to_email=request.email,
-                subject="🔬 Research Curator 로그인 링크",
-                html_content=html_content,
-            ),
+        await sender.send_email(
+            to_email=request.email,
+            subject="🔬 Research Curator 로그인 링크",
+            html_content=html_content,
         )
 
         # Return response based on environment

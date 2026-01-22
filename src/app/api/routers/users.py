@@ -20,7 +20,7 @@ from app.db.crud.digests import get_user_digests
 from app.db.crud.preferences import get_user_preference, update_user_preference
 from app.db.models import CollectedArticle, User
 from app.db.session import get_db
-from app.email.selection import select_articles_for_user
+from app.email.selection import select_articles_for_user_async
 
 logger = logging.getLogger(__name__)
 
@@ -270,7 +270,7 @@ async def send_test_digest(
             )
 
         # Select articles based on user preferences
-        selected_articles = select_articles_for_user(
+        selected_articles = await select_articles_for_user_async(
             articles=all_articles,
             preferences=preferences,
             limit=preferences.daily_limit or 5,

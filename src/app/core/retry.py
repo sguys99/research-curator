@@ -3,13 +3,62 @@
 import asyncio
 import logging
 import time
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from functools import wraps
 from typing import Any, TypeVar
 
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
+
+
+async def async_with_retry(
+    func: Callable[[], Awaitable[T]],
+    max_attempts: int = 3,
+    initial_delay: float = 1.0,
+    backoff_factor: float = 2.0,
+    exceptions: tuple[type[Exception], ...] = (Exception,),
+) -> T:
+    """
+    Execute an async function with retry logic.
+
+    Args:
+        func: Async function to execute
+        max_attempts: Maximum number of attempts
+        initial_delay: Initial delay in seconds
+        backoff_factor: Multiplier for delay after each retry
+        exceptions: Tuple of exceptions to catch and retry
+
+    Returns:
+        Result from the function
+
+    Raises:
+        Last exception if all attempts fail
+    """
+    delay = initial_delay
+    last_exception: Exception | None = None
+
+    for attempt in range(max_attempts):
+        try:
+            return await func()
+        except exceptions as e:
+            last_exception = e
+
+            if attempt == max_attempts - 1:
+                logger.error(f"Async function failed after {max_attempts} attempts: {e}")
+                raise
+
+            logger.warning(
+                f"Attempt {attempt + 1}/{max_attempts} failed: {e}. " f"Retrying in {delay:.2f}s...",
+            )
+
+            await asyncio.sleep(delay)
+            delay = min(delay * backoff_factor, 60.0)
+
+    if last_exception:
+        raise last_exception
+
+    raise RuntimeError("async_with_retry completed without returning or raising")
 
 
 def retry_with_backoff(

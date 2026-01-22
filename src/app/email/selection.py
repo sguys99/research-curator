@@ -15,6 +15,15 @@ def select_articles_for_user(
     preferences: UserPreference,
     limit: int | None = None,
 ) -> list[CollectedArticle]:
+    """Synchronous wrapper for async selection (for sync callers)."""
+    return asyncio.run(select_articles_for_user_async(articles, preferences, limit))
+
+
+async def select_articles_for_user_async(
+    articles: list[CollectedArticle],
+    preferences: UserPreference,
+    limit: int | None = None,
+) -> list[CollectedArticle]:
     """
     Select and filter articles based on user preferences.
 
@@ -41,7 +50,7 @@ def select_articles_for_user(
     limit = limit or preferences.daily_limit or 5
 
     # Step 1: Try semantic search first (most powerful)
-    filtered = _semantic_filter_sync(
+    filtered = await _semantic_filter(
         articles,
         preferences,
         limit=limit * 3,  # Get more candidates for distribution
@@ -256,7 +265,7 @@ def _fallback_importance_ranking(
     return selected
 
 
-def _generate_preference_embedding(preferences: UserPreference) -> list[float] | None:
+async def _generate_preference_embedding(preferences: UserPreference) -> list[float] | None:
     """
     Generate embedding from user preferences for semantic search.
 
@@ -288,8 +297,7 @@ def _generate_preference_embedding(preferences: UserPreference) -> list[float] |
         from app.processors.embedder import TextEmbedder
 
         embedder = TextEmbedder()
-        # Run async embedding in sync context
-        embedding = asyncio.run(embedder.embed(preference_text))
+        embedding = await embedder.embed(preference_text)
         logger.info(f"Generated preference embedding: {len(embedding)} dimensions")
         return embedding
     except Exception as e:
@@ -323,7 +331,7 @@ async def _semantic_filter(
     """
     try:
         # Generate preference embedding
-        preference_embedding = _generate_preference_embedding(preferences)
+        preference_embedding = await _generate_preference_embedding(preferences)
 
         if not preference_embedding:
             logger.warning("Could not generate preference embedding, skipping semantic search")
