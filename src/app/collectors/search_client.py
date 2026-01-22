@@ -1,4 +1,4 @@
-"""Search API client for Serper and Brave Search."""
+"""Serper/Brave 검색 API 클라이언트."""
 
 import logging
 from typing import Any
@@ -13,10 +13,10 @@ logger = logging.getLogger(__name__)
 
 
 class SearchClient:
-    """Unified client for Serper and Brave Search APIs."""
+    """Serper와 Brave 검색 API를 통합하는 클라이언트."""
 
     def __init__(self):
-        """Initialize search client."""
+        """검색 클라이언트를 초기화한다."""
         self.serper_api_key = settings.SERPER_API_KEY
         self.brave_api_key = settings.BRAVE_API_KEY
         self.rate_limiter = RateLimiter(max_calls=10, time_window=60.0)
@@ -33,20 +33,20 @@ class SearchClient:
         search_type: str = "search",
         date_filter: str | None = None,
     ) -> list[dict[str, Any]]:
-        """Search using Serper API.
+        """Serper API로 검색한다.
 
         Args:
-            query: Search query
-            num_results: Number of results to return
-            search_type: Type of search (search, news, scholar)
-            date_filter: Date filter (e.g., "d" for day, "w" for week, "m" for month)
+            query: 검색 쿼리
+            num_results: 반환할 결과 수
+            search_type: 검색 유형(search, news, scholar)
+            date_filter: 날짜 필터(예: "d"=일, "w"=주, "m"=월)
 
         Returns:
-            List of search results
+            검색 결과 목록
 
         Raises:
-            APIError: If API call fails
-            RateLimitError: If rate limit is exceeded
+            APIError: API 호출 실패 시
+            RateLimitError: 레이트 리밋 초과 시
         """
         if not self.serper_api_key:
             raise APIError("Serper API key not configured")
@@ -94,14 +94,14 @@ class SearchClient:
         data: dict[str, Any],
         search_type: str,
     ) -> list[dict[str, Any]]:
-        """Parse Serper API response.
+        """Serper API 응답을 파싱한다.
 
         Args:
-            data: Raw API response
-            search_type: Type of search performed
+            data: 원본 API 응답
+            search_type: 수행한 검색 유형
 
         Returns:
-            List of parsed results
+            파싱된 결과 목록
         """
         results = []
 
@@ -146,20 +146,20 @@ class SearchClient:
         search_type: str = "web",
         freshness: str | None = None,
     ) -> list[dict[str, Any]]:
-        """Search using Brave Search API.
+        """Brave Search API로 검색한다.
 
         Args:
-            query: Search query
-            num_results: Number of results to return
-            search_type: Type of search (web, news)
-            freshness: Freshness filter (e.g., "pd" for past day, "pw" for past week)
+            query: 검색 쿼리
+            num_results: 반환할 결과 수
+            search_type: 검색 유형(web, news)
+            freshness: 신선도 필터(예: "pd"=하루, "pw"=1주)
 
         Returns:
-            List of search results
+            검색 결과 목록
 
         Raises:
-            APIError: If API call fails
-            RateLimitError: If rate limit is exceeded
+            APIError: API 호출 실패 시
+            RateLimitError: 레이트 리밋 초과 시
         """
         if not self.brave_api_key:
             raise APIError("Brave API key not configured")
@@ -206,13 +206,13 @@ class SearchClient:
                 raise APIError(f"HTTP error during Brave search: {str(e)}") from e
 
     def _parse_brave_results(self, data: dict[str, Any]) -> list[dict[str, Any]]:
-        """Parse Brave API response.
+        """Brave API 응답을 파싱한다.
 
         Args:
-            data: Raw API response
+            data: 원본 API 응답
 
         Returns:
-            List of parsed results
+            파싱된 결과 목록
         """
         results = []
         raw_results = data.get("web", {}).get("results", [])
@@ -236,20 +236,20 @@ class SearchClient:
         provider: str = "serper",
         **kwargs: Any,
     ) -> list[dict[str, Any]]:
-        """Unified search method.
+        """통합 검색 메서드.
 
         Args:
-            query: Search query
-            num_results: Number of results
-            provider: Search provider ("serper" or "brave")
-            **kwargs: Additional provider-specific arguments
+            query: 검색 쿼리
+            num_results: 결과 수
+            provider: 검색 제공자("serper" 또는 "brave")
+            **kwargs: 제공자별 추가 인자
 
         Returns:
-            List of search results
+            검색 결과 목록
 
         Raises:
-            ValueError: If provider is invalid
-            APIError: If search fails
+            ValueError: 제공자가 유효하지 않은 경우
+            APIError: 검색 실패 시
         """
         if provider == "serper":
             return await self.serper_search(query, num_results, **kwargs)

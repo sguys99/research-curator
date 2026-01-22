@@ -1,4 +1,4 @@
-"""Base collector interface for all data collection modules."""
+"""데이터 수집 모듈을 위한 기본 수집기 인터페이스."""
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
@@ -8,7 +8,7 @@ from typing import Any
 
 
 class SourceType(str, Enum):
-    """Types of content sources."""
+    """콘텐츠 소스 유형."""
 
     PAPER = "paper"
     NEWS = "news"
@@ -19,7 +19,7 @@ class SourceType(str, Enum):
 
 @dataclass
 class CollectedData:
-    """Standard data structure for collected content."""
+    """수집된 콘텐츠의 표준 데이터 구조."""
 
     title: str
     content: str
@@ -30,7 +30,7 @@ class CollectedData:
     collected_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert to dictionary."""
+        """딕셔너리로 변환한다."""
         return {
             "title": self.title,
             "content": self.content,
@@ -43,14 +43,14 @@ class CollectedData:
 
 
 class BaseCollector(ABC):
-    """Abstract base class for all collectors."""
+    """모든 수집기의 추상 베이스 클래스."""
 
     def __init__(self, source_name: str, source_type: SourceType):
-        """Initialize the collector.
+        """수집기를 초기화한다.
 
         Args:
-            source_name: Name of the source (e.g., "arXiv", "TechCrunch")
-            source_type: Type of source (paper, news, etc.)
+            source_name: 소스 이름(예: "arXiv", "TechCrunch")
+            source_type: 소스 유형(paper, news 등)
         """
         self.source_name = source_name
         self.source_type = source_type
@@ -62,18 +62,18 @@ class BaseCollector(ABC):
         limit: int = 10,
         filters: dict[str, Any] | None = None,
     ) -> list[CollectedData]:
-        """Collect data from the source.
+        """소스에서 데이터를 수집한다.
 
         Args:
-            query: Search query or keywords
-            limit: Maximum number of items to collect
-            filters: Additional filters (date range, categories, etc.)
+            query: 검색 쿼리 또는 키워드
+            limit: 수집할 최대 항목 수
+            filters: 추가 필터(기간, 카테고리 등)
 
         Returns:
-            List of collected data items
+            수집된 데이터 항목 목록
 
         Raises:
-            CollectorError: If collection fails
+            CollectorError: 수집 실패 시
         """
         pass
 
@@ -84,16 +84,16 @@ class BaseCollector(ABC):
         url: str,
         metadata: dict[str, Any] | None = None,
     ) -> CollectedData:
-        """Helper method to create CollectedData instance.
+        """CollectedData 인스턴스를 생성하는 헬퍼 메서드.
 
         Args:
-            title: Content title
-            content: Main content or summary
-            url: Source URL
-            metadata: Additional metadata
+            title: 콘텐츠 제목
+            content: 본문 또는 요약
+            url: 소스 URL
+            metadata: 추가 메타데이터
 
         Returns:
-            CollectedData instance
+            CollectedData 인스턴스
         """
         return CollectedData(
             title=title,
@@ -106,18 +106,18 @@ class BaseCollector(ABC):
 
 
 class CollectorError(Exception):
-    """Base exception for collector errors."""
+    """수집기 에러의 기본 예외."""
 
     pass
 
 
 class RateLimitError(CollectorError):
-    """Raised when rate limit is exceeded."""
+    """레이트 리밋을 초과했을 때 발생."""
 
     pass
 
 
 class APIError(CollectorError):
-    """Raised when API call fails."""
+    """API 호출 실패 시 발생."""
 
     pass

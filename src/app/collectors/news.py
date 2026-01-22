@@ -1,4 +1,4 @@
-"""News collector using search APIs."""
+"""검색 API를 사용한 뉴스 수집기."""
 
 import logging
 from typing import Any
@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class NewsCollector(BaseCollector):
-    """Collector for AI and tech news articles."""
+    """AI/기술 뉴스 아티클 수집기."""
 
     DEFAULT_DOMAINS = [
         "techcrunch.com",
@@ -24,10 +24,10 @@ class NewsCollector(BaseCollector):
     ]
 
     def __init__(self, search_provider: str = "serper"):
-        """Initialize news collector.
+        """뉴스 수집기를 초기화한다.
 
         Args:
-            search_provider: Search API provider ("serper" or "brave")
+            search_provider: 검색 API 제공자("serper" 또는 "brave")
         """
         super().__init__(source_name="News", source_type=SourceType.NEWS)
         self.search_client = SearchClient()
@@ -40,21 +40,21 @@ class NewsCollector(BaseCollector):
         limit: int = 10,
         filters: dict[str, Any] | None = None,
     ) -> list[CollectedData]:
-        """Collect news articles.
+        """뉴스 아티클을 수집한다.
 
         Args:
-            query: Search query
-            limit: Maximum number of articles to collect
-            filters: Additional filters
-                - domains: List of domains to include (default: DEFAULT_DOMAINS)
-                - date_filter: Date filter for Serper ("d", "w", "m")
-                - freshness: Freshness filter for Brave ("pd", "pw", "pm")
+            query: 검색 쿼리
+            limit: 수집할 최대 아티클 수
+            filters: 추가 필터
+                - domains: 포함할 도메인 목록(기본값: DEFAULT_DOMAINS)
+                - date_filter: Serper 날짜 필터("d", "w", "m")
+                - freshness: Brave 신선도 필터("pd", "pw", "pm")
 
         Returns:
-            List of collected news articles
+            수집된 뉴스 아티클 목록
 
         Raises:
-            CollectorError: If collection fails
+            CollectorError: 수집 실패 시
         """
         try:
             filters = filters or {}
@@ -88,14 +88,14 @@ class NewsCollector(BaseCollector):
             raise CollectorError(f"Failed to collect news: {str(e)}") from e
 
     def _build_domain_query(self, query: str, domains: list[str]) -> str:
-        """Build search query with domain filters.
+        """도메인 필터가 포함된 검색 쿼리를 생성한다.
 
         Args:
-            query: Base search query
-            domains: List of domains to include
+            query: 기본 검색 쿼리
+            domains: 포함할 도메인 목록
 
         Returns:
-            Enhanced query with domain filters
+            도메인 필터가 포함된 쿼리
         """
         if not domains:
             return query
@@ -104,13 +104,13 @@ class NewsCollector(BaseCollector):
         return f"{query} ({domain_filter})"
 
     def _parse_news_result(self, result: dict[str, Any]) -> CollectedData:
-        """Parse news search result.
+        """뉴스 검색 결과를 파싱한다.
 
         Args:
-            result: Raw search result
+            result: 원본 검색 결과
 
         Returns:
-            CollectedData instance
+            CollectedData 인스턴스
         """
         title = result.get("title", "")
         snippet = result.get("snippet", "")
@@ -132,9 +132,9 @@ class NewsCollector(BaseCollector):
 
 
 def get_ai_news_domains() -> list[str]:
-    """Get list of popular AI/tech news domains.
+    """인기 있는 AI/기술 뉴스 도메인 목록을 반환한다.
 
     Returns:
-        List of domain names
+        도메인 이름 목록
     """
     return NewsCollector.DEFAULT_DOMAINS

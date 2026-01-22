@@ -1,4 +1,4 @@
-"""arXiv paper collector using the official arXiv API."""
+"""공식 arXiv API를 사용한 논문 수집기."""
 
 import logging
 from typing import Any
@@ -12,10 +12,10 @@ logger = logging.getLogger(__name__)
 
 
 class ArxivCollector(BaseCollector):
-    """Collector for arXiv papers."""
+    """arXiv 논문 수집기."""
 
     def __init__(self):
-        """Initialize arXiv collector."""
+        """arXiv 수집기를 초기화한다."""
         super().__init__(source_name="arXiv", source_type=SourceType.PAPER)
         self.client = arxiv.Client()
 
@@ -26,21 +26,21 @@ class ArxivCollector(BaseCollector):
         limit: int = 10,
         filters: dict[str, Any] | None = None,
     ) -> list[CollectedData]:
-        """Collect papers from arXiv.
+        """arXiv에서 논문을 수집한다.
 
         Args:
-            query: Search query (supports arXiv query syntax)
-            limit: Maximum number of papers to collect
-            filters: Additional filters
-                - sort_by: SortCriterion (relevance, lastUpdatedDate, submittedDate)
-                - sort_order: SortOrder (ascending, descending)
-                - categories: List of arXiv categories (e.g., ["cs.AI", "cs.LG"])
+            query: 검색 쿼리(arXiv 쿼리 문법 지원)
+            limit: 수집할 최대 논문 수
+            filters: 추가 필터
+                - sort_by: 정렬 기준(relevance, lastUpdatedDate, submittedDate)
+                - sort_order: 정렬 순서(ascending, descending)
+                - categories: arXiv 카테고리 목록(예: ["cs.AI", "cs.LG"])
 
         Returns:
-            List of collected papers
+            수집된 논문 목록
 
         Raises:
-            CollectorError: If collection fails
+            CollectorError: 수집 실패 시
         """
         try:
             filters = filters or {}
@@ -92,13 +92,13 @@ class ArxivCollector(BaseCollector):
             raise CollectorError(f"Failed to collect from arXiv: {str(e)}") from e
 
     def _parse_paper(self, paper: arxiv.Result) -> CollectedData:
-        """Parse arXiv paper result.
+        """arXiv 논문 결과를 파싱한다.
 
         Args:
-            paper: arXiv Result object
+            paper: arXiv Result 객체
 
         Returns:
-            CollectedData instance
+            CollectedData 인스턴스
         """
         authors = [author.name for author in paper.authors]
 
@@ -129,10 +129,10 @@ class ArxivCollector(BaseCollector):
 
 
 def get_popular_ai_categories() -> list[str]:
-    """Get list of popular AI-related arXiv categories.
+    """인기 있는 AI 관련 arXiv 카테고리 목록을 반환한다.
 
     Returns:
-        List of category codes
+        카테고리 코드 목록
     """
     return [
         "cs.AI",
