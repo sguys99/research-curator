@@ -13,6 +13,7 @@ from qdrant_client.http import models
 
 from app.processors.embedder import TextEmbedder, get_embedder
 from app.vector_db.client import QdrantClientWrapper, get_qdrant_client
+from app.vector_db.exceptions import VectorDBOperationError
 from app.vector_db.schema import CollectionSchema
 
 logger = logging.getLogger(__name__)
@@ -71,7 +72,7 @@ class VectorOperations:
             Vector ID (point ID in Qdrant)
 
         Raises:
-            RuntimeError: If insertion fails
+            VectorDBOperationError: If insertion fails
 
         Examples:
             >>> ops = VectorOperations()
@@ -129,7 +130,7 @@ class VectorOperations:
 
         except Exception as e:
             logger.error(f"Failed to insert article: {e}")
-            raise RuntimeError(f"Article insertion failed: {e}") from e
+            raise VectorDBOperationError(f"Article insertion failed: {e}") from e
 
     async def insert_articles_batch(
         self,
@@ -225,7 +226,7 @@ class VectorOperations:
 
         except Exception as e:
             logger.error(f"Failed to batch insert articles: {e}")
-            raise RuntimeError(f"Batch insertion failed: {e}") from e
+            raise VectorDBOperationError(f"Batch insertion failed: {e}") from e
 
     # 아티클 업데이트: Update
     async def update_article(

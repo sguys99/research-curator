@@ -367,21 +367,15 @@ async def _semantic_filter(
         article_map = {a.vector_id: a for a in vectorized_articles}
 
         # Filter results to only include our available articles
-        matched_articles = []
+        scored_articles: list[tuple[CollectedArticle, float]] = []
         for hit in search_results:
             vector_id = str(hit.id)
             if vector_id in article_map:
-                article = article_map[vector_id]
-                # Store similarity score as temporary attribute for sorting
-                article._semantic_score = hit.score  # noqa: SLF001
-                matched_articles.append(article)
+                scored_articles.append((article_map[vector_id], hit.score))
 
         # Sort by semantic score and limit
-        matched_articles.sort(
-            key=lambda x: getattr(x, "_semantic_score", 0.0),
-            reverse=True,
-        )
-        matched_articles = matched_articles[:limit]
+        scored_articles.sort(key=lambda item: item[1], reverse=True)
+        matched_articles = [article for article, _score in scored_articles[:limit]]
 
         logger.info(
             f"Semantic search found {len(matched_articles)} matches "

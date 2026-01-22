@@ -8,6 +8,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.http import models
 
 from app.core.config import settings
+from app.vector_db.exceptions import VectorDBConnectionError
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +44,7 @@ class QdrantClientWrapper:
             QdrantClient: Active Qdrant client instance
 
         Raises:
-            ConnectionError: If unable to connect to Qdrant server
+            VectorDBConnectionError: If unable to connect to Qdrant server
         """
         if self._client is None:
             with self._client_lock:
@@ -53,7 +54,7 @@ class QdrantClientWrapper:
                         logger.info(f"Connected to Qdrant at {self.host}:{self.port}")
                     except Exception as e:
                         logger.error(f"Failed to connect to Qdrant: {e}")
-                        raise ConnectionError(
+                        raise VectorDBConnectionError(
                             f"Unable to connect to Qdrant at {self.host}:{self.port}",
                         ) from e
         return self._client

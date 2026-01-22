@@ -3,6 +3,7 @@
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.db.models import SentDigest
@@ -34,10 +35,17 @@ def get_user_digests(
     Returns:
         Tuple of (list of digests, total count)
     """
-    query = db.query(SentDigest).filter(SentDigest.user_id == user_id)
+    total_stmt = select(func.count()).select_from(SentDigest).where(SentDigest.user_id == user_id)
+    total = db.scalar(total_stmt) or 0
 
-    total = query.count()
-    digests = query.order_by(SentDigest.sent_at.desc()).offset(skip).limit(limit).all()
+    digests_stmt = (
+        select(SentDigest)
+        .where(SentDigest.user_id == user_id)
+        .order_by(SentDigest.sent_at.desc())
+        .offset(skip)
+        .limit(limit)
+    )
+    digests = list(db.scalars(digests_stmt).all())
 
     return digests, total
 
@@ -53,12 +61,13 @@ def get_latest_digest(db: Session, user_id: UUID) -> SentDigest | None:
     Returns:
         Latest SentDigest object or None if no digests found
     """
-    return (
-        db.query(SentDigest)
-        .filter(SentDigest.user_id == user_id)
+    stmt = (
+        select(SentDigest)
+        .where(SentDigest.user_id == user_id)
         .order_by(SentDigest.sent_at.desc())
-        .first()
+        .limit(1)
     )
+    return db.scalar(stmt)
 
 
 def create_digest(
@@ -95,7 +104,8 @@ def get_digest_by_id(db: Session, digest_id: UUID) -> SentDigest | None:
     Returns:
         SentDigest object or None if not found
     """
-    return db.query(SentDigest).filter(SentDigest.id == digest_id).first()
+    stmt = select(SentDigest).where(SentDigest.id == digest_id)
+    return db.scalar(stmt)
 
 
 def update_digest_opened(
@@ -143,14 +153,14 @@ def list_user_digests(
     Returns:
         List of SentDigest objects
     """
-    return (
-        db.query(SentDigest)
-        .filter(SentDigest.user_id == user_id)
+    stmt = (
+        select(SentDigest)
+        .where(SentDigest.user_id == user_id)
         .order_by(SentDigest.sent_at.desc())
         .offset(skip)
         .limit(limit)
-        .all()
     )
+    return list(db.scalars(stmt).all())
 
 
 def has_digest_sent_today(db: Session, user_id: UUID) -> bool:
@@ -166,11 +176,11 @@ def has_digest_sent_today(db: Session, user_id: UUID) -> bool:
     """
     today_start = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
 
-    digest = (
-        db.query(SentDigest)
-        .filter(SentDigest.user_id == user_id, SentDigest.sent_at >= today_start)
-        .first()
+    stmt = select(SentDigest).where(
+        SentDigest.user_id == user_id,
+        SentDigest.sent_at >= today_start,
     )
+    digest = db.scalar(stmt)
 
     return digest is not None
 
@@ -206,9 +216,8 @@ def get_user_sent_article_ids(
     since = datetime.now(UTC) - timedelta(days=days)
 
     # Query digests sent to this user in the last N days
-    digests = (
-        db.query(SentDigest).filter(SentDigest.user_id == user_id, SentDigest.sent_at >= since).all()
-    )
+    stmt = select(SentDigest).where(SentDigest.user_id == user_id, SentDigest.sent_at >= since)
+    digests = list(db.scalars(stmt).all())
 
     # Collect all article IDs from these digests
     article_ids = set()

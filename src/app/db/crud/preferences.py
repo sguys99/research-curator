@@ -3,6 +3,7 @@
 from typing import Any
 from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.models import UserPreference
@@ -27,7 +28,8 @@ def get_user_preference(db: Session, user_id: UUID) -> UserPreference | None:
     Returns:
         UserPreference object or None if not found
     """
-    return db.query(UserPreference).filter(UserPreference.user_id == user_id).first()
+    stmt = select(UserPreference).where(UserPreference.user_id == user_id)
+    return db.scalar(stmt)
 
 
 def create_user_preference(

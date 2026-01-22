@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import and_, desc, func, or_
+from sqlalchemy import and_, desc, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.db.models import CollectedArticle
@@ -48,8 +48,6 @@ def get_articles(
     Returns:
         Tuple of (articles list, total count)
     """
-    query = db.query(CollectedArticle)
-
     # Apply filters
     filters = []
     if source_type:
@@ -63,11 +61,14 @@ def get_articles(
     if date_to:
         filters.append(CollectedArticle.collected_at <= date_to)
 
+    count_stmt = select(func.count()).select_from(CollectedArticle)
     if filters:
-        query = query.filter(and_(*filters))
+        count_stmt = count_stmt.where(and_(*filters))
+    total = db.scalar(count_stmt) or 0
 
-    # Get total count
-    total = query.count()
+    stmt = select(CollectedArticle)
+    if filters:
+        stmt = stmt.where(and_(*filters))
 
     # Apply ordering
     if order_by == "importance_score":
@@ -76,12 +77,13 @@ def get_articles(
         order_field = CollectedArticle.collected_at
 
     if order_desc:
-        query = query.order_by(desc(order_field))
+        stmt = stmt.order_by(desc(order_field))
     else:
-        query = query.order_by(order_field)
+        stmt = stmt.order_by(order_field)
 
     # Apply pagination
-    articles = query.offset(skip).limit(limit).all()
+    stmt = stmt.offset(skip).limit(limit)
+    articles = list(db.scalars(stmt).all())
 
     return articles, total
 
@@ -97,7 +99,8 @@ def get_article_by_id(db: Session, article_id: UUID) -> CollectedArticle | None:
     Returns:
         CollectedArticle object or None if not found
     """
-    return db.query(CollectedArticle).filter(CollectedArticle.id == article_id).first()
+    stmt = select(CollectedArticle).where(CollectedArticle.id == article_id)
+    return db.scalar(stmt)
 
 
 def get_article_by_url(db: Session, source_url: str) -> CollectedArticle | None:
@@ -111,7 +114,8 @@ def get_article_by_url(db: Session, source_url: str) -> CollectedArticle | None:
     Returns:
         CollectedArticle object or None if not found
     """
-    return db.query(CollectedArticle).filter(CollectedArticle.source_url == source_url).first()
+    stmt = select(CollectedArticle).where(CollectedArticle.source_url == source_url)
+    return db.scalar(stmt)
 
 
 def get_articles_by_ids(
@@ -128,7 +132,8 @@ def get_articles_by_ids(
     Returns:
         List of CollectedArticle objects
     """
-    return db.query(CollectedArticle).filter(CollectedArticle.id.in_(article_ids)).all()
+    stmt = select(CollectedArticle).where(CollectedArticle.id.in_(article_ids))
+    return list(db.scalars(stmt).all())
 
 
 def create_article(
@@ -267,39 +272,39 @@ def get_article_statistics(
     Returns:
         Dictionary with statistics
     """
-    query = db.query(CollectedArticle)
-
-    # Apply date filters
+    filters = []
     if date_from:
-        query = query.filter(CollectedArticle.collected_at >= date_from)
+        filters.append(CollectedArticle.collected_at >= date_from)
     if date_to:
-        query = query.filter(CollectedArticle.collected_at <= date_to)
+        filters.append(CollectedArticle.collected_at <= date_to)
 
-    # Total count
-    total = query.count()
+    total_stmt = select(func.count()).select_from(CollectedArticle)
+    if filters:
+        total_stmt = total_stmt.where(and_(*filters))
+    total = db.scalar(total_stmt) or 0
 
-    # Count by source type
-    source_type_counts = (
-        query.with_entities(
-            CollectedArticle.source_type,
-            func.count(CollectedArticle.id).label("count"),
-        )
-        .group_by(CollectedArticle.source_type)
-        .all()
-    )
+    source_type_stmt = select(
+        CollectedArticle.source_type,
+        func.count(CollectedArticle.id).label("count"),
+    ).select_from(CollectedArticle)
+    category_stmt = select(
+        CollectedArticle.category,
+        func.count(CollectedArticle.id).label("count"),
+    ).select_from(CollectedArticle)
+    avg_score_stmt = select(func.avg(CollectedArticle.importance_score)).select_from(CollectedArticle)
 
-    # Count by category
-    category_counts = (
-        query.with_entities(
-            CollectedArticle.category,
-            func.count(CollectedArticle.id).label("count"),
-        )
-        .group_by(CollectedArticle.category)
-        .all()
-    )
+    if filters:
+        source_type_stmt = source_type_stmt.where(and_(*filters))
+        category_stmt = category_stmt.where(and_(*filters))
+        avg_score_stmt = avg_score_stmt.where(and_(*filters))
 
-    # Average importance score
-    avg_score = query.with_entities(func.avg(CollectedArticle.importance_score)).scalar()
+    source_type_counts = db.execute(
+        source_type_stmt.group_by(CollectedArticle.source_type),
+    ).all()
+    category_counts = db.execute(
+        category_stmt.group_by(CollectedArticle.category),
+    ).all()
+    avg_score = db.scalar(avg_score_stmt)
 
     return {
         "total": total,
@@ -331,16 +336,21 @@ def search_articles(
         Tuple of (articles list, total count)
     """
     search_pattern = f"%{search_query}%"
-    query = db.query(CollectedArticle).filter(
-        or_(
-            CollectedArticle.title.ilike(search_pattern),
-            CollectedArticle.summary.ilike(search_pattern),
-            CollectedArticle.content.ilike(search_pattern),
-        ),
+    search_condition = or_(
+        CollectedArticle.title.ilike(search_pattern),
+        CollectedArticle.summary.ilike(search_pattern),
+        CollectedArticle.content.ilike(search_pattern),
     )
-
-    total = query.count()
-    articles = query.order_by(desc(CollectedArticle.importance_score)).offset(skip).limit(limit).all()
+    total_stmt = select(func.count()).select_from(CollectedArticle).where(search_condition)
+    total = db.scalar(total_stmt) or 0
+    stmt = (
+        select(CollectedArticle)
+        .where(search_condition)
+        .order_by(desc(CollectedArticle.importance_score))
+        .offset(skip)
+        .limit(limit)
+    )
+    articles = list(db.scalars(stmt).all())
 
     return articles, total
 
@@ -367,21 +377,22 @@ def list_articles(
     Returns:
         List of CollectedArticle objects
     """
-    query = db.query(CollectedArticle)
+    stmt = select(CollectedArticle)
 
     # Apply filters
     if source_type:
-        query = query.filter(CollectedArticle.source_type == source_type)
+        stmt = stmt.where(CollectedArticle.source_type == source_type)
     if category:
-        query = query.filter(CollectedArticle.category == category)
+        stmt = stmt.where(CollectedArticle.category == category)
     if min_importance is not None:
-        query = query.filter(CollectedArticle.importance_score >= min_importance)
+        stmt = stmt.where(CollectedArticle.importance_score >= min_importance)
 
     # Order by collection date (newest first)
-    query = query.order_by(desc(CollectedArticle.collected_at))
+    stmt = stmt.order_by(desc(CollectedArticle.collected_at))
 
     # Apply pagination
-    return query.offset(skip).limit(limit).all()
+    stmt = stmt.offset(skip).limit(limit)
+    return list(db.scalars(stmt).all())
 
 
 def count_articles(
@@ -398,12 +409,10 @@ def count_articles(
     Returns:
         Total count of articles
     """
-    query = db.query(CollectedArticle)
-
+    stmt = select(func.count()).select_from(CollectedArticle)
     if source_type:
-        query = query.filter(CollectedArticle.source_type == source_type)
-
-    return query.count()
+        stmt = stmt.where(CollectedArticle.source_type == source_type)
+    return db.scalar(stmt) or 0
 
 
 def get_articles_since(
@@ -420,12 +429,12 @@ def get_articles_since(
     Returns:
         List of articles ordered by importance score
     """
-    return (
-        db.query(CollectedArticle)
-        .filter(CollectedArticle.collected_at >= since)
+    stmt = (
+        select(CollectedArticle)
+        .where(CollectedArticle.collected_at >= since)
         .order_by(desc(CollectedArticle.importance_score))
-        .all()
     )
+    return list(db.scalars(stmt).all())
 
 
 def get_top_articles_by_importance(
@@ -444,9 +453,8 @@ def get_top_articles_by_importance(
     Returns:
         List of top-rated articles
     """
-    query = db.query(CollectedArticle)
-
+    stmt = select(CollectedArticle)
     if since:
-        query = query.filter(CollectedArticle.collected_at >= since)
-
-    return query.order_by(desc(CollectedArticle.importance_score)).limit(limit).all()
+        stmt = stmt.where(CollectedArticle.collected_at >= since)
+    stmt = stmt.order_by(desc(CollectedArticle.importance_score)).limit(limit)
+    return list(db.scalars(stmt).all())

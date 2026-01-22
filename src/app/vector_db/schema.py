@@ -89,7 +89,7 @@ def setup_collection(
         bool: True if setup was successful, False otherwise
 
     Raises:
-        ConnectionError: If unable to connect to Qdrant server
+        VectorDBConnectionError: If unable to connect to Qdrant server
     """
     if client is None:
         client = get_qdrant_client()  # 전역 싱글턴 클라이언트

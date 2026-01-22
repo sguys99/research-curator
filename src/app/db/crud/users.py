@@ -3,6 +3,7 @@
 from datetime import UTC, datetime
 from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.models import User, UserPreference
@@ -27,7 +28,8 @@ def get_user_by_id(db: Session, user_id: UUID) -> User | None:
     Returns:
         User object or None if not found
     """
-    return db.query(User).filter(User.id == user_id).first()
+    stmt = select(User).where(User.id == user_id)
+    return db.scalar(stmt)
 
 
 def get_user_by_email(db: Session, email: str) -> User | None:
@@ -41,7 +43,8 @@ def get_user_by_email(db: Session, email: str) -> User | None:
     Returns:
         User object or None if not found
     """
-    return db.query(User).filter(User.email == email).first()
+    stmt = select(User).where(User.email == email)
+    return db.scalar(stmt)
 
 
 def create_user(db: Session, email: str, name: str | None = None) -> User:
@@ -156,4 +159,5 @@ def list_users(
     Returns:
         List of User objects
     """
-    return db.query(User).offset(skip).limit(limit).all()
+    stmt = select(User).offset(skip).limit(limit)
+    return list(db.scalars(stmt).all())

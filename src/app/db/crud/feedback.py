@@ -3,7 +3,7 @@
 from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlalchemy import desc
+from sqlalchemy import desc, func, select
 from sqlalchemy.orm import Session
 
 from app.db.models import Feedback
@@ -28,7 +28,8 @@ def get_feedback_by_id(db: Session, feedback_id: UUID) -> Feedback | None:
     Returns:
         Feedback object or None if not found
     """
-    return db.query(Feedback).filter(Feedback.id == feedback_id).first()
+    stmt = select(Feedback).where(Feedback.id == feedback_id)
+    return db.scalar(stmt)
 
 
 def get_user_feedback(
@@ -49,10 +50,16 @@ def get_user_feedback(
     Returns:
         Tuple of (feedback list, total count)
     """
-    query = db.query(Feedback).filter(Feedback.user_id == user_id)
-
-    total = query.count()
-    feedback_list = query.order_by(desc(Feedback.created_at)).offset(skip).limit(limit).all()
+    total_stmt = select(func.count()).select_from(Feedback).where(Feedback.user_id == user_id)
+    total = db.scalar(total_stmt) or 0
+    feedback_stmt = (
+        select(Feedback)
+        .where(Feedback.user_id == user_id)
+        .order_by(desc(Feedback.created_at))
+        .offset(skip)
+        .limit(limit)
+    )
+    feedback_list = list(db.scalars(feedback_stmt).all())
 
     return feedback_list, total
 
@@ -75,10 +82,16 @@ def get_article_feedback(
     Returns:
         Tuple of (feedback list, total count)
     """
-    query = db.query(Feedback).filter(Feedback.article_id == article_id)
-
-    total = query.count()
-    feedback_list = query.order_by(desc(Feedback.created_at)).offset(skip).limit(limit).all()
+    total_stmt = select(func.count()).select_from(Feedback).where(Feedback.article_id == article_id)
+    total = db.scalar(total_stmt) or 0
+    feedback_stmt = (
+        select(Feedback)
+        .where(Feedback.article_id == article_id)
+        .order_by(desc(Feedback.created_at))
+        .offset(skip)
+        .limit(limit)
+    )
+    feedback_list = list(db.scalars(feedback_stmt).all())
 
     return feedback_list, total
 
@@ -179,9 +192,8 @@ def get_article_feedback_stats(db: Session, article_id: UUID) -> dict:
     Returns:
         Dictionary with statistics (count, average_rating, rating_distribution)
     """
-    from sqlalchemy import func
-
-    feedback_list = db.query(Feedback).filter(Feedback.article_id == article_id).all()
+    feedback_stmt = select(Feedback).where(Feedback.article_id == article_id)
+    feedback_list = list(db.scalars(feedback_stmt).all())
 
     if not feedback_list:
         return {
@@ -196,12 +208,12 @@ def get_article_feedback_stats(db: Session, article_id: UUID) -> dict:
     average_rating = total_rating / total_count if total_count > 0 else 0.0
 
     # Rating distribution
-    rating_counts = (
-        db.query(Feedback.rating, func.count(Feedback.id))
-        .filter(Feedback.article_id == article_id)
+    rating_counts_stmt = (
+        select(Feedback.rating, func.count(Feedback.id))
+        .where(Feedback.article_id == article_id)
         .group_by(Feedback.rating)
-        .all()
     )
+    rating_counts = db.execute(rating_counts_stmt).all()
 
     rating_distribution = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
     for rating, count in rating_counts:
@@ -230,9 +242,11 @@ def get_user_feedback_for_article(
     Returns:
         Feedback object or None if not found
     """
-    return (
-        db.query(Feedback).filter(Feedback.user_id == user_id, Feedback.article_id == article_id).first()
+    stmt = select(Feedback).where(
+        Feedback.user_id == user_id,
+        Feedback.article_id == article_id,
     )
+    return db.scalar(stmt)
 
 
 def list_article_feedbacks(
@@ -253,14 +267,14 @@ def list_article_feedbacks(
     Returns:
         List of Feedback objects
     """
-    return (
-        db.query(Feedback)
-        .filter(Feedback.article_id == article_id)
+    stmt = (
+        select(Feedback)
+        .where(Feedback.article_id == article_id)
         .order_by(desc(Feedback.created_at))
         .offset(skip)
         .limit(limit)
-        .all()
     )
+    return list(db.scalars(stmt).all())
 
 
 def list_user_feedbacks(
@@ -281,14 +295,14 @@ def list_user_feedbacks(
     Returns:
         List of Feedback objects
     """
-    return (
-        db.query(Feedback)
-        .filter(Feedback.user_id == user_id)
+    stmt = (
+        select(Feedback)
+        .where(Feedback.user_id == user_id)
         .order_by(desc(Feedback.created_at))
         .offset(skip)
         .limit(limit)
-        .all()
     )
+    return list(db.scalars(stmt).all())
 
 
 def get_article_average_rating(

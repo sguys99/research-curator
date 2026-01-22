@@ -1,6 +1,7 @@
 """Vector database module for managing embeddings and semantic search."""
 
 from app.vector_db.client import QdrantClientWrapper, get_qdrant_client
+from app.vector_db.exceptions import VectorDBConnectionError, VectorDBError, VectorDBOperationError
 from app.vector_db.operations import VectorOperations, get_vector_operations
 from app.vector_db.schema import (
     CollectionSchema,
@@ -12,6 +13,9 @@ from app.vector_db.schema import (
 __all__ = [
     "QdrantClientWrapper",
     "get_qdrant_client",
+    "VectorDBError",
+    "VectorDBConnectionError",
+    "VectorDBOperationError",
     "CollectionSchema",
     "initialize_vector_db",
     "setup_collection",
