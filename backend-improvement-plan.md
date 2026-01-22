@@ -239,8 +239,8 @@
 - [x] 3.1 asyncio.run() 패턴 개선
 
 ### Phase 4 (스레드 안전성)
-- [ ] 4.1 Vector DB 락 추가
-- [ ] 4.2 zip strict=True
+- [x] 4.1 Vector DB 락 추가
+- [x] 4.2 zip strict=True
 
 ### Phase 5 (재시도)
 - [ ] 5.1 LLM 재시도 로직
