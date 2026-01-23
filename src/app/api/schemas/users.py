@@ -3,7 +3,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 # ========== 사용자 스키마 ==========
 
@@ -34,7 +34,7 @@ class UserResponse(UserBase):
     created_at: datetime = Field(..., description="계정 생성 시각")
     last_login: datetime = Field(..., description="마지막 로그인 시각")
 
-    model_config = {"from_attributes": True}
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ========== 사용자 선호도 스키마 ==========
@@ -102,7 +102,7 @@ class UserPreferenceResponse(UserPreferenceBase):
     created_at: datetime = Field(..., description="생성 시각")
     updated_at: datetime = Field(..., description="마지막 수정 시각")
 
-    model_config = {"from_attributes": True}
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ========== 다이제스트 스키마 ==========
@@ -118,7 +118,7 @@ class DigestResponse(BaseModel):
     email_opened: bool = Field(..., description="이메일 열람 여부")
     opened_at: datetime | None = Field(None, description="이메일 열람 시각")
 
-    model_config = {"from_attributes": True}
+    model_config = ConfigDict(from_attributes=True)
 
 
 class DigestListResponse(BaseModel):

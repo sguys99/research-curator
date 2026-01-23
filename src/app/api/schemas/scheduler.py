@@ -1,6 +1,6 @@
 """스케줄러 API 엔드포인트용 Pydantic 스키마."""
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class JobInfo(BaseModel):
@@ -20,8 +20,8 @@ class SchedulerStatusResponse(BaseModel):
     current_time: str = Field(..., description="현재 시각(ISO 형식)")
     jobs: list[JobInfo] = Field(..., description="등록된 작업 목록")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "running": True,
                 "timezone": "Asia/Seoul",
@@ -35,7 +35,8 @@ class SchedulerStatusResponse(BaseModel):
                     },
                 ],
             },
-        }
+        },
+    )
 
 
 class TriggerJobRequest(BaseModel):
@@ -43,12 +44,13 @@ class TriggerJobRequest(BaseModel):
 
     job_id: str = Field(..., description="실행할 작업 ID")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "job_id": "collect_data",
             },
-        }
+        },
+    )
 
 
 class TriggerJobResponse(BaseModel):
@@ -59,15 +61,16 @@ class TriggerJobResponse(BaseModel):
     job_id: str = Field(..., description="실행된 작업 ID")
     triggered_at: str = Field(..., description="작업 실행 시각(ISO 형식)")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "success": True,
                 "message": "Job 'collect_data' triggered successfully",
                 "job_id": "collect_data",
                 "triggered_at": "2025-12-04T10:30:00+09:00",
             },
-        }
+        },
+    )
 
 
 class JobListResponse(BaseModel):
@@ -76,8 +79,8 @@ class JobListResponse(BaseModel):
     total: int = Field(..., description="등록된 작업 총 수")
     jobs: list[JobInfo] = Field(..., description="모든 등록 작업 목록")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "total": 3,
                 "jobs": [
@@ -101,7 +104,8 @@ class JobListResponse(BaseModel):
                     },
                 ],
             },
-        }
+        },
+    )
 
 
 class SchedulerControlRequest(BaseModel):
@@ -109,12 +113,13 @@ class SchedulerControlRequest(BaseModel):
 
     action: str = Field(..., description="수행할 동작: 'start' 또는 'stop'")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "action": "start",
             },
-        }
+        },
+    )
 
 
 class SchedulerControlResponse(BaseModel):
@@ -124,11 +129,12 @@ class SchedulerControlResponse(BaseModel):
     message: str = Field(..., description="결과 메시지")
     running: bool = Field(..., description="현재 스케줄러 실행 상태")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "success": True,
                 "message": "Scheduler started successfully",
                 "running": True,
             },
-        }
+        },
+    )

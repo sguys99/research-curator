@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class CollectionFilters(BaseModel):
@@ -16,8 +16,8 @@ class CollectionFilters(BaseModel):
     sort_by: str | None = Field("relevance", description="정렬 기준")
     sort_order: str | None = Field("descending", description="정렬 순서")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "date_from": "2024-01-01",
                 "domains": ["techcrunch.com", "venturebeat.com"],
@@ -25,7 +25,8 @@ class CollectionFilters(BaseModel):
                 "sort_by": "relevance",
                 "sort_order": "descending",
             },
-        }
+        },
+    )
 
 
 class CollectionRequest(BaseModel):
@@ -39,8 +40,8 @@ class CollectionRequest(BaseModel):
     limit: int = Field(10, ge=1, le=50, description="소스별 최대 결과 수")
     filters: CollectionFilters | None = Field(None, description="추가 필터")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "query": "transformer optimization",
                 "sources": ["arxiv", "news"],
@@ -50,7 +51,8 @@ class CollectionRequest(BaseModel):
                     "domains": ["techcrunch.com"],
                 },
             },
-        }
+        },
+    )
 
 
 class CollectedItemResponse(BaseModel):
@@ -64,8 +66,8 @@ class CollectedItemResponse(BaseModel):
     metadata: dict[str, Any]
     collected_at: datetime
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "title": "Attention Is All You Need",
                 "content": "The dominant sequence transduction models...",
@@ -79,7 +81,8 @@ class CollectedItemResponse(BaseModel):
                 },
                 "collected_at": "2024-11-29T10:00:00",
             },
-        }
+        },
+    )
 
 
 class CollectionResponse(BaseModel):
@@ -89,8 +92,8 @@ class CollectionResponse(BaseModel):
     results: list[CollectedItemResponse] = Field(..., description="수집 항목")
     errors: list[str] = Field(default_factory=list, description="수집 에러")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "total": 15,
                 "results": [
@@ -106,7 +109,8 @@ class CollectionResponse(BaseModel):
                 ],
                 "errors": [],
             },
-        }
+        },
+    )
 
 
 class SourceInfo(BaseModel):
@@ -117,15 +121,16 @@ class SourceInfo(BaseModel):
     description: str
     supported_filters: list[str]
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "name": "arxiv",
                 "type": "paper",
                 "description": "Academic papers from arXiv.org",
                 "supported_filters": ["categories", "sort_by", "sort_order"],
             },
-        }
+        },
+    )
 
 
 class SourcesResponse(BaseModel):
@@ -133,8 +138,8 @@ class SourcesResponse(BaseModel):
 
     sources: list[SourceInfo]
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "sources": [
                     {
@@ -151,4 +156,5 @@ class SourcesResponse(BaseModel):
                     },
                 ],
             },
-        }
+        },
+    )

@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 # ========== 아티클 스키마 ==========
 
@@ -55,7 +55,7 @@ class ArticleResponse(ArticleBase):
     collected_at: datetime = Field(..., description="수집 시각")
     published_at: datetime | None = Field(None, description="발행일")
 
-    model_config = {"from_attributes": True}
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ========== 검색 스키마 ==========

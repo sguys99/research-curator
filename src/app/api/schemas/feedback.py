@@ -3,7 +3,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class FeedbackBase(BaseModel):
@@ -44,7 +44,7 @@ class FeedbackResponse(FeedbackBase):
     article_id: UUID = Field(..., description="아티클 ID")
     created_at: datetime = Field(..., description="생성 시각")
 
-    model_config = {"from_attributes": True}
+    model_config = ConfigDict(from_attributes=True)
 
 
 class FeedbackListResponse(BaseModel):

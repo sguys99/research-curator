@@ -7,7 +7,7 @@ Processors API 스키마
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 # ====================================
@@ -21,8 +21,8 @@ class SummarizeRequest(BaseModel):
     language: str = Field(default="ko", description="요약 언어 (ko: 한국어, en: 영어)")
     length: str = Field(default="medium", description="요약 길이 (short/medium/long)")
 
-    model_config = {
-        "json_schema_extra": {
+    model_config = ConfigDict(
+        json_schema_extra={
             "examples": [
                 {
                     "title": "Attention Is All You Need",
@@ -32,7 +32,7 @@ class SummarizeRequest(BaseModel):
                 },
             ],
         },
-    }
+    )
 
 
 class SummarizeResponse(BaseModel):
@@ -53,8 +53,8 @@ class EvaluateRequest(BaseModel):
     content: str = Field(..., description="아티클 내용")
     metadata: dict[str, Any] | None = Field(default=None, description="메타데이터 (인용수, 연도 등)")
 
-    model_config = {
-        "json_schema_extra": {
+    model_config = ConfigDict(
+        json_schema_extra={
             "examples": [
                 {
                     "title": "GPT-4 Technical Report",
@@ -63,7 +63,7 @@ class EvaluateRequest(BaseModel):
                 },
             ],
         },
-    }
+    )
 
 
 class EvaluateResponse(BaseModel):
@@ -90,8 +90,8 @@ class ClassifyRequest(BaseModel):
     source_name: str = Field(default="", description="소스 이름 (예: arXiv)")
     url: str = Field(default="", description="원문 URL")
 
-    model_config = {
-        "json_schema_extra": {
+    model_config = ConfigDict(
+        json_schema_extra={
             "examples": [
                 {
                     "title": "Attention Is All You Need",
@@ -101,7 +101,7 @@ class ClassifyRequest(BaseModel):
                 },
             ],
         },
-    }
+    )
 
 
 class ClassifyResponse(BaseModel):
@@ -130,8 +130,8 @@ class ProcessArticleRequest(BaseModel):
     summary_language: str = Field(default="ko", description="요약 언어")
     summary_length: str = Field(default="medium", description="요약 길이")
 
-    model_config = {
-        "json_schema_extra": {
+    model_config = ConfigDict(
+        json_schema_extra={
             "examples": [
                 {
                     "title": "Attention Is All You Need",
@@ -144,7 +144,7 @@ class ProcessArticleRequest(BaseModel):
                 },
             ],
         },
-    }
+    )
 
 
 class ProcessedArticleResponse(BaseModel):
@@ -175,8 +175,8 @@ class ProcessedArticleResponse(BaseModel):
     metadata: dict[str, Any]
     processed_at: datetime
 
-    model_config = {
-        "json_schema_extra": {
+    model_config = ConfigDict(
+        json_schema_extra={
             "examples": [
                 {
                     "title": "Attention Is All You Need",
@@ -199,7 +199,7 @@ class ProcessedArticleResponse(BaseModel):
                 },
             ],
         },
-    }
+    )
 
 
 class BatchProcessRequest(BaseModel):
@@ -208,8 +208,8 @@ class BatchProcessRequest(BaseModel):
     articles: list[ProcessArticleRequest] = Field(..., description="처리할 아티클 리스트")
     max_concurrent: int = Field(default=5, description="최대 동시 처리 개수", ge=1, le=10)
 
-    model_config = {
-        "json_schema_extra": {
+    model_config = ConfigDict(
+        json_schema_extra={
             "examples": [
                 {
                     "articles": [
@@ -228,7 +228,7 @@ class BatchProcessRequest(BaseModel):
                 },
             ],
         },
-    }
+    )
 
 
 class BatchProcessResponse(BaseModel):

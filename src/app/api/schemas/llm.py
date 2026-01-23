@@ -2,7 +2,7 @@
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ChatMessage(BaseModel):
@@ -28,8 +28,8 @@ class ChatCompletionRequest(BaseModel):
     response_format: Literal["text", "json"] = Field(default="text", description="응답 형식")
     stream: bool = Field(default=False, description="스트리밍 모드 사용")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "messages": [
                     {"role": "system", "content": "You are a helpful assistant."},
@@ -40,7 +40,8 @@ class ChatCompletionRequest(BaseModel):
                 "max_tokens": 500,
                 "response_format": "text",
             },
-        }
+        },
+    )
 
 
 class ChatCompletionResponse(BaseModel):
@@ -58,13 +59,14 @@ class EmbeddingRequest(BaseModel):
     text: str = Field(..., description="임베딩할 텍스트")
     model: str | None = Field(default=None, description="임베딩 모델 이름(선택)")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "text": "AI research trends in 2024",
                 "model": "text-embedding-3-small",
             },
-        }
+        },
+    )
 
 
 class EmbeddingResponse(BaseModel):
@@ -89,8 +91,8 @@ class ArticleSummaryRequest(BaseModel):
     )
     provider: Literal["openai", "claude"] = Field(default="openai", description="사용할 LLM 제공자")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "title": "GPT-5 Achieves Human-Level Performance",
                 "content": "Researchers have developed...",
@@ -98,7 +100,8 @@ class ArticleSummaryRequest(BaseModel):
                 "max_sentences": 4,
                 "provider": "openai",
             },
-        }
+        },
+    )
 
 
 class ArticleSummaryResponse(BaseModel):
@@ -116,14 +119,15 @@ class ArticleAnalysisRequest(BaseModel):
     content: str = Field(..., description="아티클 내용 또는 초록")
     provider: Literal["openai", "claude"] = Field(default="openai", description="사용할 LLM 제공자")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "title": "Attention Is All You Need",
                 "content": "The dominant sequence transduction models...",
                 "provider": "openai",
             },
-        }
+        },
+    )
 
 
 class ArticleAnalysisResponse(BaseModel):
