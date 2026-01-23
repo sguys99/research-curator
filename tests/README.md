@@ -35,3 +35,6 @@
 ## Notes
 - Integration/e2e tests are skipped automatically if required env vars are missing.
 - Use `-m "unit or integration"` to run multiple categories.
+## Vector DB integration tips
+- Ensure Qdrant is reachable at `localhost:6333` (default config).
+- Use `PYTEST_REAL_QDRANT=1 pytest -m integration -k vector_db` to run only vector DB tests.
