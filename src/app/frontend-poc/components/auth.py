@@ -1,4 +1,4 @@
-"""Authentication components for Streamlit app."""
+"""Streamlit 앱 인증 컴포넌트."""
 
 import streamlit as st
 
@@ -13,13 +13,13 @@ from app.frontend.utils.session import (
 
 
 def show_login_page() -> None:
-    """Display login page with magic link authentication."""
+    """매직 링크 인증 로그인 페이지를 표시한다."""
     st.title("🔐 Research Curator")
     st.markdown("### AI 연구자를 위한 맞춤형 리서치 큐레이션")
 
     st.markdown("---")
 
-    # Center the login form
+    # 로그인 폼 중앙 배치
     col1, col2, col3 = st.columns([1, 2, 1])
 
     with col2:
@@ -46,7 +46,7 @@ def show_login_page() -> None:
                         st.success("✅ 매직 링크가 발송되었습니다!")
                         st.info("이메일을 확인하시고 링크를 클릭해주세요.")
 
-                        # Show token for development (remove in production)
+                        # 개발용 토큰 표시(프로덕션에서는 숨김)
                         if st.secrets.get("environment") == "development":
                             with st.expander("🔧 개발용 토큰 (프로덕션에서는 표시 안됨)"):
                                 st.code(result.get("token", ""))
@@ -57,7 +57,7 @@ def show_login_page() -> None:
 
         st.markdown("---")
 
-        # Token-based login (for development)
+        # 토큰 기반 로그인(개발용)
         with st.expander("🔑 토큰으로 로그인 (개발용)"):
             st.caption("매직 링크 대신 토큰을 직접 입력할 수 있습니다.")
 
@@ -76,15 +76,15 @@ def show_login_page() -> None:
 
 
 def _handle_token_login(token: str) -> None:
-    """Handle token-based login."""
+    """토큰 기반 로그인을 처리한다."""
     with st.spinner("인증 중..."):
         try:
             api = get_api_client()
 
-            # Verify magic link token and get access token
+            # 매직 링크 토큰 검증 및 액세스 토큰 획득
             result = api.verify_magic_link(token)
 
-            # Set session
+            # 세션 설정
             set_user_session(
                 user_id=result["user"]["id"],
                 user_email=result["user"]["email"],
@@ -101,8 +101,8 @@ def _handle_token_login(token: str) -> None:
 
 
 def handle_magic_link_callback() -> None:
-    """Handle magic link callback from URL parameters."""
-    # Check if token is in URL query params
+    """URL 파라미터의 매직 링크 콜백을 처리한다."""
+    # URL 쿼리 파라미터에 토큰이 있는지 확인
     query_params = st.query_params
 
     if "token" in query_params:
@@ -112,10 +112,10 @@ def handle_magic_link_callback() -> None:
             try:
                 api = get_api_client()
 
-                # Verify magic link token
+                # 매직 링크 토큰 검증
                 result = api.verify_magic_link(token)
 
-                # Set session (user data is inside 'user' object)
+                # 세션 설정(user 객체에 사용자 데이터 포함)
                 set_user_session(
                     user_id=result["user"]["id"],
                     user_email=result["user"]["email"],
@@ -123,7 +123,7 @@ def handle_magic_link_callback() -> None:
                     access_token=result["access_token"],
                 )
 
-                # Clear token from URL
+                # URL에서 토큰 제거
                 st.query_params.clear()
 
                 st.success("✅ 로그인 성공!")
@@ -131,12 +131,12 @@ def handle_magic_link_callback() -> None:
 
             except Exception as e:
                 st.error(f"❌ 인증 실패: {str(e)}")
-                # Clear token from URL
+                # URL에서 토큰 제거
                 st.query_params.clear()
 
 
 def show_logout_button() -> None:
-    """Display logout button in sidebar."""
+    """사이드바에 로그아웃 버튼을 표시한다."""
     if st.sidebar.button("🚪 로그아웃", use_container_width=True):
         clear_session()
         st.success("로그아웃되었습니다.")
@@ -144,7 +144,7 @@ def show_logout_button() -> None:
 
 
 def show_user_info() -> None:
-    """Display user info in sidebar."""
+    """사이드바에 사용자 정보를 표시한다."""
     if is_authenticated():
         email = get_user_email()
         name = get_user_name()
@@ -160,7 +160,7 @@ def show_user_info() -> None:
 
 
 def require_auth(func):
-    """Decorator to require authentication for a page."""
+    """페이지 접근 시 인증을 요구하는 데코레이터."""
 
     def wrapper(*args, **kwargs):
         if not is_authenticated():

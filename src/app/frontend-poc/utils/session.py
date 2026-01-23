@@ -1,4 +1,4 @@
-"""Session management utilities for Streamlit app."""
+"""Streamlit 앱 세션 관리 유틸리티."""
 
 import os
 from datetime import datetime
@@ -8,7 +8,7 @@ import streamlit as st
 
 
 def init_session_state() -> None:
-    """Initialize session state with default values."""
+    """기본값으로 세션 상태를 초기화한다."""
     defaults = {
         "authenticated": False,
         "user_id": None,
@@ -33,7 +33,7 @@ def set_user_session(
     access_token: str,
     expires_at: datetime | None = None,
 ) -> None:
-    """Set user session after successful authentication."""
+    """인증 성공 후 사용자 세션을 설정한다."""
     st.session_state.authenticated = True
     st.session_state.user_id = user_id
     st.session_state.user_email = user_email
@@ -43,7 +43,7 @@ def set_user_session(
 
 
 def clear_session() -> None:
-    """Clear all session data (logout)."""
+    """세션 데이터를 모두 지운다(로그아웃)."""
     keys_to_clear = [
         "authenticated",
         "user_id",
@@ -62,42 +62,42 @@ def clear_session() -> None:
 
 
 def is_authenticated() -> bool:
-    """Check if user is authenticated."""
+    """사용자 인증 여부를 확인한다."""
     return st.session_state.get("authenticated", False)
 
 
 def get_user_id() -> str | None:
-    """Get current user ID from session."""
+    """세션에서 사용자 ID를 가져온다."""
     return st.session_state.get("user_id")
 
 
 def get_user_email() -> str | None:
-    """Get current user email from session."""
+    """세션에서 사용자 이메일을 가져온다."""
     return st.session_state.get("user_email")
 
 
 def get_user_name() -> str | None:
-    """Get current user name from session."""
+    """세션에서 사용자 이름을 가져온다."""
     return st.session_state.get("user_name")
 
 
 def get_access_token() -> str | None:
-    """Get access token from session."""
+    """세션에서 액세스 토큰을 가져온다."""
     return st.session_state.get("access_token")
 
 
 def set_preferences(preferences: dict[str, Any]) -> None:
-    """Store user preferences in session."""
+    """사용자 선호도를 세션에 저장한다."""
     st.session_state.preferences = preferences
 
 
 def get_preferences() -> dict[str, Any] | None:
-    """Get user preferences from session."""
+    """세션에서 사용자 선호도를 가져온다."""
     return st.session_state.get("preferences")
 
 
 def is_token_valid() -> bool:
-    """Check if access token is still valid."""
+    """액세스 토큰 유효 여부를 확인한다."""
     if not st.session_state.get("access_token"):
         return False
 
@@ -105,42 +105,42 @@ def is_token_valid() -> bool:
     if expires_at and isinstance(expires_at, datetime):
         return datetime.now() < expires_at
 
-    # If no expiration time set, assume token is valid
+    # 만료 시간이 없으면 유효하다고 가정
     return True
 
 
 def mark_onboarding_completed() -> None:
-    """Mark onboarding as completed."""
+    """온보딩 완료 상태로 표시한다."""
     st.session_state.onboarding_completed = True
 
 
 def is_onboarding_completed() -> bool:
-    """Check if onboarding is completed."""
+    """온보딩 완료 여부를 확인한다."""
     return st.session_state.get("onboarding_completed", False)
 
 
 def set_current_page(page: str) -> None:
-    """Set current page in session."""
+    """세션에 현재 페이지를 설정한다."""
     st.session_state.current_page = page
 
 
 def get_current_page() -> str:
-    """Get current page from session."""
+    """세션에서 현재 페이지를 가져온다."""
     return st.session_state.get("current_page", "dashboard")
 
 
 def is_admin_user() -> bool:
-    """Check if current user is admin (from environment variable)."""
-    # Get admin emails from environment variable or streamlit secrets
+    """현재 사용자가 관리자 인지 확인한다(환경 변수 기준)."""
+    # 환경 변수 또는 Streamlit secrets에서 관리자 이메일 조회
     admin_emails_str = os.getenv("ADMIN_EMAILS", "")
 
-    # Also check streamlit secrets as fallback
+    # Streamlit secrets도 폴백으로 확인
     if not admin_emails_str and hasattr(st, "secrets"):
         admin_emails_str = st.secrets.get("ADMIN_EMAILS", "")
 
-    # Parse comma-separated emails
+    # 쉼표로 구분된 이메일 파싱
     admin_emails = [email.strip() for email in admin_emails_str.split(",") if email.strip()]
 
-    # Check if current user email is in admin list
+    # 현재 사용자 이메일이 관리자 목록에 있는지 확인
     user_email = get_user_email()
     return user_email in admin_emails if user_email else False

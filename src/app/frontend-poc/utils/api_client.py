@@ -1,4 +1,4 @@
-"""FastAPI client wrapper for Streamlit frontend."""
+"""Streamlit 프런트엔드용 FastAPI 클라이언트 래퍼."""
 
 from typing import Any
 
@@ -7,17 +7,17 @@ import streamlit as st
 
 
 class APIClient:
-    """Client for interacting with FastAPI backend."""
+    """FastAPI 백엔드와 통신하는 클라이언트."""
 
     def __init__(self, base_url: str = "http://localhost:8000"):
         self.base_url = base_url
         self.timeout = 30.0
 
     def _get_headers(self) -> dict[str, str]:
-        """Get headers with access token if available."""
+        """액세스 토큰을 포함한 헤더를 반환한다."""
         headers = {"Content-Type": "application/json"}
 
-        # Add access token if available in session
+        # 세션에 토큰이 있으면 추가
         if hasattr(st, "session_state"):
             token = st.session_state.get("access_token")
             if token:
@@ -26,7 +26,7 @@ class APIClient:
         return headers
 
     def _handle_response(self, response: httpx.Response) -> dict[str, Any]:
-        """Handle API response and errors."""
+        """API 응답과 오류를 처리한다."""
         try:
             response.raise_for_status()
             return response.json()
@@ -40,10 +40,10 @@ class APIClient:
             except Exception:
                 error_detail = str(e)
 
-            # Handle specific error codes
+            # 상태 코드별 처리
             if status_code == 401:
                 error_msg = "인증이 필요합니다. 다시 로그인해주세요."
-                # Clear session token
+                # 세션 토큰 제거
                 if hasattr(st, "session_state"):
                     st.session_state.pop("access_token", None)
                     st.session_state.pop("user", None)
@@ -65,13 +65,13 @@ class APIClient:
     # ========== Authentication ==========
 
     def request_magic_link(self, email: str) -> dict[str, Any]:
-        """Request magic link for authentication."""
+        """인증용 매직 링크를 요청한다."""
         with httpx.Client(timeout=self.timeout) as client:
             response = client.post(f"{self.base_url}/auth/magic-link", json={"email": email})
             return self._handle_response(response)
 
     def verify_magic_link(self, token: str) -> dict[str, Any]:
-        """Verify magic link token and get access token."""
+        """매직 링크 토큰을 검증하고 액세스 토큰을 받는다."""
         with httpx.Client(timeout=self.timeout) as client:
             response = client.get(f"{self.base_url}/auth/verify?token={token}")
             return self._handle_response(response)
@@ -79,13 +79,13 @@ class APIClient:
     # ========== User Management ==========
 
     def get_current_user(self) -> dict[str, Any]:
-        """Get current authenticated user."""
+        """현재 인증된 사용자를 조회한다."""
         with httpx.Client(timeout=self.timeout) as client:
             response = client.get(f"{self.base_url}/users/me", headers=self._get_headers())
             return self._handle_response(response)
 
     def get_user_preferences(self, user_id: str) -> dict[str, Any]:
-        """Get user preferences."""
+        """사용자 선호도를 조회한다."""
         with httpx.Client(timeout=self.timeout) as client:
             response = client.get(
                 f"{self.base_url}/users/{user_id}/preferences",
@@ -94,7 +94,7 @@ class APIClient:
             return self._handle_response(response)
 
     def update_user_preferences(self, user_id: str, preferences: dict[str, Any]) -> dict[str, Any]:
-        """Update user preferences."""
+        """사용자 선호도를 업데이트한다."""
         with httpx.Client(timeout=self.timeout) as client:
             response = client.put(
                 f"{self.base_url}/users/{user_id}/preferences",
@@ -117,7 +117,7 @@ class APIClient:
         order_by: str = "collected_at",
         order_desc: bool = True,
     ) -> dict[str, Any]:
-        """Get articles with pagination and filters."""
+        """페이지네이션/필터로 아티클을 조회한다."""
         params = {
             "skip": skip,
             "limit": limit,
@@ -144,7 +144,7 @@ class APIClient:
             return self._handle_response(response)
 
     def get_article(self, article_id: str) -> dict[str, Any]:
-        """Get single article by ID."""
+        """ID로 아티클을 조회한다."""
         with httpx.Client(timeout=self.timeout) as client:
             response = client.get(
                 f"{self.base_url}/api/articles/{article_id}",
@@ -153,7 +153,7 @@ class APIClient:
             return self._handle_response(response)
 
     def get_articles_batch(self, article_ids: list[str]) -> dict[str, Any]:
-        """Get multiple articles by IDs (batch retrieval)."""
+        """여러 ID로 아티클을 배치 조회한다."""
         payload = {"article_ids": article_ids}
 
         with httpx.Client(timeout=self.timeout) as client:
@@ -169,7 +169,7 @@ class APIClient:
         date_from: str | None = None,
         date_to: str | None = None,
     ) -> dict[str, Any]:
-        """Get article statistics."""
+        """아티클 통계를 조회한다."""
         params = {}
         if date_from:
             params["date_from"] = date_from
@@ -185,7 +185,7 @@ class APIClient:
             return self._handle_response(response)
 
     def delete_article(self, article_id: str) -> dict[str, Any]:
-        """Delete article by ID."""
+        """ID로 아티클을 삭제한다."""
         with httpx.Client(timeout=self.timeout) as client:
             response = client.delete(
                 f"{self.base_url}/api/articles/{article_id}",
@@ -206,7 +206,7 @@ class APIClient:
         date_from: str | None = None,
         date_to: str | None = None,
     ) -> dict[str, Any]:
-        """Search articles using semantic search (Vector DB)."""
+        """시맨틱 검색(벡터 DB)으로 아티클을 조회한다."""
         payload = {
             "query": query,
             "limit": limit,
@@ -237,7 +237,7 @@ class APIClient:
         skip: int = 0,
         limit: int = 20,
     ) -> dict[str, Any]:
-        """Search articles using keyword search (ILIKE pattern matching)."""
+        """키워드 검색(ILIKE 패턴 매칭)으로 아티클을 조회한다."""
         params = {
             "query": query,
             "skip": skip,
@@ -257,7 +257,7 @@ class APIClient:
         article_id: str,
         limit: int = 5,
     ) -> dict[str, Any]:
-        """Find similar articles to a given article."""
+        """특정 아티클과 유사한 아티클을 찾는다."""
         params = {"limit": limit}
 
         with httpx.Client(timeout=self.timeout) as client:
@@ -271,7 +271,7 @@ class APIClient:
     # ========== Digests ==========
 
     def get_user_digests(self, user_id: str, skip: int = 0, limit: int = 10) -> dict[str, Any]:
-        """Get user's digest history."""
+        """사용자 다이제스트 히스토리를 조회한다."""
         params = {"skip": skip, "limit": limit}
 
         with httpx.Client(timeout=self.timeout) as client:
@@ -283,7 +283,7 @@ class APIClient:
             return self._handle_response(response)
 
     def get_latest_digest(self, user_id: str) -> dict[str, Any]:
-        """Get user's latest digest."""
+        """사용자의 최신 다이제스트를 조회한다."""
         with httpx.Client(timeout=self.timeout) as client:
             response = client.get(
                 f"{self.base_url}/users/{user_id}/digests/latest",
@@ -292,7 +292,7 @@ class APIClient:
             return self._handle_response(response)
 
     def send_test_digest(self, user_id: str) -> dict[str, Any]:
-        """Send test digest to user."""
+        """사용자에게 테스트 다이제스트를 보낸다."""
         with httpx.Client(timeout=self.timeout) as client:
             response = client.post(
                 f"{self.base_url}/users/{user_id}/digests/test",
@@ -308,7 +308,7 @@ class APIClient:
         rating: int,
         comment: str | None = None,
     ) -> dict[str, Any]:
-        """Create feedback for an article (user_id from JWT)."""
+        """아티클 피드백을 생성한다(JWT의 user_id 사용)."""
         payload = {
             "article_id": article_id,
             "rating": rating,
@@ -325,7 +325,7 @@ class APIClient:
             return self._handle_response(response)
 
     def get_feedback(self, feedback_id: str) -> dict[str, Any]:
-        """Get single feedback by ID."""
+        """ID로 피드백을 조회한다."""
         with httpx.Client(timeout=self.timeout) as client:
             response = client.get(
                 f"{self.base_url}/api/feedback/{feedback_id}",
@@ -339,7 +339,7 @@ class APIClient:
         rating: int | None = None,
         comment: str | None = None,
     ) -> dict[str, Any]:
-        """Update feedback."""
+        """피드백을 업데이트한다."""
         payload = {}
         if rating is not None:
             payload["rating"] = rating
@@ -355,7 +355,7 @@ class APIClient:
             return self._handle_response(response)
 
     def delete_feedback(self, feedback_id: str) -> dict[str, Any]:
-        """Delete feedback."""
+        """피드백을 삭제한다."""
         with httpx.Client(timeout=self.timeout) as client:
             response = client.delete(
                 f"{self.base_url}/api/feedback/{feedback_id}",
@@ -364,7 +364,7 @@ class APIClient:
             return self._handle_response(response)
 
     def get_user_feedback(self, user_id: str, skip: int = 0, limit: int = 20) -> dict[str, Any]:
-        """Get user's feedback list."""
+        """사용자 피드백 목록을 조회한다."""
         params = {"skip": skip, "limit": limit}
 
         with httpx.Client(timeout=self.timeout) as client:
@@ -381,7 +381,7 @@ class APIClient:
         skip: int = 0,
         limit: int = 20,
     ) -> dict[str, Any]:
-        """Get feedback for a specific article."""
+        """특정 아티클의 피드백을 조회한다."""
         params = {"skip": skip, "limit": limit}
 
         with httpx.Client(timeout=self.timeout) as client:
@@ -393,7 +393,7 @@ class APIClient:
             return self._handle_response(response)
 
     def get_article_feedback_stats(self, article_id: str) -> dict[str, Any]:
-        """Get feedback statistics for an article."""
+        """아티클 피드백 통계를 조회한다."""
         with httpx.Client(timeout=self.timeout) as client:
             response = client.get(
                 f"{self.base_url}/api/feedback/article/{article_id}/stats",
@@ -408,7 +408,7 @@ class APIClient:
         messages: list[dict[str, str]],
         provider: str = "openai",
     ) -> dict[str, Any]:
-        """Get LLM chat completion."""
+        """LLM 채팅 완료 응답을 조회한다."""
         payload = {
             "messages": messages,
             "provider": provider,
@@ -426,7 +426,7 @@ class APIClient:
     # ========== Scheduler ==========
 
     def get_scheduler_status(self) -> dict[str, Any]:
-        """Get scheduler status."""
+        """스케줄러 상태를 조회한다."""
         with httpx.Client(timeout=self.timeout) as client:
             response = client.get(
                 f"{self.base_url}/api/scheduler/status",
@@ -435,7 +435,7 @@ class APIClient:
             return self._handle_response(response)
 
     def start_scheduler(self) -> dict[str, Any]:
-        """Start the scheduler."""
+        """스케줄러를 시작한다."""
         with httpx.Client(timeout=self.timeout) as client:
             response = client.post(
                 f"{self.base_url}/api/scheduler/control",
@@ -445,7 +445,7 @@ class APIClient:
             return self._handle_response(response)
 
     def stop_scheduler(self) -> dict[str, Any]:
-        """Stop the scheduler."""
+        """스케줄러를 중지한다."""
         with httpx.Client(timeout=self.timeout) as client:
             response = client.post(
                 f"{self.base_url}/api/scheduler/control",
@@ -455,8 +455,8 @@ class APIClient:
             return self._handle_response(response)
 
     def trigger_job(self, job_id: str) -> dict[str, Any]:
-        """Manually trigger a scheduled job."""
-        with httpx.Client(timeout=60.0) as client:  # Longer timeout for job execution
+        """스케줄된 잡을 수동 실행한다."""
+        with httpx.Client(timeout=60.0) as client:  # 잡 실행용 긴 타임아웃
             response = client.post(
                 f"{self.base_url}/api/scheduler/jobs/trigger",
                 json={"job_id": job_id},
@@ -465,10 +465,10 @@ class APIClient:
             return self._handle_response(response)
 
 
-# Global API client instance
+# 전역 API 클라이언트 인스턴스
 @st.cache_resource
 def get_api_client() -> APIClient:
-    """Get cached API client instance."""
-    # Get base URL from secrets or use default
+    """캐시된 API 클라이언트를 반환한다."""
+    # secrets에서 base URL을 가져오거나 기본값 사용
     base_url = st.secrets.get("api_base_url", "http://localhost:8000")
     return APIClient(base_url=base_url)

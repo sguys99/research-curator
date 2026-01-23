@@ -1,4 +1,4 @@
-"""Feedback page for rating and commenting on articles."""
+"""아티클 평점/코멘트를 남기는 피드백 페이지."""
 
 import streamlit as st
 
@@ -8,7 +8,7 @@ from app.frontend.utils.session import get_user_id, is_authenticated
 
 
 def show_feedback_page():
-    """Display feedback page with article rating and comment submission."""
+    """아티클 평점/코멘트 제출 화면을 표시한다."""
     if not is_authenticated():
         st.warning("⚠️ 로그인이 필요합니다.")
         st.stop()
@@ -18,7 +18,7 @@ def show_feedback_page():
     api = get_api_client()
     user_id = get_user_id()
 
-    # Tab selection
+    # 탭 선택
     tab1, tab2, tab3 = st.tabs(["📝 피드백 제출", "📊 피드백 이력", "📈 아티클 통계"])
 
     with tab1:
@@ -32,7 +32,7 @@ def show_feedback_page():
 
 
 def _show_feedback_submission(api, user_id: str):
-    """Show feedback submission form."""
+    """피드백 제출 폼을 표시한다."""
     st.markdown("### 📝 아티클 피드백 제출")
 
     st.markdown(
@@ -44,7 +44,7 @@ def _show_feedback_submission(api, user_id: str):
 
     st.markdown("---")
 
-    # Method selection
+    # 방법 선택
     method = st.radio(
         "피드백 방법 선택",
         ["최근 다이제스트에서 선택", "아티클 ID 직접 입력"],
@@ -54,7 +54,7 @@ def _show_feedback_submission(api, user_id: str):
     article_id = None
 
     if method == "최근 다이제스트에서 선택":
-        # Load recent digests
+        # 최근 다이제스트 로드
         with st.spinner("최근 다이제스트를 불러오는 중..."):
             try:
                 digests_response = api.get_user_digests(user_id, skip=0, limit=5)
@@ -64,7 +64,7 @@ def _show_feedback_submission(api, user_id: str):
                     st.info("아직 받은 다이제스트가 없습니다.")
                     return
 
-                # Select digest
+                # 다이제스트 선택
                 digest_options = [
                     f"다이제스트 {idx + 1} - {d.get('sent_at', 'N/A')[:10]}"
                     for idx, d in enumerate(digests)
@@ -83,7 +83,7 @@ def _show_feedback_submission(api, user_id: str):
                     st.info("이 다이제스트에는 아티클이 없습니다.")
                     return
 
-                # Load articles using batch API
+                # 배치 API로 아티클 로드
                 try:
                     batch_response = api.get_articles_batch(article_ids)
                     articles = batch_response.get("articles", [])
@@ -95,7 +95,7 @@ def _show_feedback_submission(api, user_id: str):
                     st.error(f"아티클 로딩 오류: {str(e)}")
                     return
 
-                # Select article
+                # 아티클 선택
                 article_options = [
                     f"{a.get('title', '제목 없음')[:50]}..."
                     if len(a.get("title", "")) > 50
@@ -112,7 +112,7 @@ def _show_feedback_submission(api, user_id: str):
                 selected_article = articles[selected_article_idx]
                 article_id = selected_article.get("id")
 
-                # Show article preview
+                # 아티클 미리보기 표시
                 with st.expander("📄 선택한 아티클 미리보기"):
                     st.markdown(f"**제목**: {selected_article.get('title', 'N/A')}")
                     st.markdown(f"**요약**: {selected_article.get('summary', 'N/A')}")
@@ -123,7 +123,7 @@ def _show_feedback_submission(api, user_id: str):
                 return
 
     else:
-        # Direct article ID input
+        # 아티클 ID 직접 입력
         article_id_input = st.text_input(
             "아티클 ID",
             placeholder="예: 123e4567-e89b-12d3-a456-426614174000",
@@ -133,7 +133,7 @@ def _show_feedback_submission(api, user_id: str):
         if article_id_input:
             article_id = article_id_input.strip()
 
-            # Try to load article to verify ID
+            # ID 검증을 위해 아티클 조회
             try:
                 article = api.get_article(article_id)
 
@@ -146,7 +146,7 @@ def _show_feedback_submission(api, user_id: str):
                 st.error(f"아티클을 찾을 수 없습니다: {str(e)}")
                 article_id = None
 
-    # Feedback form
+    # 피드백 폼
     if article_id:
         st.markdown("---")
         st.markdown("### ⭐ 평가")
@@ -162,7 +162,7 @@ def _show_feedback_submission(api, user_id: str):
             )
 
         with col2:
-            # Visual rating display
+            # 평점 시각화 표시
             star_display = "⭐" * rating + "☆" * (5 - rating)
             st.markdown(f"### {star_display}")
 
@@ -179,7 +179,7 @@ def _show_feedback_submission(api, user_id: str):
 
         st.markdown("---")
 
-        # Submit button
+        # 제출 버튼
         col1, col2, col3 = st.columns([1, 1, 1])
 
         with col2:
@@ -195,7 +195,7 @@ def _show_feedback_submission(api, user_id: str):
                         st.success("✅ 피드백이 제출되었습니다!")
                         st.balloons()
 
-                        # Show result
+                        # 결과 표시
                         with st.expander("제출된 피드백 확인"):
                             st.json(result)
 
@@ -204,10 +204,10 @@ def _show_feedback_submission(api, user_id: str):
 
 
 def _show_feedback_history(api, user_id: str):
-    """Show feedback history."""
+    """피드백 이력을 표시한다."""
     st.markdown("### 📊 피드백 이력")
 
-    # Load feedback history
+    # 피드백 이력 로드
     with st.spinner("피드백 이력을 불러오는 중..."):
         try:
             feedback_response = api.get_user_feedback(user_id, skip=0, limit=50)
@@ -217,7 +217,7 @@ def _show_feedback_history(api, user_id: str):
                 st.info("아직 제출한 피드백이 없습니다.")
                 return
 
-            # Statistics
+            # 통계
             st.markdown("#### 📈 통계")
 
             col1, col2, col3 = st.columns(3)
@@ -241,7 +241,7 @@ def _show_feedback_history(api, user_id: str):
 
             st.markdown("---")
 
-            # Rating distribution
+            # 평점 분포
             st.markdown("#### 📊 평점 분포")
 
             rating_dist_cols = st.columns(5)
@@ -253,10 +253,10 @@ def _show_feedback_history(api, user_id: str):
 
             st.markdown("---")
 
-            # Feedback list
+            # 피드백 목록
             st.markdown("#### 📝 피드백 목록")
 
-            # Filter options
+            # 필터 옵션
             col1, col2 = st.columns(2)
 
             with col1:
@@ -273,10 +273,10 @@ def _show_feedback_history(api, user_id: str):
                     ["최신순", "평점 높은 순", "평점 낮은 순"],
                 )
 
-            # Filter feedbacks
+            # 피드백 필터링
             filtered_feedbacks = [f for f in feedbacks if f.get("rating") in filter_rating]
 
-            # Sort feedbacks
+            # 피드백 정렬
             if sort_order == "평점 높은 순":
                 filtered_feedbacks = sorted(
                     filtered_feedbacks,
@@ -286,7 +286,7 @@ def _show_feedback_history(api, user_id: str):
             elif sort_order == "평점 낮은 순":
                 filtered_feedbacks = sorted(filtered_feedbacks, key=lambda x: x.get("rating", 0))
             else:
-                # Already in latest first order from API
+                # API에서 최신순으로 이미 정렬됨
                 pass
 
             if not filtered_feedbacks:
@@ -295,7 +295,7 @@ def _show_feedback_history(api, user_id: str):
 
             st.caption(f"{len(filtered_feedbacks)}개의 피드백")
 
-            # Display feedbacks
+            # 피드백 표시
             for idx, feedback in enumerate(filtered_feedbacks):
                 with st.expander(
                     f"{'⭐' * feedback.get('rating', 0)} - " f"{feedback.get('created_at', 'N/A')[:10]}",
@@ -316,7 +316,7 @@ def _show_feedback_history(api, user_id: str):
                         st.caption(f"제출일: {feedback.get('created_at', 'N/A')[:10]}")
                         st.caption(f"피드백 ID: `{str(feedback.get('id', 'N/A'))[:8]}...`")
 
-                        # Action buttons
+                        # 액션 버튼
                         action_col1, action_col2 = st.columns(2)
 
                         with action_col1:
@@ -334,7 +334,7 @@ def _show_feedback_history(api, user_id: str):
                                     except Exception as e:
                                         st.error(f"삭제 실패: {str(e)}")
 
-                    # Edit mode
+                    # 수정 모드
                     if st.session_state.get(f"edit_feedback_{feedback.get('id')}"):
                         st.markdown("---")
                         st.markdown("**✏️ 피드백 수정**")
@@ -382,7 +382,7 @@ def _show_feedback_history(api, user_id: str):
         except Exception as e:
             st.error(f"피드백 이력을 불러오는 중 오류가 발생했습니다: {str(e)}")
 
-    # Help section
+    # 도움말 섹션
     st.markdown("---")
     st.markdown("### 💡 도움말")
 
@@ -414,7 +414,7 @@ def _show_feedback_history(api, user_id: str):
 
 
 def _show_article_stats(api):
-    """Show article feedback statistics."""
+    """아티클 피드백 통계를 표시한다."""
     st.markdown("### 📈 아티클 피드백 통계")
 
     st.markdown(
@@ -425,7 +425,7 @@ def _show_article_stats(api):
 
     st.markdown("---")
 
-    # Article ID input
+    # 아티클 ID 입력
     article_id = st.text_input(
         "아티클 ID 입력",
         placeholder="예: 123e4567-e89b-12d3-a456-426614174000",
@@ -436,7 +436,7 @@ def _show_article_stats(api):
         st.info("아티클 ID를 입력하여 통계를 조회하세요.")
         return
 
-    # Load article info
+    # 아티클 정보 로드
     col1, col2 = st.columns([2, 1])
 
     with col1:
@@ -461,14 +461,14 @@ def _show_article_stats(api):
 
     st.markdown("---")
 
-    # Load feedback statistics
+    # 피드백 통계 로드
     with st.spinner("피드백 통계를 불러오는 중..."):
         try:
             stats = api.get_article_feedback_stats(article_id)
 
             st.markdown("#### 📊 피드백 통계")
 
-            # Summary metrics
+            # 요약 지표
             col1, col2, col3 = st.columns(3)
 
             with col1:
@@ -488,7 +488,7 @@ def _show_article_stats(api):
 
             st.markdown("---")
 
-            # Rating distribution
+            # 평점 분포
             st.markdown("#### ⭐ 평점 분포")
 
             rating_dist = stats.get("rating_distribution", {})
@@ -497,20 +497,20 @@ def _show_article_stats(api):
             if total > 0:
                 dist_cols = st.columns(5)
                 for i in range(1, 6):
-                    count = rating_dist.get(str(i), 0)  # API returns string keys
+                    count = rating_dist.get(str(i), 0)  # API는 문자열 키 반환
                     pct = (count / total * 100) if total > 0 else 0
 
                     with dist_cols[i - 1]:
                         st.metric(f"{i}⭐", f"{count}개", f"{pct:.1f}%")
 
-                # Visual bar chart
+                # 시각적 막대 차트
                 st.markdown("---")
                 st.markdown("**분포 차트**")
 
                 for i in range(5, 0, -1):  # 5 to 1
                     count = rating_dist.get(str(i), 0)
                     pct = (count / total * 100) if total > 0 else 0
-                    bar_length = int(pct / 2)  # Scale to 50 chars max
+                    bar_length = int(pct / 2)  # 최대 50자 기준 스케일
                     bar = "█" * bar_length
                     st.text(f"{i}⭐ │{bar} {pct:.1f}% ({count}개)")
 
@@ -519,7 +519,7 @@ def _show_article_stats(api):
 
             st.markdown("---")
 
-            # Load recent feedbacks for this article
+            # 해당 아티클의 최근 피드백 로드
             st.markdown("#### 💬 최근 피드백")
 
             try:

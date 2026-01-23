@@ -1,4 +1,4 @@
-"""Settings page for managing user preferences."""
+"""사용자 선호도를 관리하는 설정 페이지."""
 
 import streamlit as st
 
@@ -8,7 +8,7 @@ from app.frontend.utils.session import get_user_id, is_authenticated
 
 
 def show_settings_page():
-    """Display settings page with preference management."""
+    """선호도 관리 설정 페이지를 표시한다."""
     if not is_authenticated():
         st.warning("⚠️ 로그인이 필요합니다.")
         st.stop()
@@ -18,7 +18,7 @@ def show_settings_page():
     api = get_api_client()
     user_id = get_user_id()
 
-    # Load current preferences
+    # 현재 선호도 로드
     with st.spinner("설정을 불러오는 중..."):
         try:
             preferences = api.get_user_preferences(user_id)
@@ -26,7 +26,7 @@ def show_settings_page():
             st.error(f"설정을 불러오는 중 오류가 발생했습니다: {str(e)}")
             preferences = {}
 
-    # Settings form
+    # 설정 폼
     with st.form("settings_form"):
         st.markdown("### 📚 연구 분야 및 키워드")
 
@@ -89,7 +89,7 @@ def show_settings_page():
                 help="연구 리포트 비율",
             )
 
-        # Show total percentage
+        # 합계 퍼센트 표시
         total_pct = paper_ratio + news_ratio + report_ratio
         if total_pct != 100:
             st.warning(f"⚠️ 현재 합계: {total_pct}%. 저장 시 자동으로 100%로 정규화됩니다.")
@@ -140,7 +140,7 @@ def show_settings_page():
 
         st.markdown("---")
 
-        # Submit button
+        # 제출 버튼
         col1, col2, col3 = st.columns([1, 1, 1])
 
         with col2:
@@ -150,18 +150,18 @@ def show_settings_page():
                 use_container_width=True,
             )
 
-    # Handle form submission
+    # 폼 제출 처리
     if submit_button:
         with st.spinner("설정을 저장하는 중..."):
             try:
-                # Parse inputs
+                # 입력 파싱
                 research_fields = [
                     field.strip() for field in research_fields_input.split(",") if field.strip()
                 ]
                 keywords = [kw.strip() for kw in keywords_input.split(",") if kw.strip()]
                 sources = [src.strip() for src in sources_input.split(",") if src.strip()]
 
-                # Normalize info types to sum to 1.0
+                # info_types 합계가 1.0이 되도록 정규화
                 total = paper_ratio + news_ratio + report_ratio
                 if total > 0:
                     info_types = {
@@ -172,7 +172,7 @@ def show_settings_page():
                 else:
                     info_types = {"paper": 0.5, "news": 0.3, "report": 0.2}
 
-                # Prepare payload
+                # 페이로드 구성
                 payload = {
                     "research_fields": research_fields,
                     "keywords": keywords,
@@ -183,18 +183,18 @@ def show_settings_page():
                     "email_enabled": email_enabled,
                 }
 
-                # Save preferences
+                # 선호도 저장
                 api.update_user_preferences(user_id, payload)
 
                 st.success("✅ 설정이 저장되었습니다!")
 
-                # Rerun to reload preferences
+                # 선호도 재로드를 위해 리런
                 st.rerun()
 
             except Exception as e:
                 st.error(f"❌ 설정 저장 중 오류가 발생했습니다: {str(e)}")
 
-    # Help section
+    # 도움말 섹션
     st.markdown("---")
     st.markdown("### 💡 도움말")
 
@@ -222,7 +222,7 @@ def show_settings_page():
             """,
         )
 
-    # Show current settings summary
+    # 현재 설정 요약 표시
     with st.expander("현재 설정 요약"):
         st.json(preferences)
 

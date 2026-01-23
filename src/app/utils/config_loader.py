@@ -6,16 +6,16 @@ from app.utils.path import DATA_CONFIG_PATH
 
 
 def load_config(path: str) -> dict[str, Any]:
-    """Configuration loader.
+    """설정 파일을 로드한다.
 
-    Description:
-        Load configuration yaml file into python dictionary.
+    설명:
+        YAML 설정 파일을 파이썬 딕셔너리로 로드한다.
 
     Args:
-        path (str): Configuration path.
+        path (str): 설정 파일 경로
 
     Returns:
-        (Dict[str, Any]): Dictionary of configuration.
+        dict[str, Any]: 설정 딕셔너리
     """
     config = {}
     with open(path, encoding="utf-8") as file:
@@ -25,8 +25,9 @@ def load_config(path: str) -> dict[str, Any]:
 
 def load_all_configs(data_type="HPMC"):
     """
-    Load various configuration files required for data processing and model training.
-    Depending on the data_type, different training configuration paths are used.
+    데이터 처리/모델 학습에 필요한 설정 파일을 로드한다.
+
+    data_type에 따라 학습 설정 경로가 달라질 수 있다.
     """
 
     configs = {

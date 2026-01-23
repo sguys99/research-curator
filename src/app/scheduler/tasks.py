@@ -1,4 +1,4 @@
-"""Scheduled tasks for data collection, processing, and email sending."""
+"""데이터 수집/처리/이메일 발송 스케줄 작업."""
 
 import asyncio
 import logging
@@ -20,43 +20,43 @@ from app.processors.summarizer import ArticleSummarizer
 logger = logging.getLogger(__name__)
 
 
-# Helper functions to wrap async calls
+# 비동기 호출을 감싸는 헬퍼 함수
 async def summarize_article(title: str, content: str) -> str:
-    """Async wrapper for article summarization."""
+    """아티클 요약 비동기 래퍼."""
     summarizer = ArticleSummarizer()
     return await summarizer.summarize(title=title, content=content)
 
 
 async def evaluate_importance(title: str, content: str) -> float:
-    """Async wrapper for importance evaluation."""
+    """중요도 평가 비동기 래퍼."""
     evaluator = ImportanceEvaluator()
     result = await evaluator.evaluate(title=title, content=content)
     return result.get("importance_score", 0.5)
 
 
 async def classify_article_type(title: str, content: str) -> str:
-    """Async wrapper for article classification."""
+    """아티클 분류 비동기 래퍼."""
     classifier = ContentClassifier()
     result = await classifier.classify(title=title, content=content)
     return result.get("category", "other")
 
 
 async def generate_embedding(text: str) -> list[float]:
-    """Async wrapper for embedding generation."""
+    """임베딩 생성 비동기 래퍼."""
     embedder = TextEmbedder()
     return await embedder.embed(text)
 
 
 async def collect_data_task_async() -> None:
     """
-    Scheduled task for collecting data from various sources.
+    다양한 소스에서 데이터를 수집하는 스케줄 작업.
 
-    Collects articles from:
-    - arXiv (research papers)
-    - News sources (TechCrunch, etc.)
-    - Google Scholar (future)
+    수집 소스:
+    - arXiv(연구 논문)
+    - 뉴스 소스(TechCrunch 등)
+    - Google Scholar(예정)
 
-    Runs daily at 01:00 KST
+    매일 01:00 KST 실행
     """
     logger.info("=" * 60)
     logger.info("Starting data collection task...")
@@ -68,7 +68,7 @@ async def collect_data_task_async() -> None:
     error_count = 0
 
     try:
-        # Get all users with preferences to determine what to collect
+        # 선호도를 가진 사용자 목록 조회(수집 대상 결정)
         users = crud.list_users(db)
         logger.info(f"Found {len(users)} users")
 
@@ -76,7 +76,7 @@ async def collect_data_task_async() -> None:
             logger.warning("No users found, skipping data collection")
             return
 
-        # Aggregate all research fields and keywords from users
+        # 사용자들의 연구 분야/키워드 집계
         all_fields = set()
         all_keywords = set()
 
@@ -88,7 +88,7 @@ async def collect_data_task_async() -> None:
 
         logger.info(f"Collecting for {len(all_fields)} fields and {len(all_keywords)} keywords")
 
-        # 1. Collect from arXiv
+        # 1) arXiv 수집
         logger.info("\n1. Collecting from arXiv...")
         arxiv_collector = ArxivCollector()
 
@@ -101,12 +101,12 @@ async def collect_data_task_async() -> None:
 
                 for article_data in articles:
                     try:
-                        # Check if article already exists
+                        # 이미 존재하는 아티클인지 확인
                         existing = crud.get_article_by_url(db, article_data.url)
                         if existing:
                             continue
 
-                        # Create article
+                        # 아티클 생성
                         crud.create_article(
                             db,
                             title=article_data.title,
@@ -132,11 +132,11 @@ async def collect_data_task_async() -> None:
                 error_count += 1
                 db.rollback()
 
-        # 2. Collect from News sources
+        # 2) 뉴스 소스 수집
         logger.info("\n2. Collecting from News sources...")
         news_collector = NewsCollector()
 
-        for keyword in list(all_keywords)[:5]:  # Limit to 5 keywords to avoid rate limits
+        for keyword in list(all_keywords)[:5]:  # 레이트 리밋 방지를 위해 5개 제한
             try:
                 articles = await async_with_retry(
                     lambda k=keyword: news_collector.collect(query=k, limit=3),
@@ -187,22 +187,22 @@ async def collect_data_task_async() -> None:
 
 
 def collect_data_task() -> None:
-    """Synchronous entrypoint for schedulers."""
+    """스케줄러용 동기 진입점."""
     asyncio.run(collect_data_task_async())
 
 
 async def process_articles_task_async() -> None:
     """
-    Scheduled task for processing collected articles.
+    수집된 아티클을 처리하는 스케줄 작업.
 
-    Processing steps:
-    1. Summarize content (Korean)
-    2. Evaluate importance score
-    3. Classify article type
-    4. Generate embeddings
-    5. Store in Vector DB
+    처리 단계:
+    1. 요약 생성(한국어)
+    2. 중요도 점수 평가
+    3. 아티클 분류
+    4. 임베딩 생성
+    5. 벡터 DB 저장
 
-    Runs daily at 01:30 KST
+    매일 01:30 KST 실행
     """
     logger.info("=" * 60)
     logger.info("Starting article processing task...")
@@ -214,10 +214,10 @@ async def process_articles_task_async() -> None:
     error_count = 0
 
     try:
-        # Get articles collected in the last 24 hours that haven't been processed
+        # 최근 24시간 내 수집된 미처리 아티클 조회
         articles = crud.list_articles(db, limit=100)
 
-        # Filter unprocessed articles (no summary or importance_score)
+        # 미처리 아티클 필터(요약/중요도 없음)
         unprocessed = [a for a in articles if not a.summary or a.importance_score is None]
 
         logger.info(f"Found {len(unprocessed)} unprocessed articles")
@@ -228,7 +228,7 @@ async def process_articles_task_async() -> None:
 
         for article in unprocessed:
             try:
-                # 1. Generate summary if not exists
+                # 1) 요약 생성(없는 경우)
                 if not article.summary:
                     summary = await async_with_retry(
                         lambda a=article: summarize_article(
@@ -239,7 +239,7 @@ async def process_articles_task_async() -> None:
                     )
                     article.summary = summary
 
-                # 2. Evaluate importance if not exists
+                # 2) 중요도 평가(없는 경우)
                 if article.importance_score is None:
                     score = await async_with_retry(
                         lambda a=article: evaluate_importance(
@@ -250,7 +250,7 @@ async def process_articles_task_async() -> None:
                     )
                     article.importance_score = score
 
-                # 3. Classify article type if category not set
+                # 3) 카테고리 분류(없는 경우)
                 if not article.category:
                     category = await async_with_retry(
                         lambda a=article: classify_article_type(
@@ -261,12 +261,12 @@ async def process_articles_task_async() -> None:
                     )
                     article.category = category
 
-                # 4. Generate embedding and store in Vector DB
+                # 4) 임베딩 생성 및 벡터 DB 저장
                 if not article.vector_id:
                     try:
                         from app.vector_db.operations import VectorOperations
 
-                        # Store in Qdrant (embedding is generated internally)
+                        # Qdrant 저장(임베딩은 내부에서 생성)
                         vector_ops = VectorOperations()
                         vector_id = await vector_ops.insert_article(
                             article_id=str(article.id),
@@ -284,9 +284,9 @@ async def process_articles_task_async() -> None:
 
                     except Exception as e:
                         logger.warning(f"Embedding generation or Qdrant storage failed: {e}")
-                        # Don't fail the entire processing, just log and continue
+                        # 전체 처리는 중단하지 않고 로그만 남김
 
-                # Save updates
+                # 변경사항 저장
                 crud.update_article(
                     db,
                     article.id,
@@ -301,7 +301,7 @@ async def process_articles_task_async() -> None:
             except Exception as e:
                 logger.error(f"Error processing article '{article.title[:50]}': {e}")
                 error_count += 1
-                # Rollback the transaction to recover from errors
+                # 오류 복구를 위해 트랜잭션 롤백
                 db.rollback()
 
         logger.info("\n" + "=" * 60)
@@ -317,21 +317,21 @@ async def process_articles_task_async() -> None:
 
 
 def process_articles_task() -> None:
-    """Synchronous entrypoint for schedulers."""
+    """스케줄러용 동기 진입점."""
     asyncio.run(process_articles_task_async())
 
 
 async def send_digest_task_async() -> None:
     """
-    Scheduled task for sending email digests to users.
+    사용자에게 이메일 다이제스트를 발송하는 스케줄 작업.
 
-    For each user:
-    1. Get top N articles based on importance and preferences
-    2. Build HTML email digest
-    3. Send email
-    4. Record in sent_digests table
+    사용자별 처리:
+    1. 중요도/선호도 기반 상위 N개 선택
+    2. HTML 다이제스트 생성
+    3. 이메일 발송
+    4. sent_digests 테이블에 기록
 
-    Runs daily at 08:00 KST (configurable per user)
+    매일 08:00 KST 실행(사용자별 설정 가능)
     """
     logger.info("=" * 60)
     logger.info("Starting email digest task...")
@@ -343,24 +343,24 @@ async def send_digest_task_async() -> None:
     error_count = 0
 
     try:
-        # Get all users with email enabled
+        # 이메일 수신 활성 사용자 조회
         users = crud.list_users(db)
         logger.info(f"Found {len(users)} users")
 
-        # Get all articles from last 24 hours (fetch once for efficiency)
+        # 최근 24시간 아티클 조회(효율을 위해 1회 조회)
         since = datetime.now(UTC) - timedelta(days=1)
         all_articles = crud.get_articles_since(db, since=since)
 
-        # Filter for fully processed articles only
+        # 처리 완료 아티클만 필터링
         processed_articles = [
             a
             for a in all_articles
             if (
-                # Must have summary OR category (LLM generated)
+                # 요약 또는 카테고리가 있어야 함(LLM 생성)
                 (a.summary and a.summary.strip()) or (a.category and a.category.strip())
             )
             and (
-                # Must have importance score processed (>= 0.1 threshold)
+                # 중요도 점수가 있어야 함(>= 0.1)
                 a.importance_score is not None and a.importance_score >= 0.1
             )
         ]
@@ -370,7 +370,7 @@ async def send_digest_task_async() -> None:
             f"{len(processed_articles)} are fully processed",
         )
 
-        # Use processed articles instead of all articles
+        # 처리 완료 아티클만 사용
         all_articles = processed_articles
 
         if not all_articles:
@@ -383,19 +383,19 @@ async def send_digest_task_async() -> None:
 
         for user in users:
             try:
-                # Get user preferences
+                # 사용자 선호도 조회
                 pref = crud.get_user_preference(db, user.id)
                 if not pref or not pref.email_enabled:
                     continue
 
-                # Check if digest was already sent today (prevent duplicates)
+                # 오늘 이미 발송했는지 확인(중복 방지)
                 if crud.has_digest_sent_today(db, user.id):
                     logger.info(
                         f"⏭️  Digest already sent to {user.email} today, skipping",
                     )
                     continue
 
-                # Filter out articles already sent to this user in last 7 days
+                # 최근 7일 내 발송한 아티클 제외
                 sent_article_ids = crud.get_user_sent_article_ids(db, user.id, days=7)
                 unsent_articles = [a for a in all_articles if str(a.id) not in sent_article_ids]
 
@@ -405,7 +405,7 @@ async def send_digest_task_async() -> None:
                     f"(excluded {len(sent_article_ids)} already sent in last 7 days)",
                 )
 
-                # Select personalized articles based on user preferences
+                # 사용자 선호도 기반 개인화 선택
                 personalized_articles = await select_articles_for_user_async(
                     articles=unsent_articles,
                     preferences=pref,
@@ -425,9 +425,9 @@ async def send_digest_task_async() -> None:
                     f"fields: {pref.research_fields})",
                 )
 
-                # Build and send digest email
+                # 다이제스트 생성 및 발송
                 try:
-                    # Build email content
+                    # 이메일 콘텐츠 생성
                     builder = EmailBuilder()
                     html_content = builder.build_daily_digest(
                         user_name=user.name or user.email.split("@")[0],
@@ -436,11 +436,11 @@ async def send_digest_task_async() -> None:
                         daily_limit=pref.daily_limit,
                     )
 
-                    # Generate subject
+                    # 제목 생성
                     date_str = datetime.now().strftime("%Y년 %m월 %d일")
                     subject = f"🔬 Research Curator - {date_str} AI 연구 동향"
 
-                    # Send email
+                    # 이메일 발송
                     sender = EmailSender()
                     await sender.send_email(
                         to_email=user.email,
@@ -448,7 +448,7 @@ async def send_digest_task_async() -> None:
                         html_content=html_content,
                     )
 
-                    # Record in database
+                    # DB에 기록
                     crud.create_digest(
                         db=db,
                         user_id=user.id,
@@ -479,23 +479,23 @@ async def send_digest_task_async() -> None:
 
 
 def send_digest_task() -> None:
-    """Synchronous entrypoint for schedulers."""
+    """스케줄러용 동기 진입점."""
     asyncio.run(send_digest_task_async())
 
 
 async def unified_collect_and_send_task_async() -> None:
     """
-    Unified task: Collect, match, process, and send digests.
+    통합 작업: 수집/매칭/처리/다이제스트 발송.
 
-    This combines collection, processing, and sending into one efficient task:
-    1. Collect articles from all sources (in-memory only, no DB save)
-    2. Match articles to users based on preferences
-    3. Select top N articles per user
-    4. Process selected articles with LLM (summary, score, category, embedding)
-    5. Save processed articles to DB + Vector DB
-    6. Send email digests
+    수집-처리-발송을 하나의 효율적인 작업으로 통합:
+    1. 모든 소스에서 아티클 수집(메모리만, DB 저장 없음)
+    2. 사용자 선호도 기반 매칭
+    3. 사용자별 상위 N개 선택
+    4. LLM 처리(요약, 점수, 카테고리, 임베딩)
+    5. DB + 벡터 DB 저장
+    6. 이메일 발송
 
-    Runs daily at 06:00 KST
+    매일 06:00 KST 실행
     """
     logger.info("=" * 60)
     logger.info("Starting unified collect-and-send task...")
@@ -509,7 +509,7 @@ async def unified_collect_and_send_task_async() -> None:
     error_count = 0
 
     try:
-        # Step 1: Get all users
+        # 1단계: 사용자 목록 조회
         users = crud.list_users(db)
         logger.info(f"Found {len(users)} users")
 
@@ -517,7 +517,7 @@ async def unified_collect_and_send_task_async() -> None:
             logger.warning("No users found, skipping task")
             return
 
-        # Aggregate all research fields and keywords from users
+        # 사용자 연구 분야/키워드 집계
         all_fields = set()
         all_keywords = set()
 
@@ -531,10 +531,10 @@ async def unified_collect_and_send_task_async() -> None:
             f"Collecting for {len(all_fields)} fields and {len(all_keywords)} keywords",
         )
 
-        # Step 2: Collect articles (in-memory only, no DB save yet)
+        # 2단계: 아티클 수집(메모리만, DB 미저장)
         raw_articles = []
 
-        # 2a. Collect from arXiv
+        # 2a) arXiv 수집
         logger.info("\n📚 Collecting from arXiv...")
         arxiv_collector = ArxivCollector()
 
@@ -550,11 +550,11 @@ async def unified_collect_and_send_task_async() -> None:
                 logger.error(f"Error collecting from arXiv for field '{field}': {e}")
                 error_count += 1
 
-        # 2b. Collect from News sources
+        # 2b) 뉴스 소스 수집
         logger.info("\n📰 Collecting from News sources...")
         news_collector = NewsCollector()
 
-        for keyword in list(all_keywords)[:5]:  # Limit to 5 keywords
+        for keyword in list(all_keywords)[:5]:  # 키워드 5개 제한
             try:
                 articles = await async_with_retry(
                     lambda k=keyword: news_collector.collect(query=k, limit=3),
@@ -568,7 +568,7 @@ async def unified_collect_and_send_task_async() -> None:
 
         logger.info(f"\n✅ Collected {collected_count} articles (in-memory)")
 
-        # Remove duplicates based on URL
+        # URL 기준 중복 제거
         unique_articles = {}
         for article in raw_articles:
             if article.url not in unique_articles:
@@ -577,7 +577,7 @@ async def unified_collect_and_send_task_async() -> None:
         raw_articles = list(unique_articles.values())
         logger.info(f"After deduplication: {len(raw_articles)} unique articles")
 
-        # Step 3: Match articles to users and select top N per user
+        # 3단계: 사용자 매칭 및 상위 N개 선택
         user_article_map = {}  # {user_id: [selected_articles]}
 
         for user in users:
@@ -585,7 +585,7 @@ async def unified_collect_and_send_task_async() -> None:
             if not pref or not pref.email_enabled:
                 continue
 
-            # Simple keyword matching for article selection
+            # 단순 키워드 매칭으로 아티클 선택
             selected = _match_articles_to_user(raw_articles, pref)
 
             if selected:
@@ -595,7 +595,7 @@ async def unified_collect_and_send_task_async() -> None:
                     f"from {len(raw_articles)} collected",
                 )
 
-        # Step 4: Get unique articles that need processing
+        # 4단계: 처리 대상 아티클 유니크 목록 구성
         seen_urls = set()
         articles_to_process = []
 
@@ -608,19 +608,19 @@ async def unified_collect_and_send_task_async() -> None:
             f"\n🔄 Processing {len(articles_to_process)} unique articles (selected across all users)",
         )
 
-        # Step 5: Process selected articles with LLM
+        # 5단계: LLM으로 선택 아티클 처리
         processed_articles = {}  # {url: processed_db_article}
 
         for article_data in articles_to_process:
             try:
-                # Check if article already exists in DB
+                # DB에 이미 존재하는지 확인
                 existing = crud.get_article_by_url(db, article_data.url)
                 if existing:
                     logger.info(f"Article already exists: {article_data.title[:50]}...")
                     processed_articles[article_data.url] = existing
                     continue
 
-                # LLM Processing: Summary
+                # LLM 처리: 요약
                 summary = await async_with_retry(
                     lambda data=article_data: summarize_article(
                         title=data.title,
@@ -629,7 +629,7 @@ async def unified_collect_and_send_task_async() -> None:
                     max_attempts=3,
                 )
 
-                # LLM Processing: Importance Score
+                # LLM 처리: 중요도 점수
                 importance_score = await async_with_retry(
                     lambda data=article_data, s=summary: evaluate_importance(
                         title=data.title,
@@ -638,7 +638,7 @@ async def unified_collect_and_send_task_async() -> None:
                     max_attempts=3,
                 )
 
-                # LLM Processing: Category
+                # LLM 처리: 카테고리
                 category = await async_with_retry(
                     lambda data=article_data, s=summary: classify_article_type(
                         title=data.title,
@@ -647,7 +647,7 @@ async def unified_collect_and_send_task_async() -> None:
                     max_attempts=3,
                 )
 
-                # Save to DB
+                # DB 저장
                 db_article = crud.create_article(
                     db,
                     title=article_data.title,
@@ -660,7 +660,7 @@ async def unified_collect_and_send_task_async() -> None:
                     metadata=article_data.metadata,
                 )
 
-                # Generate embedding and store in Vector DB
+                # 임베딩 생성 및 벡터 DB 저장
                 try:
                     from app.vector_db.operations import VectorOperations
 
@@ -691,10 +691,10 @@ async def unified_collect_and_send_task_async() -> None:
             except Exception as e:
                 logger.error(f"Error processing article '{article_data.title[:50]}': {e}")
                 error_count += 1
-                # Rollback the transaction to recover from errors
+                # 오류 복구를 위해 트랜잭션 롤백
                 db.rollback()
 
-        # Step 6: Send emails
+        # 6단계: 이메일 발송
         logger.info(f"\n📧 Sending digests to {len(user_article_map)} users...")
 
         for user in users:
@@ -706,19 +706,19 @@ async def unified_collect_and_send_task_async() -> None:
                 if not pref or not pref.email_enabled:
                     continue
 
-                # Check if digest was already sent today (prevent duplicates)
+                # 오늘 이미 발송했는지 확인(중복 방지)
                 if crud.has_digest_sent_today(db, user.id):
                     logger.info(
                         f"⏭️  Digest already sent to {user.email} today, skipping",
                     )
                     continue
 
-                # Get processed DB articles for this user
+                # 사용자별 처리 완료 아티클 조회
                 user_articles_data = user_article_map[user.id]
                 user_db_articles = [processed_articles.get(a.url) for a in user_articles_data]
                 user_db_articles = [a for a in user_db_articles if a is not None]
 
-                # Filter out articles already sent to this user in last 7 days
+                # 최근 7일 내 발송한 아티클 제외
                 sent_article_ids = crud.get_user_sent_article_ids(db, user.id, days=7)
                 user_db_articles = [a for a in user_db_articles if str(a.id) not in sent_article_ids]
 
@@ -735,7 +735,7 @@ async def unified_collect_and_send_task_async() -> None:
                     )
                     continue
 
-                # Sort by importance and limit
+                # 중요도 기준 정렬 및 제한
                 user_db_articles = sorted(
                     user_db_articles,
                     key=lambda x: x.importance_score or 0.0,
@@ -743,7 +743,7 @@ async def unified_collect_and_send_task_async() -> None:
                 )
                 user_db_articles = user_db_articles[: pref.daily_limit]
 
-                # Build and send email
+                # 이메일 생성 및 발송
                 builder = EmailBuilder()
                 html_content = builder.build_daily_digest(
                     user_name=user.name or user.email.split("@")[0],
@@ -762,7 +762,7 @@ async def unified_collect_and_send_task_async() -> None:
                     html_content=html_content,
                 )
 
-                # Record in database
+                # DB에 기록
                 crud.create_digest(
                     db=db,
                     user_id=user.id,
@@ -794,44 +794,44 @@ async def unified_collect_and_send_task_async() -> None:
 
 
 def unified_collect_and_send_task() -> None:
-    """Synchronous entrypoint for schedulers."""
+    """스케줄러용 동기 진입점."""
     asyncio.run(unified_collect_and_send_task_async())
 
 
 def _match_articles_to_user(raw_articles: list, preferences) -> list:
     """
-    Match raw articles to user preferences using simple keyword matching.
+    단순 키워드 매칭으로 사용자 선호도에 맞는 아티클을 찾는다.
 
     Args:
-        raw_articles: List of CollectedArticleData objects
-        preferences: UserPreference object
+        raw_articles: CollectedArticleData 목록
+        preferences: UserPreference 객체
 
     Returns:
-        List of matched articles (limited to user's daily_limit * 2)
+        매칭된 아티클 목록(사용자 daily_limit * 2 제한)
     """
     keywords = preferences.keywords or []
     research_fields = preferences.research_fields or []
 
     if not keywords and not research_fields:
-        # Return top articles by default
+        # 기본적으로 상위 아티클 반환
         return raw_articles[: preferences.daily_limit * 2]
 
     matched = []
 
     for article in raw_articles:
-        # Combine all searchable text
+        # 검색 대상 텍스트 결합
         searchable_text = f"{article.title} {article.content or ''}"
         searchable_text_lower = searchable_text.lower()
 
-        # Check keyword match
+        # 키워드 매칭 확인
         matches_keyword = any(kw.lower() in searchable_text_lower for kw in keywords)
 
-        # Check field match
+        # 연구 분야 매칭 확인
         matches_field = any(field.lower() in searchable_text_lower for field in research_fields)
 
         if matches_keyword or matches_field:
             matched.append(article)
 
-    # Return top matches (2x daily limit to allow for diversity)
+    # 다양성을 위해 2배까지 반환
     limit = preferences.daily_limit * 2
     return matched[:limit]

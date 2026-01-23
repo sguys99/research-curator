@@ -68,7 +68,7 @@ class ContentClassifier:
                 "reasoning": "분류 근거"
             }
 
-        Examples:
+        예시:
             >>> classifier = ContentClassifier()
             >>> result = await classifier.classify(
             ...     title="Attention Is All You Need",
@@ -205,7 +205,7 @@ class ContentClassifier:
         Returns:
             분류 결과 리스트
 
-        Examples:
+        예시:
             >>> articles = [
             ...     {"title": "Paper 1", "content": "...", "source_name": "arXiv", "url": "..."},
             ...     {"title": "News 1", "content": "...", "source_name": "TechCrunch", "url": "..."},
@@ -232,7 +232,7 @@ class ContentClassifier:
             for i, result in enumerate(results):
                 if isinstance(result, Exception):
                     logger.error(f"Error classifying article {i}: {result}")
-                    # Fallback 분류
+                    # 폴백 분류
                     article = articles[i]
                     processed_results.append(
                         self._get_fallback_classification(

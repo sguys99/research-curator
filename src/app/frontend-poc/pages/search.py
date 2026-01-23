@@ -1,4 +1,4 @@
-"""Search page with semantic search and filters."""
+"""시맨틱 검색과 필터를 제공하는 검색 페이지."""
 
 import streamlit as st
 
@@ -9,7 +9,7 @@ from app.frontend.utils.session import is_authenticated
 
 
 def show_search_page():
-    """Display search page with semantic search functionality."""
+    """시맨틱 검색 기능이 있는 검색 페이지를 표시한다."""
     if not is_authenticated():
         st.warning("⚠️ 로그인이 필요합니다.")
         st.stop()
@@ -18,17 +18,17 @@ def show_search_page():
 
     api = get_api_client()
 
-    # Check if searching for similar articles
+    # 유사 아티클 검색 여부 확인
     if st.session_state.get("search_similar_id"):
         _show_similar_search(api)
         return
 
-    # Search mode tabs
+    # 검색 모드 탭
     st.markdown("### 🔎 검색")
 
     search_tab1, search_tab2 = st.tabs(["🧠 시맨틱 검색", "🔤 키워드 검색"])
 
-    # Tab 1: Semantic Search
+    # 탭 1: 시맨틱 검색
     with search_tab1:
         query = st.text_input(
             "검색어를 입력하세요 (자연어)",
@@ -37,7 +37,7 @@ def show_search_page():
         )
         search_mode = "semantic"
 
-    # Tab 2: Keyword Search
+    # 탭 2: 키워드 검색
     with search_tab2:
         query = st.text_input(
             "키워드를 입력하세요",
@@ -47,13 +47,13 @@ def show_search_page():
         )
         search_mode = "keyword"
 
-    # Get active query based on selected tab
+    # 선택된 탭 기준으로 검색어 선택
     if search_mode == "semantic":
         query = st.session_state.get("semantic_search_query", "")
     else:
         query = st.session_state.get("keyword_search_query", "")
 
-    # Filters in expander
+    # 필터 옵션(확장 섹션)
     with st.expander("🔧 필터 옵션", expanded=False):
         col1, col2, col3 = st.columns(3)
 
@@ -83,7 +83,7 @@ def show_search_page():
                 help="중요도 점수 최소값",
             )
 
-        # Advanced filters
+        # 고급 필터
         col4, col5 = st.columns(2)
 
         with col4:
@@ -109,7 +109,7 @@ def show_search_page():
             help="표시할 최대 결과 수",
         )
 
-    # Search button
+    # 검색 버튼
     col1, col2, col3 = st.columns([2, 1, 1])
 
     with col1:
@@ -121,12 +121,12 @@ def show_search_page():
             st.session_state.keyword_search_query = ""
             st.rerun()
 
-    # Perform search
+    # 검색 실행
     if search_button and query:
         with st.spinner("검색 중..."):
             try:
                 if search_mode == "semantic":
-                    # Prepare semantic search parameters
+                    # 시맨틱 검색 파라미터 준비
                     search_params = {
                         "query": query,
                         "limit": limit,
@@ -148,12 +148,12 @@ def show_search_page():
                     if date_to:
                         search_params["date_to"] = date_to.isoformat()
 
-                    # Call semantic search API
+                    # 시맨틱 검색 API 호출
                     response = api.search_articles_semantic(**search_params)
                     articles = response.get("results", [])
 
-                else:  # keyword search
-                    # Call keyword search API (simpler, no advanced filters)
+                else:  # 키워드 검색
+                    # 키워드 검색 API 호출(고급 필터 없음)
                     response = api.search_articles_keyword(
                         query=query,
                         skip=0,
@@ -167,7 +167,7 @@ def show_search_page():
                 if articles:
                     st.success(f"✅ {len(articles)}개의 아티클을 찾았습니다.")
 
-                    # Display results
+                    # 결과 표시
                     show_article_list(articles, show_similar_button=True)
 
                 else:
@@ -179,7 +179,7 @@ def show_search_page():
     elif search_button and not query:
         st.warning("⚠️ 검색어를 입력해주세요.")
 
-    # Show example queries
+    # 예시 쿼리 표시
     st.markdown("---")
     st.markdown("### 💡 검색 예시")
 
@@ -202,19 +202,19 @@ def show_search_page():
 
 
 def _show_similar_search(api):
-    """Show similar article search results."""
+    """유사 아티클 검색 결과를 표시한다."""
     article_id = st.session_state.get("search_similar_id")
 
     st.markdown("### 🔍 유사 문서 검색")
 
-    # Back button
+    # 뒤로 가기 버튼
     if st.button("← 검색으로 돌아가기"):
         st.session_state.pop("search_similar_id", None)
         st.rerun()
 
     st.markdown(f"**참조 아티클 ID:** `{article_id}`")
 
-    # Search parameters
+    # 검색 파라미터
     limit = st.number_input("최대 결과 수", min_value=1, max_value=20, value=5)
 
     if st.button("🔍 유사 문서 검색", type="primary"):

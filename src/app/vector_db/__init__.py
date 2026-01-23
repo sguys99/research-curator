@@ -1,4 +1,4 @@
-"""Vector database module for managing embeddings and semantic search."""
+"""임베딩과 시맨틱 검색을 위한 벡터 DB 모듈."""
 
 from app.vector_db.client import QdrantClientWrapper, get_qdrant_client
 from app.vector_db.exceptions import VectorDBConnectionError, VectorDBError, VectorDBOperationError

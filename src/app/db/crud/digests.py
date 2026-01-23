@@ -203,7 +203,7 @@ def get_user_sent_article_ids(
     Returns:
         최근 N일 동안 발송된 아티클 ID 집합(문자열)
 
-    Examples:
+    예시:
         >>> sent_ids = get_user_sent_article_ids(db, user_id, days=7)
         >>> # 이미 보낸 아티클 제외
         >>> new_articles = [a for a in articles if str(a.id) not in sent_ids]

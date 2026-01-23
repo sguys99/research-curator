@@ -1,4 +1,4 @@
-"""Dashboard page showing recent digests and statistics."""
+"""최근 다이제스트와 통계를 표시하는 대시보드 페이지."""
 
 import streamlit as st
 
@@ -9,7 +9,7 @@ from app.frontend.utils.session import get_user_id, is_authenticated
 
 
 def show_dashboard_page():
-    """Display dashboard page with recent digests and statistics."""
+    """최근 다이제스트와 통계를 표시하는 대시보드를 보여준다."""
     if not is_authenticated():
         st.warning("⚠️ 로그인이 필요합니다.")
         st.stop()
@@ -19,19 +19,19 @@ def show_dashboard_page():
     api = get_api_client()
     user_id = get_user_id()
 
-    # Load statistics
+    # 통계 로드
     with st.spinner("데이터를 불러오는 중..."):
         try:
-            # Get article statistics
+            # 아티클 통계 조회
             stats_response = api.get_article_statistics()
             total_articles = stats_response.get("total", 0)
 
-            # Get recent digests
+            # 최근 다이제스트 조회
             digests_response = api.get_user_digests(user_id, skip=0, limit=3)
             digests = digests_response.get("digests", [])
             total_digests = digests_response.get("total", 0)
 
-            # Get user feedback stats
+            # 사용자 피드백 통계 조회
             feedback_response = api.get_user_feedback(user_id, skip=0, limit=100)
             feedbacks = feedback_response.get("feedback", [])  # 변경: feedbacks → feedback
             avg_rating = (
@@ -45,7 +45,7 @@ def show_dashboard_page():
             total_digests = 0
             avg_rating = 0.0
 
-    # Display statistics
+    # 통계 표시
     show_stats_cards(
         [
             ("총 아티클", str(total_articles), "📚"),
@@ -56,13 +56,13 @@ def show_dashboard_page():
 
     st.markdown("---")
 
-    # Recent digests section
+    # 최근 다이제스트 섹션
     st.markdown("### 📬 최근 받은 이메일")
 
     if not digests:
         st.info("아직 받은 이메일이 없습니다. 첫 이메일은 설정하신 시간에 자동으로 발송됩니다.")
     else:
-        # Display each digest
+        # 다이제스트별 표시
         for idx, digest in enumerate(digests):
             with st.expander(
                 f"📧 다이제스트 {idx + 1} - {digest.get('sent_at', 'N/A')[:10]}",
@@ -76,12 +76,12 @@ def show_dashboard_page():
 
                 st.markdown(f"**포함된 아티클: {len(article_ids)}개**")
 
-                # Load articles using batch API
+                # 배치 API로 아티클 로드
                 try:
                     batch_response = api.get_articles_batch(article_ids)
                     articles = batch_response.get("articles", [])
 
-                    # Display articles
+                    # 아티클 표시
                     if articles:
                         show_article_list(articles, show_similar_button=True)
                     else:
@@ -91,7 +91,7 @@ def show_dashboard_page():
 
     st.markdown("---")
 
-    # Scheduler Status Section
+    # 스케줄러 상태 섹션
     st.markdown("### 🤖 스케줄러 상태")
 
     st.info(
@@ -100,7 +100,7 @@ def show_dashboard_page():
     )
 
     try:
-        # Check standalone scheduler status
+        # 단독 스케줄러 상태 확인
         import psutil
 
         scheduler_running = False
@@ -124,7 +124,7 @@ def show_dashboard_page():
                     f"(PID: {', '.join(map(str, scheduler_pids))})",
                 )
 
-                # Get job info from API (for display only)
+                # API에서 잡 정보 조회(표시 전용)
                 try:
                     scheduler_status = api.get_scheduler_status()
                     jobs = scheduler_status.get("jobs", [])
@@ -151,7 +151,7 @@ def show_dashboard_page():
 
     st.markdown("---")
 
-    # Quick actions
+    # 빠른 작업
     st.markdown("### ⚡ 빠른 작업")
 
     col1, col2 = st.columns(2)
@@ -195,7 +195,7 @@ def show_dashboard_page():
 
     st.markdown("---")
 
-    # Navigation shortcuts
+    # 바로가기
     st.markdown("### 🔗 바로가기")
 
     col1, col2 = st.columns(2)

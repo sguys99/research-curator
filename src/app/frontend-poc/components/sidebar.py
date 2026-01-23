@@ -1,4 +1,4 @@
-"""Sidebar navigation component for Streamlit app."""
+"""Streamlit 앱 사이드바 네비게이션 컴포넌트."""
 
 import streamlit as st
 
@@ -13,31 +13,31 @@ from app.frontend.utils.session import (
 
 
 def show_sidebar() -> str | None:
-    """Display sidebar with navigation menu.
+    """네비게이션 메뉴가 있는 사이드바를 표시한다.
 
     Returns:
-        Selected page name or None if not authenticated.
+        선택된 페이지 이름(미인증이면 None)
     """
     if not is_authenticated():
         return None
 
-    # App title
+    # 앱 타이틀
     st.sidebar.title("🔬 Research Curator")
 
-    # User info
+    # 사용자 정보
     _show_user_info()
 
-    # Navigation menu
+    # 네비게이션 메뉴
     st.sidebar.markdown("---")
     st.sidebar.markdown("### 📑 메뉴")
 
     pages = []
 
-    # Show onboarding if not completed
+    # 온보딩 미완료 시 온보딩 표시
     if not is_onboarding_completed():
         pages.append(("🎯 온보딩", "onboarding"))
     else:
-        # Show main pages if onboarding is completed
+        # 온보딩 완료 시 메인 페이지 표시
         pages.extend(
             [
                 ("📊 대시보드", "dashboard"),
@@ -47,20 +47,20 @@ def show_sidebar() -> str | None:
             ],
         )
 
-    # Navigation buttons
+    # 네비게이션 버튼
     selected_page = None
     for label, page_name in pages:
         if st.sidebar.button(label, key=f"nav_{page_name}", use_container_width=True):
             selected_page = page_name
 
-    # Admin section (only for admin users)
+    # 관리자 섹션(관리자 전용)
     if is_admin_user():
         st.sidebar.markdown("---")
         st.sidebar.markdown("### 🛠️ Admin")
         if st.sidebar.button("Admin Dashboard", key="nav_admin", use_container_width=True):
             selected_page = "admin"
 
-    # Help & Info
+    # 도움말/정보
     st.sidebar.markdown("---")
     with st.sidebar.expander("ℹ️ 도움말"):
         st.markdown(
@@ -77,7 +77,7 @@ def show_sidebar() -> str | None:
             """,
         )
 
-    # Logout button
+    # 로그아웃 버튼
     st.sidebar.markdown("---")
     show_logout_button()
 
@@ -85,13 +85,13 @@ def show_sidebar() -> str | None:
 
 
 def _show_user_info() -> None:
-    """Display user info in sidebar."""
+    """사이드바에 사용자 정보를 표시한다."""
     name = get_user_name()
     email = get_user_email()
 
     st.sidebar.markdown("---")
 
-    # User avatar and name
+    # 사용자 아바타와 이름
     col1, col2 = st.sidebar.columns([1, 3])
     with col1:
         st.markdown("### 👤")
@@ -102,11 +102,11 @@ def _show_user_info() -> None:
 
 
 def show_page_header(title: str, description: str = "") -> None:
-    """Display page header with title and description.
+    """제목/설명 포함 페이지 헤더를 표시한다.
 
     Args:
-        title: Page title.
-        description: Optional page description.
+        title: 페이지 제목
+        description: 페이지 설명(선택)
     """
     st.title(title)
     if description:
@@ -115,10 +115,10 @@ def show_page_header(title: str, description: str = "") -> None:
 
 
 def show_stats_cards(stats: list[tuple[str, str, str]]) -> None:
-    """Display statistics cards in columns.
+    """통계 카드들을 컬럼으로 표시한다.
 
     Args:
-        stats: List of (label, value, icon) tuples.
+        stats: (label, value, icon) 튜플 목록
     """
     cols = st.columns(len(stats))
 

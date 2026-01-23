@@ -10,11 +10,11 @@ def set_random_seed(
     use_torch: bool = False,
 ):
     """
-    Set a global random seed for reproducibility across various libraries.
+    여러 라이브러리에서 재현성을 위해 전역 랜덤 시드를 설정한다.
 
     Args:
-        random_seed (int): Seed value to be set.
-        use_torch (bool): Whether to set seed for PyTorch or not.
+        random_seed (int): 설정할 시드 값
+        use_torch (bool): PyTorch 시드 설정 여부
     """
     os.environ["PYTHONHASHSEED"] = str(random_seed)
     random.seed(random_seed)

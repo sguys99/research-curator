@@ -1,13 +1,13 @@
-"""Custom exceptions for vector database operations."""
+"""벡터 DB 작업용 커스텀 예외."""
 
 
 class VectorDBError(Exception):
-    """Base exception for vector DB errors."""
+    """벡터 DB 오류의 기본 예외."""
 
 
 class VectorDBConnectionError(VectorDBError):
-    """Raised when unable to connect to the vector DB."""
+    """벡터 DB 연결 실패 시 발생."""
 
 
 class VectorDBOperationError(VectorDBError):
-    """Raised when a vector DB operation fails."""
+    """벡터 DB 작업 실패 시 발생."""

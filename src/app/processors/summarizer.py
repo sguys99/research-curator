@@ -58,7 +58,7 @@ class ArticleSummarizer:
         Returns:
             요약 문자열
 
-        Examples:
+        예시:
             >>> summarizer = ArticleSummarizer()
             >>> summary = await summarizer.summarize(
             ...     title="Attention Is All You Need",
@@ -112,7 +112,7 @@ class ArticleSummarizer:
         Returns:
             요약 문자열 리스트
 
-        Examples:
+        예시:
             >>> articles = [
             ...     {"title": "Paper 1", "content": "..."},
             ...     {"title": "Paper 2", "content": "..."},

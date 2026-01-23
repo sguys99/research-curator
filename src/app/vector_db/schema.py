@@ -1,4 +1,4 @@
-"""Qdrant collection schema definitions and setup utilities."""
+"""Qdrant 컬렉션 스키마 정의 및 설정 유틸리티."""
 
 import logging
 from typing import Any
@@ -12,43 +12,43 @@ logger = logging.getLogger(__name__)
 
 
 class CollectionSchema:
-    """Schema definition for research_articles collection."""
+    """research_articles 컬렉션 스키마 정의."""
 
-    # Collection metadata
+    # 컬렉션 메타데이터
     COLLECTION_NAME = settings.QDRANT_COLLECTION_NAME
     VECTOR_SIZE = settings.QDRANT_VECTOR_SIZE
     DISTANCE_METRIC = models.Distance.COSINE
 
-    # Payload schema (for reference and validation)
+    # 페이로드 스키마(참조/검증용)
     PAYLOAD_SCHEMA = {
-        "article_id": "string (UUID)",  # Reference to PostgreSQL CollectedArticle.id
-        "title": "string",  # Article title
-        "summary": "string",  # Korean summary
+        "article_id": "string (UUID)",  # PostgreSQL CollectedArticle.id 참조
+        "title": "string",  # 아티클 제목
+        "summary": "string",  # 한국어 요약
         "source_type": "string",  # paper/news/report
-        "category": "string",  # AI, ML, NLP, etc.
+        "category": "string",  # AI, ML, NLP 등
         "importance_score": "float",  # 0.0 - 1.0
-        "collected_at": "string (ISO timestamp)",  # When article was collected
-        "metadata": "object",  # Additional metadata (authors, citations, etc.)
+        "collected_at": "string (ISO timestamp)",  # 수집 시각
+        "metadata": "object",  # 추가 메타데이터(저자, 인용 등)
     }
 
-    # Index configuration for optimized filtering
+    # 필터링 최적화를 위한 인덱스 설정
     PAYLOAD_INDEXES = [
-        # Create index on source_type for filtering by paper/news/report
+        # source_type 필터링용 인덱스
         {
             "field_name": "source_type",
             "field_schema": models.PayloadSchemaType.KEYWORD,
         },
-        # Create index on category for filtering by research category
+        # category 필터링용 인덱스
         {
             "field_name": "category",
             "field_schema": models.PayloadSchemaType.KEYWORD,
         },
-        # Create index on importance_score for filtering by score threshold
+        # importance_score 임계값 필터링용 인덱스
         {
             "field_name": "importance_score",
             "field_schema": models.PayloadSchemaType.FLOAT,
         },
-        # Create index on collected_at for date range filtering
+        # collected_at 기간 필터링용 인덱스
         {
             "field_name": "collected_at",
             "field_schema": models.PayloadSchemaType.KEYWORD,
@@ -57,10 +57,10 @@ class CollectionSchema:
 
     @classmethod
     def get_schema_info(cls) -> dict[str, Any]:  # 스키마 정보를 딕셔너리로 반환
-        """Get complete schema information.
+        """전체 스키마 정보를 반환한다.
 
         Returns:
-            dict: Schema information including collection name, vector size, and payload schema
+            dict: 컬렉션 이름, 벡터 크기, 페이로드 스키마 등
         """
         return {
             "collection_name": cls.COLLECTION_NAME,
@@ -74,22 +74,22 @@ class CollectionSchema:
         }
 
 
-# 컬렉션을 생성하고 인덱스를 설정
+# 컬렉션 생성 및 인덱스 설정
 def setup_collection(
     client: QdrantClientWrapper | None = None,
     recreate: bool = False,
 ) -> bool:
-    """Setup the research_articles collection with proper schema and indexes.
+    """research_articles 컬렉션을 스키마/인덱스와 함께 설정한다.
 
     Args:
-        client: Qdrant client instance (defaults to global client)
-        recreate: If True, delete existing collection and create new one (default: False)
+        client: Qdrant 클라이언트(기본값: 전역 클라이언트)
+        recreate: True면 기존 컬렉션 삭제 후 재생성(기본값: False)
 
     Returns:
-        bool: True if setup was successful, False otherwise
+        bool: 설정 성공 여부
 
     Raises:
-        VectorDBConnectionError: If unable to connect to Qdrant server
+        VectorDBConnectionError: Qdrant 서버 연결 실패 시
     """
     if client is None:
         client = get_qdrant_client()  # 전역 싱글턴 클라이언트
@@ -97,7 +97,7 @@ def setup_collection(
     collection_name = CollectionSchema.COLLECTION_NAME
 
     try:
-        # Check if collection exists
+        # 컬렉션 존재 여부 확인
         exists = client.collection_exists(collection_name)
 
         if exists and not recreate:
@@ -107,7 +107,7 @@ def setup_collection(
                 logger.info(f"Collection info: {info}")
             return True
 
-        # Recreate or create collection
+        # 컬렉션 재생성 또는 생성
         if recreate:
             logger.info(f"Recreating collection '{collection_name}'...")
             success = client.recreate_collection(
@@ -127,7 +127,7 @@ def setup_collection(
             logger.error(f"Failed to create collection '{collection_name}'")
             return False
 
-        # Create payload indexes for optimized filtering
+        # 페이로드 인덱스 생성(필터링 최적화)
         logger.info("Creating payload indexes...")
         for index_config in CollectionSchema.PAYLOAD_INDEXES:
             try:
@@ -139,9 +139,9 @@ def setup_collection(
                 logger.info(f"Created index on '{index_config['field_name']}'")
             except Exception as e:
                 logger.warning(f"Failed to create index on '{index_config['field_name']}': {e}")
-                # Continue with other indexes even if one fails
+                # 하나 실패해도 다른 인덱스는 계속 생성
 
-        # Verify collection setup
+        # 컬렉션 설정 검증
         info = client.get_collection_info(collection_name)
         if info:
             logger.info(f"Collection '{collection_name}' setup complete: {info}")
@@ -155,19 +155,19 @@ def setup_collection(
         return False
 
 
-# 컬렉션이 올바르게 생성되었는지 검증
+# 컬렉션 생성/스키마 검증
 def verify_collection_schema(client: QdrantClientWrapper | None = None) -> dict[str, Any]:
-    """Verify that the collection exists and has the correct schema.
+    """컬렉션 존재 여부와 스키마 일치 여부를 검증한다.
 
     Args:
-        client: Qdrant client instance (defaults to global client)
+        client: Qdrant 클라이언트(기본값: 전역 클라이언트)
 
     Returns:
-        dict: Verification results including:
-            - exists: boolean indicating if collection exists
-            - schema_valid: boolean indicating if schema matches expected
-            - info: collection information (if exists)
-            - errors: list of validation errors (if any)
+        dict: 검증 결과
+            - exists: 컬렉션 존재 여부
+            - schema_valid: 스키마 일치 여부
+            - info: 컬렉션 정보(존재 시)
+            - errors: 검증 오류 목록(있는 경우)
     """
     if client is None:
         client = get_qdrant_client()
@@ -180,14 +180,14 @@ def verify_collection_schema(client: QdrantClientWrapper | None = None) -> dict[
         "errors": [],
     }
 
-    # Check if collection exists
+    # 컬렉션 존재 여부 확인
     if not client.collection_exists(collection_name):
         result["errors"].append(f"Collection '{collection_name}' does not exist")
         return result
 
     result["exists"] = True
 
-    # Get collection info
+    # 컬렉션 정보 조회
     info = client.get_collection_info(collection_name)
     if info is None:
         result["errors"].append("Unable to retrieve collection information")
@@ -195,7 +195,7 @@ def verify_collection_schema(client: QdrantClientWrapper | None = None) -> dict[
 
     result["info"] = info
 
-    # Validate vector size
+    # 벡터 크기 검증
     if info["vector_size"] != CollectionSchema.VECTOR_SIZE:
         result["errors"].append(
             f"Vector size mismatch: expected {CollectionSchema.VECTOR_SIZE}, "
@@ -207,27 +207,26 @@ def verify_collection_schema(client: QdrantClientWrapper | None = None) -> dict[
     return result
 
 
-# 어플리케이션 시작시 호출하는 메인 진입점
-# src/app/api/main.py에 @app.on_event("startup") 구문에 호출함
+# 애플리케이션 시작 시 호출하는 메인 진입점
+# src/app/api/main.py의 @app.on_event("startup")에서 호출
 def initialize_vector_db(recreate: bool = False) -> bool:
-    """Initialize the vector database (main entry point).
+    """벡터 DB를 초기화한다(메인 진입점).
 
-    This function should be called during application startup to ensure
-    the Qdrant collection is properly configured.
+    애플리케이션 시작 시 호출해 Qdrant 컬렉션 설정을 보장한다.
 
     Args:
-        recreate: If True, recreate the collection even if it exists (default: False)
+        recreate: True면 기존 컬렉션이 있어도 재생성(기본값: False)
 
     Returns:
-        bool: True if initialization was successful, False otherwise
+        bool: 초기화 성공 여부
     """
     logger.info("Initializing vector database...")
 
     try:
-        # Get Qdrant client
+        # Qdrant 클라이언트 확보
         client = get_qdrant_client()
 
-        # Check health
+        # 헬스 체크
         health = client.health_check()
         if health["status"] != "healthy":
             logger.error(f"Qdrant health check failed: {health.get('error')}")
@@ -236,13 +235,13 @@ def initialize_vector_db(recreate: bool = False) -> bool:
         logger.info(f"Qdrant server is healthy at {health['host']}:{health['port']}")
         logger.info(f"Available collections: {health.get('collections', [])}")
 
-        # Setup collection
+        # 컬렉션 설정
         success = setup_collection(client, recreate=recreate)
         if not success:
             logger.error("Failed to setup collection")
             return False
 
-        # Verify schema
+        # 스키마 검증
         verification = verify_collection_schema(client)
         if not verification["exists"]:
             logger.error("Collection verification failed: collection does not exist")

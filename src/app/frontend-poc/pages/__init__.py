@@ -1,1 +1,1 @@
-"""Frontend pages package."""
+"""프런트엔드 페이지 패키지."""

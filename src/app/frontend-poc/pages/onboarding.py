@@ -1,4 +1,4 @@
-"""Onboarding page with AI chatbot."""
+"""AI 챗봇 온보딩 페이지."""
 
 import streamlit as st
 
@@ -7,12 +7,12 @@ from app.frontend.utils.session import is_authenticated
 
 
 def show_onboarding_page():
-    """Display onboarding page with AI chatbot."""
+    """AI 챗봇 온보딩 페이지를 표시한다."""
     if not is_authenticated():
         st.warning("⚠️ 로그인이 필요합니다.")
         st.stop()
 
-    # Page header
+    # 페이지 헤더
     st.markdown(
         """
         <style>
@@ -33,7 +33,7 @@ def show_onboarding_page():
         unsafe_allow_html=True,
     )
 
-    # Info box
+    # 안내 박스
     with st.container():
         col1, col2, col3 = st.columns(3)
 
@@ -48,10 +48,10 @@ def show_onboarding_page():
 
     st.markdown("---")
 
-    # Show chatbot
+    # 챗봇 표시
     show_onboarding_chatbot()
 
-    # Help section
+    # 도움말 섹션
     with st.sidebar:
         st.markdown("---")
         st.markdown("### 💡 도움말")

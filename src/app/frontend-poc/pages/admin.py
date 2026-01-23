@@ -1,4 +1,4 @@
-"""Admin dashboard page."""
+"""관리자 대시보드 페이지."""
 
 import streamlit as st
 
@@ -14,7 +14,7 @@ from app.frontend.utils.session import is_admin_user, is_authenticated
 
 
 def show_admin_page():
-    """Display admin dashboard page."""
+    """관리자 대시보드 페이지를 표시한다."""
     # 1. 인증 체크
     if not is_authenticated():
         st.warning("⚠️ 로그인이 필요합니다.")
@@ -27,7 +27,7 @@ def show_admin_page():
 
     st.title("🛠️ Admin Dashboard")
 
-    # 3. 탭 구조
+    # 3. 탭 구성
     tab1, tab2, tab3, tab4 = st.tabs(
         [
             "📊 System Overview",
@@ -51,7 +51,7 @@ def show_admin_page():
 
 
 def show_system_overview():
-    """Display system-wide statistics."""
+    """시스템 전체 통계를 표시한다."""
     st.subheader("📊 System Statistics")
 
     # 기본 통계
@@ -101,7 +101,7 @@ def show_system_overview():
     )
 
     try:
-        # Check standalone scheduler status
+        # 단독 스케줄러 상태 확인
         import psutil
 
         scheduler_running = False
@@ -125,7 +125,7 @@ def show_system_overview():
                     f"(PID: {', '.join(map(str, scheduler_pids))})",
                 )
 
-                # Get job info from API (for display only)
+                # API에서 잡 정보 조회(표시 전용)
                 try:
                     api = get_api_client()
                     scheduler_status = api.get_scheduler_status()
@@ -157,7 +157,7 @@ def show_system_overview():
 
 
 def show_users_section():
-    """Display all users with their stats."""
+    """모든 사용자와 통계를 표시한다."""
     st.subheader("👥 All Users")
 
     try:
@@ -210,7 +210,7 @@ def show_users_section():
 
 
 def show_articles_section():
-    """Display articles statistics and list."""
+    """아티클 통계와 목록을 표시한다."""
     st.subheader("📚 Articles")
 
     try:
@@ -273,11 +273,11 @@ def show_articles_section():
 
 
 def show_digests_section():
-    """Display all digest history across all users."""
+    """전체 사용자 다이제스트 히스토리를 표시한다."""
     st.subheader("📧 Digest History")
 
     try:
-        # 모든 digest 조회
+        # 전체 다이제스트 조회
         digests = get_all_digests()
 
         st.write(f"**Total: {len(digests)} digests sent** (최근 100개)")
@@ -302,7 +302,7 @@ def show_digests_section():
                 else:
                     st.info("📭 Not opened yet")
 
-                # Article IDs 표시
+                # 아티클 ID 표시
                 if digest["article_ids"]:
                     with st.expander("View Article IDs"):
                         for idx, article_id in enumerate(digest["article_ids"][:10], 1):

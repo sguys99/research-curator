@@ -73,7 +73,7 @@ class ImportanceEvaluator:
                 "final_score": 0.0-1.0
             }
 
-        Examples:
+        예시:
             >>> evaluator = ImportanceEvaluator()
             >>> result = await evaluator.evaluate(
             ...     title="GPT-4 Technical Report",
@@ -249,7 +249,7 @@ class ImportanceEvaluator:
         Returns:
             평가 결과 리스트
 
-        Examples:
+        예시:
             >>> articles = [
             ...     {"title": "Paper 1", "content": "...", "metadata": {...}},
             ...     {"title": "Paper 2", "content": "...", "metadata": {...}},

@@ -1,8 +1,4 @@
-"""Vector database CRUD operations for article embeddings.
-
-This module provides functions to insert, update, delete, and search
-article embeddings in Qdrant vector database.
-"""
+"""아티클 임베딩을 위한 벡터 DB CRUD 작업."""
 
 import logging
 import uuid
@@ -19,10 +15,10 @@ from app.vector_db.schema import CollectionSchema
 logger = logging.getLogger(__name__)
 
 
-# Vector DB에 대한 CRUD 작업 수행:
-# - 아티클 임베딩 삽입/수정/삭제, 시맨틱 검색, 유사 아티클, 필터링 및 메타데이터 관리
+# 벡터 DB CRUD 작업:
+# - 임베딩 삽입/수정/삭제, 시맨틱 검색, 유사 아티클, 필터링 및 메타데이터 관리
 class VectorOperations:
-    """Vector database operations for article embeddings."""
+    """아티클 임베딩용 벡터 DB 작업."""
 
     def __init__(
         self,
@@ -30,12 +26,12 @@ class VectorOperations:
         embedder: TextEmbedder | None = None,
         collection_name: str | None = None,
     ):
-        """Initialize vector operations.
+        """벡터 작업 클래스를 초기화한다.
 
         Args:
-            qdrant_client: Qdrant client instance (defaults to global client)
-            embedder: Text embedder instance (defaults to global embedder)
-            collection_name: Collection name (defaults to CollectionSchema.COLLECTION_NAME)
+            qdrant_client: Qdrant 클라이언트(기본값: 전역 클라이언트)
+            embedder: 텍스트 임베더(기본값: 전역 임베더)
+            collection_name: 컬렉션 이름(기본값: CollectionSchema.COLLECTION_NAME)
         """
         # 싱글톤 의존성 주입
         self.qdrant_client = qdrant_client or get_qdrant_client()
@@ -44,7 +40,7 @@ class VectorOperations:
 
         logger.info(f"VectorOperations initialized for collection: {self.collection_name}")
 
-    # 단일 아티클 삽입: Create
+    # 단일 아티클 삽입: 생성
     async def insert_article(
         self,
         article_id: str,
@@ -56,25 +52,25 @@ class VectorOperations:
         importance_score: float = 0.5,
         metadata: dict[str, Any] | None = None,
     ) -> str:
-        """Insert single article embedding into Qdrant.
+        """단일 아티클 임베딩을 Qdrant에 삽입한다.
 
         Args:
-            article_id: UUID of the article (from PostgreSQL)
-            title: Article title
-            content: Article content
-            summary: Article summary (optional)
+            article_id: 아티클 UUID(PostgreSQL)
+            title: 아티클 제목
+            content: 아티클 본문
+            summary: 아티클 요약(선택)
             source_type: paper/news/report
-            category: AI, ML, NLP, etc.
+            category: AI, ML, NLP 등
             importance_score: 0.0 - 1.0
-            metadata: Additional metadata
+            metadata: 추가 메타데이터
 
         Returns:
-            Vector ID (point ID in Qdrant)
+            벡터 ID(Qdrant point ID)
 
         Raises:
-            VectorDBOperationError: If insertion fails
+            VectorDBOperationError: 삽입 실패 시
 
-        Examples:
+        예시:
             >>> ops = VectorOperations()
             >>> vector_id = await ops.insert_article(
             ...     article_id="123e4567-e89b-12d3-a456-426614174000",
@@ -87,17 +83,17 @@ class VectorOperations:
             ... )
         """
         try:
-            # Generate embedding
+            # 임베딩 생성
             embedding = await self.embedder.embed_article(
                 title=title,
                 content=content,
                 summary=summary,
             )
 
-            # Generate vector ID
+            # 벡터 ID 생성
             vector_id = str(uuid.uuid4())
 
-            # Prepare payload
+            # 페이로드 구성
             payload = {
                 "article_id": article_id,
                 "title": title,
@@ -109,7 +105,7 @@ class VectorOperations:
                 "metadata": metadata or {},
             }
 
-            # Insert into Qdrant
+            # Qdrant에 삽입
             self.qdrant_client.client.upsert(
                 collection_name=self.collection_name,
                 points=[
@@ -137,24 +133,24 @@ class VectorOperations:
         articles: list[dict[str, Any]],
         batch_size: int = 10,
     ) -> list[str]:
-        """Insert multiple articles in batch.
+        """다수 아티클을 배치로 삽입한다.
 
         Args:
-            articles: List of article dicts with keys:
-                - article_id: UUID string
+            articles: 아래 키를 가진 아티클 dict 목록
+                - article_id: UUID 문자열
                 - title: str
                 - content: str
-                - summary: str (optional)
-                - source_type: str (optional, default: "paper")
-                - category: str (optional, default: "AI")
-                - importance_score: float (optional, default: 0.5)
-                - metadata: dict (optional)
-            batch_size: Number of articles to process at once
+                - summary: str (선택)
+                - source_type: str (선택, 기본값: "paper")
+                - category: str (선택, 기본값: "AI")
+                - importance_score: float (선택, 기본값: 0.5)
+                - metadata: dict (선택)
+            batch_size: 한 번에 처리할 개수
 
         Returns:
-            List of vector IDs
+            벡터 ID 목록
 
-        Examples:
+        예시:
             >>> articles = [
             ...     {
             ...         "article_id": "uuid-1",
@@ -174,7 +170,7 @@ class VectorOperations:
             return []
 
         try:
-            # Generate embeddings for all articles in batch
+            # 배치 임베딩 생성
             embeddings = await self.embedder.embed_articles_batch(
                 articles=[
                     {
@@ -187,7 +183,7 @@ class VectorOperations:
                 batch_size=batch_size,
             )
 
-            # Prepare points for Qdrant
+            # Qdrant 포인트 구성
             points = []
             vector_ids = []
 
@@ -214,7 +210,7 @@ class VectorOperations:
                     ),
                 )
 
-            # Insert all points
+            # 전체 포인트 삽입
             self.qdrant_client.client.upsert(
                 collection_name=self.collection_name,
                 points=points,
@@ -228,7 +224,7 @@ class VectorOperations:
             logger.error(f"Failed to batch insert articles: {e}")
             raise VectorDBOperationError(f"Batch insertion failed: {e}") from e
 
-    # 아티클 업데이트: Update
+    # 아티클 업데이트: 수정
     async def update_article(
         self,
         vector_id: str,
@@ -241,23 +237,23 @@ class VectorOperations:
         metadata: dict[str, Any] | None = None,
         regenerate_embedding: bool = False,  # False이면 메타 데이터만 업데이트
     ) -> bool:
-        """Update article in Qdrant.
+        """Qdrant의 아티클을 업데이트한다.
 
         Args:
-            vector_id: Vector ID (point ID in Qdrant)
-            title: New title (optional)
-            content: New content (optional)
-            summary: New summary (optional)
-            source_type: New source type (optional)
-            category: New category (optional)
-            importance_score: New importance score (optional)
-            metadata: New metadata (optional)
-            regenerate_embedding: If True, regenerate embedding from new content
+            vector_id: 벡터 ID(Qdrant point ID)
+            title: 새 제목(선택)
+            content: 새 본문(선택)
+            summary: 새 요약(선택)
+            source_type: 새 소스 타입(선택)
+            category: 새 카테고리(선택)
+            importance_score: 새 중요도 점수(선택)
+            metadata: 새 메타데이터(선택)
+            regenerate_embedding: True면 새 내용으로 임베딩 재생성
 
         Returns:
-            True if update successful, False otherwise
+            업데이트 성공 여부
 
-        Examples:
+        예시:
             >>> success = await ops.update_article(
             ...     vector_id="vector-id-123",
             ...     importance_score=0.95,
@@ -265,7 +261,7 @@ class VectorOperations:
             ... )
         """
         try:
-            # Get current point
+            # 현재 포인트 조회
             current = self.qdrant_client.client.retrieve(
                 collection_name=self.collection_name,
                 ids=[vector_id],
@@ -277,7 +273,7 @@ class VectorOperations:
 
             current_payload = current[0].payload
 
-            # Update payload fields
+            # 페이로드 필드 업데이트
             updated_payload = dict(current_payload)
 
             if title is not None:
@@ -293,7 +289,7 @@ class VectorOperations:
             if metadata is not None:
                 updated_payload["metadata"] = metadata
 
-            # Regenerate embedding if needed
+            # 필요 시 임베딩 재생성
             if regenerate_embedding and (
                 title is not None or content is not None or summary is not None
             ):
@@ -307,7 +303,7 @@ class VectorOperations:
                     summary=new_summary,
                 )
 
-                # Update with new embedding
+                # 새 임베딩으로 업데이트
                 self.qdrant_client.client.upsert(
                     collection_name=self.collection_name,
                     points=[
@@ -319,7 +315,7 @@ class VectorOperations:
                     ],
                 )
             else:
-                # Update payload only
+                # 페이로드만 업데이트
                 self.qdrant_client.client.set_payload(
                     collection_name=self.collection_name,
                     payload=updated_payload,
@@ -333,17 +329,17 @@ class VectorOperations:
             logger.error(f"Failed to update article: {e}")
             return False
 
-    # 단일 삭제: Delete
+    # 단일 삭제: 삭제
     def delete_article(self, vector_id: str) -> bool:
-        """Delete article from Qdrant.
+        """Qdrant에서 아티클을 삭제한다.
 
         Args:
-            vector_id: Vector ID (point ID in Qdrant)
+            vector_id: 벡터 ID(Qdrant point ID)
 
         Returns:
-            True if deletion successful, False otherwise
+            삭제 성공 여부
 
-        Examples:
+        예시:
             >>> success = ops.delete_article("vector-id-123")
         """
         try:
@@ -360,15 +356,15 @@ class VectorOperations:
             return False
 
     def delete_articles_batch(self, vector_ids: list[str]) -> bool:
-        """Delete multiple articles in batch.
+        """다수 아티클을 배치로 삭제한다.
 
         Args:
-            vector_ids: List of vector IDs
+            vector_ids: 벡터 ID 목록
 
         Returns:
-            True if deletion successful, False otherwise
+            삭제 성공 여부
 
-        Examples:
+        예시:
             >>> success = ops.delete_articles_batch(["id1", "id2", "id3"])
         """
         try:
@@ -385,15 +381,15 @@ class VectorOperations:
             return False
 
     def get_article(self, vector_id: str) -> dict[str, Any] | None:
-        """Retrieve article by vector ID.
+        """벡터 ID로 아티클을 조회한다.
 
         Args:
-            vector_id: Vector ID (point ID in Qdrant)
+            vector_id: 벡터 ID(Qdrant point ID)
 
         Returns:
-            Article data dict or None if not found
+            아티클 데이터 dict(없으면 None)
 
-        Examples:
+        예시:
             >>> article = ops.get_article("vector-id-123")
             >>> print(article["title"])
         """
@@ -420,15 +416,15 @@ class VectorOperations:
             return None
 
     def get_articles_batch(self, vector_ids: list[str]) -> list[dict[str, Any]]:
-        """Retrieve multiple articles by vector IDs.
+        """여러 벡터 ID로 아티클을 조회한다.
 
         Args:
-            vector_ids: List of vector IDs
+            vector_ids: 벡터 ID 목록
 
         Returns:
-            List of article data dicts
+            아티클 데이터 dict 목록
 
-        Examples:
+        예시:
             >>> articles = ops.get_articles_batch(["id1", "id2", "id3"])
         """
         try:
@@ -456,12 +452,12 @@ class VectorOperations:
             return []
 
     def count_articles(self) -> int:
-        """Count total number of articles in collection.
+        """컬렉션 내 아티클 총 개수를 반환한다.
 
         Returns:
-            Number of articles
+            아티클 개수
 
-        Examples:
+        예시:
             >>> count = ops.count_articles()
             >>> print(f"Total articles: {count}")
         """
@@ -473,7 +469,7 @@ class VectorOperations:
             logger.error(f"Failed to count articles: {e}")
             return 0
 
-    # 자연어 기반 유사 아티클 찾기: 예를 들어 트랜스포머 검색, 임베딩 필요함
+    # 자연어 기반 유사 아티클 검색: 예) 트랜스포머 검색(임베딩 필요)
     async def search_similar_articles(
         self,
         query: str,
@@ -485,22 +481,22 @@ class VectorOperations:
         date_from: str | None = None,
         date_to: str | None = None,
     ) -> list[dict[str, Any]]:
-        """Search for similar articles using natural language query.
+        """자연어 질의로 유사 아티클을 검색한다.
 
         Args:
-            query: Natural language search query
-            limit: Maximum number of results (default: 10)
-            score_threshold: Minimum similarity score (default: 0.7)
-            source_type: Filter by source types (e.g., ["paper", "news"])
-            category: Filter by categories (e.g., ["AI", "NLP"])
-            min_importance_score: Minimum importance score (0.0 - 1.0)
-            date_from: Filter articles from this date (ISO format)
-            date_to: Filter articles until this date (ISO format)
+            query: 자연어 검색 질의
+            limit: 최대 결과 수(기본값: 10)
+            score_threshold: 최소 유사도 점수(기본값: 0.7)
+            source_type: 소스 타입 필터(예: ["paper", "news"])
+            category: 카테고리 필터(예: ["AI", "NLP"])
+            min_importance_score: 최소 중요도 점수(0.0 - 1.0)
+            date_from: 시작 일자(ISO 형식)
+            date_to: 종료 일자(ISO 형식)
 
         Returns:
-            List of similar articles with scores
+            점수를 포함한 유사 아티클 목록
 
-        Examples:
+        예시:
             >>> results = await ops.search_similar_articles(
             ...     query="transformer architecture optimization",
             ...     limit=5,
@@ -511,10 +507,10 @@ class VectorOperations:
             ... )
         """
         try:
-            # Generate query embedding
+            # 질의 임베딩 생성
             query_embedding = await self.embedder.embed(query)
 
-            # Build filters
+            # 필터 구성
             query_filter = self._build_search_filter(
                 source_type=source_type,
                 category=category,
@@ -523,7 +519,7 @@ class VectorOperations:
                 date_to=date_to,
             )
 
-            # Search in Qdrant using query_points
+            # query_points로 Qdrant 검색
             search_results = self.qdrant_client.client.query_points(
                 collection_name=self.collection_name,
                 query=query_embedding,
@@ -534,7 +530,7 @@ class VectorOperations:
                 with_vectors=False,
             ).points
 
-            # Format results
+            # 결과 포맷팅
             results = []
             for hit in search_results:
                 result = {
@@ -555,8 +551,8 @@ class VectorOperations:
             logger.error(f"Failed to search articles: {e}")
             return []
 
-    # ID 기반 유사 아티클 찾기: 예를 들어 이 논문과 비슷한 논문 찾아줘, 임베딩 필요해서 빠름
-    # 검색 방법은 두가지: vector_id로 찾기, article_id로 찾기)
+    # ID 기반 유사 아티클 찾기: 예) 이 논문과 유사한 논문(임베딩 필요, 빠름)
+    # 검색 방법: vector_id 또는 article_id
     async def find_similar_articles(
         self,
         article_id: str | None = None,
@@ -566,20 +562,20 @@ class VectorOperations:
         source_type: list[str] | None = None,
         category: list[str] | None = None,
     ) -> list[dict[str, Any]]:
-        """Find articles similar to a given article.
+        """특정 아티클과 유사한 아티클을 찾는다.
 
         Args:
-            article_id: Article ID (from PostgreSQL) to find similar to
-            vector_id: Vector ID (from Qdrant) to find similar to
-            limit: Maximum number of results (default: 10)
-            score_threshold: Minimum similarity score (default: 0.7)
-            source_type: Filter by source types
-            category: Filter by categories
+            article_id: PostgreSQL 아티클 ID(유사 검색 기준)
+            vector_id: Qdrant 벡터 ID(유사 검색 기준)
+            limit: 최대 결과 수(기본값: 10)
+            score_threshold: 최소 유사도 점수(기본값: 0.7)
+            source_type: 소스 타입 필터
+            category: 카테고리 필터
 
         Returns:
-            List of similar articles with scores
+            점수를 포함한 유사 아티클 목록
 
-        Examples:
+        예시:
             >>> similar = await ops.find_similar_articles(
             ...     vector_id="vector-id-123",
             ...     limit=5,
@@ -587,15 +583,15 @@ class VectorOperations:
             ... )
         """
         try:
-            # Get the reference article
+            # 기준 아티클 확보
             if vector_id:
                 ref_article = self.get_article(vector_id)
                 if not ref_article:
                     logger.error(f"Reference article with vector_id={vector_id} not found")
                     return []
             elif article_id:
-                # Search by article_id in payload
-                # First, we need to find the vector_id by article_id
+                # payload에서 article_id로 검색
+                # 먼저 article_id로 vector_id를 찾는다
                 search_by_id = self.qdrant_client.client.scroll(
                     collection_name=self.collection_name,
                     scroll_filter=models.Filter(
@@ -622,7 +618,7 @@ class VectorOperations:
                 logger.error("Either article_id or vector_id must be provided")
                 return []
 
-            # Get vector for the reference article
+            # 기준 아티클 벡터 조회
             ref_points = self.qdrant_client.client.retrieve(
                 collection_name=self.collection_name,
                 ids=[vector_id],
@@ -635,13 +631,13 @@ class VectorOperations:
 
             query_vector = ref_points[0].vector
 
-            # Build filters
+            # 필터 구성
             query_filter = self._build_search_filter(
                 source_type=source_type,
                 category=category,
             )
 
-            # Search similar articles using query_points
+            # query_points로 유사 아티클 검색
             search_results = self.qdrant_client.client.query_points(
                 collection_name=self.collection_name,
                 query=query_vector,
@@ -652,10 +648,10 @@ class VectorOperations:
                 with_vectors=False,
             ).points
 
-            # Format results and exclude the reference article itself
+            # 결과 포맷팅 및 자기 자신 제외
             results = []
             for hit in search_results:
-                if hit.id != vector_id:  # Exclude self
+                if hit.id != vector_id:  # 자기 자신 제외
                     result = {
                         "vector_id": hit.id,
                         "score": hit.score,
@@ -663,7 +659,7 @@ class VectorOperations:
                     }
                     results.append(result)
 
-            # Limit to requested number
+            # 요청 수로 제한
             results = results[:limit]
 
             logger.info(f"Found {len(results)} similar articles for vector_id={vector_id}")
@@ -674,7 +670,7 @@ class VectorOperations:
             logger.error(f"Failed to find similar articles: {e}")
             return []
 
-    # SQL처러 검색 필터 조건을 생성
+    # SQL처럼 검색 필터 조건 생성
     def _build_search_filter(
         self,
         source_type: list[str] | None = None,
@@ -683,21 +679,21 @@ class VectorOperations:
         date_from: str | None = None,
         date_to: str | None = None,
     ) -> models.Filter | None:
-        """Build Qdrant filter for search queries.
+        """검색용 Qdrant 필터를 생성한다.
 
         Args:
-            source_type: Filter by source types
-            category: Filter by categories
-            min_importance_score: Minimum importance score
-            date_from: Filter from this date
-            date_to: Filter until this date
+            source_type: 소스 타입 필터
+            category: 카테고리 필터
+            min_importance_score: 최소 중요도 점수
+            date_from: 시작 일자
+            date_to: 종료 일자
 
         Returns:
-            Qdrant Filter object or None if no filters
+            Qdrant 필터 객체(조건이 없으면 None)
         """
         must_conditions = []
 
-        # Source type filter
+        # 소스 타입 필터
         if source_type:
             must_conditions.append(
                 models.FieldCondition(
@@ -706,7 +702,7 @@ class VectorOperations:
                 ),
             )
 
-        # Category filter
+        # 카테고리 필터
         if category:
             must_conditions.append(
                 models.FieldCondition(
@@ -715,7 +711,7 @@ class VectorOperations:
                 ),
             )
 
-        # Importance score filter
+        # 중요도 점수 필터
         if min_importance_score is not None:
             must_conditions.append(
                 models.FieldCondition(
@@ -724,7 +720,7 @@ class VectorOperations:
                 ),
             )
 
-        # Date range filter
+        # 날짜 범위 필터
         if date_from or date_to:
             range_params = {}
             if date_from:
@@ -739,22 +735,22 @@ class VectorOperations:
                 ),
             )
 
-        # Return filter if any conditions exist
+        # 조건이 있으면 필터 반환
         if must_conditions:
             return models.Filter(must=must_conditions)
 
         return None
 
 
-# Global operations instance
+# 전역 operations 인스턴스
 _vector_ops: VectorOperations | None = None
 
 
 def get_vector_operations() -> VectorOperations:
-    """Get or create global vector operations instance.
+    """전역 VectorOperations 인스턴스를 반환한다.
 
     Returns:
-        Singleton VectorOperations instance
+        싱글턴 VectorOperations 인스턴스
     """
     global _vector_ops
     if _vector_ops is None:
@@ -769,7 +765,7 @@ def get_vector_operations() -> VectorOperations:
 # # 2. 새 논문 수집 (PostgreSQL에 먼저 저장했다고 가정)
 # article_id = "123e4567-e89b-12d3-a456-426614174000"  # PostgreSQL UUID
 
-# # 3. Vector DB에 삽입
+# # 3. 벡터 DB에 삽입
 # vector_id = await ops.insert_article(
 #     article_id=article_id,
 #     title="Attention Is All You Need",
@@ -780,7 +776,7 @@ def get_vector_operations() -> VectorOperations:
 #     importance_score=0.95,
 #     metadata={"authors": ["Vaswani et al."], "year": 2017}
 # )
-# # Returns: "550e8400-e29b-41d4-a716-446655440000"
+# # 반환 예시: "550e8400-e29b-41d4-a716-446655440000"
 
 # # 4. 사용자 검색
 # search_results = await ops.search_similar_articles(
@@ -809,4 +805,4 @@ def get_vector_operations() -> VectorOperations:
 
 # # 7. 아티클 개수 확인
 # total = ops.count_articles()
-# print(f"Total papers in DB: {total}")
+# print(f"DB 내 논문 총 개수: {total}")

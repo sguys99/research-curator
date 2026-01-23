@@ -1,4 +1,4 @@
-"""Qdrant client wrapper for managing vector database connections and operations."""
+"""벡터 DB 연결/작업을 위한 Qdrant 클라이언트 래퍼."""
 
 import logging
 import threading
@@ -13,9 +13,9 @@ from app.vector_db.exceptions import VectorDBConnectionError
 logger = logging.getLogger(__name__)
 
 
-# DB 연결, 컬렉션(RDB의 테이블과 유사) 관리를 담당
+# DB 연결 및 컬렉션(RDB 테이블과 유사) 관리를 담당
 class QdrantClientWrapper:
-    """Wrapper for Qdrant client with connection management and utility methods."""
+    """Qdrant 연결 관리 및 유틸리티를 포함한 클라이언트 래퍼."""
 
     def __init__(
         self,
@@ -23,12 +23,12 @@ class QdrantClientWrapper:
         port: int | None = None,
         collection_name: str | None = None,
     ) -> None:
-        """Initialize Qdrant client.
+        """Qdrant 클라이언트를 초기화한다.
 
         Args:
-            host: Qdrant server host (defaults to settings.QDRANT_HOST)
-            port: Qdrant server port (defaults to settings.QDRANT_PORT)
-            collection_name: Default collection name (defaults to settings.QDRANT_COLLECTION_NAME)
+            host: Qdrant 서버 호스트(기본값: settings.QDRANT_HOST)
+            port: Qdrant 서버 포트(기본값: settings.QDRANT_PORT)
+            collection_name: 기본 컬렉션 이름(기본값: settings.QDRANT_COLLECTION_NAME)
         """
         self.host = host or settings.QDRANT_HOST
         self.port = port or settings.QDRANT_PORT
@@ -38,13 +38,13 @@ class QdrantClientWrapper:
 
     @property  # 메서드를 속성처럼 접근(예: .client), Lazy initialization(지연 초기화, 사용할 때 연결)
     def client(self) -> QdrantClient:
-        """Get or create Qdrant client instance.
+        """Qdrant 클라이언트를 생성하거나 반환한다.
 
         Returns:
-            QdrantClient: Active Qdrant client instance
+            QdrantClient: 활성 Qdrant 클라이언트
 
         Raises:
-            VectorDBConnectionError: If unable to connect to Qdrant server
+            VectorDBConnectionError: Qdrant 서버 연결 실패 시
         """
         if self._client is None:
             with self._client_lock:
@@ -60,19 +60,19 @@ class QdrantClientWrapper:
         return self._client
 
     def health_check(self) -> dict[str, Any]:
-        """Check Qdrant server health and connection status.
+        """Qdrant 서버 상태와 연결 여부를 확인한다.
 
         Returns:
-            dict: Health status information including:
-                - status: "healthy" or "unhealthy"
-                - connected: boolean indicating connection status
-                - host: Qdrant server host
-                - port: Qdrant server port
-                - collections: list of available collection names (if connected)
-                - error: error message (if unhealthy)
+            dict: 상태 정보
+                - status: "healthy" 또는 "unhealthy"
+                - connected: 연결 여부
+                - host: Qdrant 서버 호스트
+                - port: Qdrant 서버 포트
+                - collections: 컬렉션 이름 목록(연결 시)
+                - error: 오류 메시지(비정상 시)
         """
         try:
-            # Try to get collections list to verify connection
+            # 컬렉션 목록을 조회해 연결 확인
             collections = self.client.get_collections()  # QdrantClient의 메서드
             collection_names = [col.name for col in collections.collections]
 
@@ -94,13 +94,13 @@ class QdrantClientWrapper:
             }
 
     def collection_exists(self, collection_name: str | None = None) -> bool:
-        """Check if a collection exists in Qdrant.
+        """Qdrant에 컬렉션이 존재하는지 확인한다.
 
         Args:
-            collection_name: Collection name to check (defaults to self.collection_name)
+            collection_name: 확인할 컬렉션 이름(기본값: self.collection_name)
 
         Returns:
-            bool: True if collection exists, False otherwise
+            bool: 존재 여부
         """
         name = collection_name or self.collection_name
         try:
@@ -117,24 +117,24 @@ class QdrantClientWrapper:
         distance: models.Distance = models.Distance.COSINE,
         on_disk_payload: bool = True,
     ) -> bool:
-        """Create a new collection in Qdrant.
+        """Qdrant에 새 컬렉션을 생성한다.
 
         Args:
-            collection_name: Name of the collection (defaults to self.collection_name)
-            vector_size: Size of the embedding vectors (defaults to settings.QDRANT_VECTOR_SIZE)
-            distance: Distance metric for similarity (default: COSINE)
-            on_disk_payload: Store payload on disk to save memory (default: True)
+            collection_name: 컬렉션 이름(기본값: self.collection_name)
+            vector_size: 임베딩 벡터 크기(기본값: settings.QDRANT_VECTOR_SIZE)
+            distance: 유사도 거리 척도(기본값: COSINE)
+            on_disk_payload: 페이로드 디스크 저장 여부(기본값: True)
 
         Returns:
-            bool: True if collection was created successfully, False otherwise
+            bool: 생성 성공 여부
 
         Raises:
-            ValueError: If collection already exists
+            ValueError: 이미 컬렉션이 존재하는 경우
         """
         name = collection_name or self.collection_name
         size = vector_size or settings.QDRANT_VECTOR_SIZE
 
-        # Check if collection already exists
+        # 컬렉션 존재 여부 확인
         if self.collection_exists(name):
             logger.warning(f"Collection '{name}' already exists")
             raise ValueError(f"Collection '{name}' already exists")
@@ -155,13 +155,13 @@ class QdrantClientWrapper:
             return False
 
     def delete_collection(self, collection_name: str | None = None) -> bool:
-        """Delete a collection from Qdrant.
+        """Qdrant에서 컬렉션을 삭제한다.
 
         Args:
-            collection_name: Name of the collection to delete (defaults to self.collection_name)
+            collection_name: 삭제할 컬렉션 이름(기본값: self.collection_name)
 
         Returns:
-            bool: True if collection was deleted successfully, False otherwise
+            bool: 삭제 성공 여부
         """
         name = collection_name or self.collection_name
 
@@ -178,18 +178,18 @@ class QdrantClientWrapper:
             return False
 
     def get_collection_info(self, collection_name: str | None = None) -> dict[str, Any] | None:
-        """Get information about a collection.
+        """컬렉션 정보를 조회한다.
 
         Args:
-            collection_name: Name of the collection (defaults to self.collection_name)
+            collection_name: 조회할 컬렉션 이름(기본값: self.collection_name)
 
         Returns:
-            dict: Collection information including:
-                - name: collection name
-                - vector_size: size of embedding vectors
-                - points_count: number of points in collection
-                - status: collection status
-            Returns None if collection doesn't exist
+            dict: 컬렉션 정보
+                - name: 컬렉션 이름
+                - vector_size: 임베딩 벡터 크기
+                - points_count: 포인트 개수
+                - status: 컬렉션 상태
+            컬렉션이 없으면 None 반환
         """
         name = collection_name or self.collection_name
 
@@ -216,34 +216,34 @@ class QdrantClientWrapper:
         vector_size: int | None = None,
         distance: models.Distance = models.Distance.COSINE,
     ) -> bool:
-        """Recreate a collection (delete if exists, then create new).
+        """컬렉션을 재생성한다(존재 시 삭제 후 재생성).
 
         Args:
-            collection_name: Name of the collection (defaults to self.collection_name)
-            vector_size: Size of the embedding vectors (defaults to settings.QDRANT_VECTOR_SIZE)
-            distance: Distance metric for similarity (default: COSINE)
+            collection_name: 컬렉션 이름(기본값: self.collection_name)
+            vector_size: 임베딩 벡터 크기(기본값: settings.QDRANT_VECTOR_SIZE)
+            distance: 유사도 거리 척도(기본값: COSINE)
 
         Returns:
-            bool: True if collection was recreated successfully, False otherwise
+            bool: 재생성 성공 여부
         """
         name = collection_name or self.collection_name
 
-        # Delete if exists
+        # 존재하면 삭제
         if self.collection_exists(name):
             if not self.delete_collection(name):
                 logger.error(f"Failed to delete existing collection '{name}'")
                 return False
 
-        # Create new collection
+        # 새 컬렉션 생성
         try:
             return self.create_collection(name, vector_size, distance)
         except ValueError:
-            # Should not happen since we just deleted it
+            # 방금 삭제했으므로 발생하면 안 됨
             logger.error(f"Unexpected error: collection '{name}' exists after deletion")
             return False
 
     def close(self) -> None:
-        """Close the Qdrant client connection."""
+        """Qdrant 클라이언트 연결을 종료한다."""
         if self._client is not None:
             with self._client_lock:
                 if self._client is not None:
@@ -252,30 +252,30 @@ class QdrantClientWrapper:
                     logger.info("Qdrant client connection closed")
 
     def __enter__(self) -> "QdrantClientWrapper":
-        """Context manager entry."""
+        """컨텍스트 매니저 진입."""
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
-        """Context manager exit."""
+        """컨텍스트 매니저 종료."""
         self.close()
 
     def __repr__(self) -> str:
-        """String representation of the client."""
+        """클라이언트 문자열 표현."""
         return (
             f"QdrantClientWrapper(host={self.host}, port={self.port}, collection={self.collection_name})"
         )
 
 
-# Global client instance, 싱글턴 패턴, 전역 단일 인스턴스, 어플리케이션 전역에서 동일한 연결 재사용
+# 전역 클라이언트 인스턴스(싱글턴, 앱 전역 동일 연결 재사용)
 _qdrant_client: QdrantClientWrapper | None = None
 _qdrant_client_lock = threading.Lock()
 
 
 def get_qdrant_client() -> QdrantClientWrapper:
-    """Get or create global Qdrant client instance.
+    """전역 Qdrant 클라이언트 인스턴스를 반환한다.
 
     Returns:
-        QdrantClientWrapper: Singleton Qdrant client instance
+        QdrantClientWrapper: 싱글턴 Qdrant 클라이언트
     """
     global _qdrant_client
     if _qdrant_client is None:

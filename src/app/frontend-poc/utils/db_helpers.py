@@ -1,4 +1,4 @@
-"""Database helper functions for admin page."""
+"""관리자 페이지용 DB 헬퍼 함수."""
 
 from sqlalchemy import func, select
 
@@ -7,7 +7,7 @@ from app.db.session import get_db
 
 
 def get_total_user_count() -> int:
-    """Get total number of users."""
+    """전체 사용자 수를 반환한다."""
     db = next(get_db())
     try:
         result = db.execute(select(func.count(User.id)))
@@ -17,7 +17,7 @@ def get_total_user_count() -> int:
 
 
 def get_total_digest_count() -> int:
-    """Get total number of digests sent."""
+    """발송된 다이제스트 총 개수를 반환한다."""
     db = next(get_db())
     try:
         result = db.execute(select(func.count(SentDigest.id)))
@@ -27,7 +27,7 @@ def get_total_digest_count() -> int:
 
 
 def get_total_feedback_count() -> int:
-    """Get total number of feedbacks."""
+    """전체 피드백 수를 반환한다."""
     db = next(get_db())
     try:
         result = db.execute(select(func.count(Feedback.id)))
@@ -37,22 +37,22 @@ def get_total_feedback_count() -> int:
 
 
 def get_all_users_with_stats() -> list[dict]:
-    """Get all users with their statistics."""
+    """모든 사용자와 통계를 반환한다."""
     db = next(get_db())
     try:
-        # User 기본 정보 조회
+        # 사용자 기본 정보 조회
         stmt = select(User).order_by(User.created_at.desc())
         result = db.execute(stmt)
         users = result.scalars().all()
 
-        # 각 사용자별 통계 계산
+        # 사용자별 통계 계산
         user_list = []
         for user in users:
-            # Digest count
+            # 다이제스트 수
             digest_stmt = select(func.count(SentDigest.id)).where(SentDigest.user_id == user.id)
             digest_count = db.execute(digest_stmt).scalar_one()
 
-            # Feedback count
+            # 피드백 수
             feedback_stmt = select(func.count(Feedback.id)).where(Feedback.user_id == user.id)
             feedback_count = db.execute(feedback_stmt).scalar_one()
 
@@ -74,7 +74,7 @@ def get_all_users_with_stats() -> list[dict]:
 
 
 def get_all_digests() -> list[dict]:
-    """Get all digests with user info."""
+    """사용자 정보 포함 다이제스트 목록을 반환한다."""
     db = next(get_db())
     try:
         stmt = (

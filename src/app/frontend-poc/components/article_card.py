@@ -1,4 +1,4 @@
-"""Article card component for displaying research articles."""
+"""연구 아티클 표시용 카드 컴포넌트."""
 
 from datetime import datetime
 
@@ -17,21 +17,21 @@ def show_article_card(
     show_similar_button: bool = False,
     article_id: str | None = None,
 ):
-    """Display an article card with title, summary, and metadata.
+    """제목/요약/메타데이터를 포함한 아티클 카드를 표시한다.
 
     Args:
-        title: Article title
-        summary: Article summary
-        source_type: Type of source (paper, news, report)
-        category: Article category (AI, NLP, etc.)
-        importance_score: Importance score (0-1)
-        url: Article URL
-        collected_at: Collection timestamp
-        metadata: Additional metadata
-        show_similar_button: Whether to show "Find Similar" button
-        article_id: Article ID for similar search
+        title: 아티클 제목
+        summary: 아티클 요약
+        source_type: 소스 유형(paper, news, report)
+        category: 아티클 카테고리(AI, NLP 등)
+        importance_score: 중요도 점수(0-1)
+        url: 아티클 URL
+        collected_at: 수집 시각
+        metadata: 추가 메타데이터
+        show_similar_button: "유사 논문" 버튼 표시 여부
+        article_id: 유사 검색용 아티클 ID
     """
-    # Source type emoji mapping
+    # 소스 유형 이모지 매핑
     source_emoji = {
         "paper": "📚",
         "news": "📰",
@@ -39,12 +39,12 @@ def show_article_card(
         "blog": "📝",
     }
 
-    # Importance stars
+    # 중요도 별점
     stars = "⭐" * min(3, max(1, int(importance_score * 3)))
 
-    # Card container
+    # 카드 컨테이너
     with st.container():
-        # Header row
+        # 헤더 행
         col1, col2, col3 = st.columns([2, 1, 1])
 
         with col1:
@@ -67,10 +67,10 @@ def show_article_card(
                 unsafe_allow_html=True,
             )
 
-        # Summary
+        # 요약
         st.markdown(summary)
 
-        # Metadata row
+        # 메타데이터 행
         meta_col1, meta_col2, meta_col3 = st.columns(3)
 
         with meta_col1:
@@ -87,14 +87,14 @@ def show_article_card(
                 except Exception:
                     st.caption("📅 N/A")
 
-        # Additional metadata
+        # 추가 메타데이터
         if metadata:
             with st.expander("📋 상세 정보"):
                 for key, value in metadata.items():
-                    if key not in ["embedding", "vector_id"]:  # Skip large fields
+                    if key not in ["embedding", "vector_id"]:  # 대용량 필드 제외
                         st.text(f"{key}: {value}")
 
-        # Action buttons
+        # 액션 버튼
         btn_col1, btn_col2, btn_col3 = st.columns([2, 1, 1])
 
         with btn_col1:
@@ -123,12 +123,12 @@ def show_article_list(
     show_similar_button: bool = False,
     empty_message: str = "표시할 아티클이 없습니다.",
 ):
-    """Display a list of article cards.
+    """아티클 카드 목록을 표시한다.
 
     Args:
-        articles: List of article dictionaries
-        show_similar_button: Whether to show "Find Similar" button
-        empty_message: Message to show when list is empty
+        articles: 아티클 dict 목록
+        show_similar_button: "유사 논문" 버튼 표시 여부
+        empty_message: 빈 목록일 때 표시할 메시지
     """
     if not articles:
         st.info(empty_message)
@@ -158,14 +158,14 @@ def show_compact_article_card(
     importance_score: float,
     url: str,
 ):
-    """Display a compact version of article card (for sidebar or small spaces).
+    """컴팩트 아티클 카드를 표시한다(사이드바/작은 영역용).
 
     Args:
-        title: Article title
-        summary: Article summary (will be truncated)
-        source_type: Type of source
-        importance_score: Importance score
-        url: Article URL
+        title: 아티클 제목
+        summary: 아티클 요약(자동 축약)
+        source_type: 소스 유형
+        importance_score: 중요도 점수
+        url: 아티클 URL
     """
     source_emoji = {"paper": "📚", "news": "📰", "report": "📊", "blog": "📝"}
     stars = "⭐" * min(3, max(1, int(importance_score * 3)))

@@ -112,7 +112,7 @@ class ProcessingPipeline:
         Returns:
             ProcessedArticle 객체
 
-        Examples:
+        예시:
             >>> pipeline = ProcessingPipeline()
             >>> result = await pipeline.process_article(
             ...     title="Attention Is All You Need",
@@ -215,7 +215,7 @@ class ProcessingPipeline:
         Returns:
             ProcessedArticle 리스트
 
-        Examples:
+        예시:
             >>> articles = [
             ...     {"title": "Paper 1", "content": "...", "url": "..."},
             ...     {"title": "Paper 2", "content": "...", "url": "..."},
