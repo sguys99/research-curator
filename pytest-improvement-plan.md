@@ -100,6 +100,8 @@ external dependencies, and introducing shared pytest infrastructure.
   - rewrite tests to assert deterministic outputs using mocks/fixtures.
   - ensure async tests use `pytest.mark.asyncio` and await correctly.
 - Add explicit `skipif` guards for env/service requirements.
+#### Progress
+- Refactored `tests/test_processors.py` to pytest style with `llm_mock` and `@pytest.mark.unit`.
 
 ### 5) Coverage expansion (new)
 - Add missing tests for:
