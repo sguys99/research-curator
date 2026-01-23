@@ -6,7 +6,7 @@ from collections.abc import AsyncIterator
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 
-from src.app.api.schemas import (
+from app.api.schemas import (
     ArticleAnalysisRequest,
     ArticleAnalysisResponse,
     ArticleSummaryRequest,
@@ -16,7 +16,7 @@ from src.app.api.schemas import (
     EmbeddingRequest,
     EmbeddingResponse,
 )
-from src.app.llm import LLMClient
+from app.llm import LLMClient
 
 router = APIRouter(prefix="/llm", tags=["LLM"])
 

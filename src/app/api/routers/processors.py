@@ -12,7 +12,7 @@ import time
 
 from fastapi import APIRouter, HTTPException
 
-from src.app.api.schemas.processors import (
+from app.api.schemas.processors import (
     BatchProcessRequest,
     BatchProcessResponse,
     ClassifyRequest,
@@ -25,7 +25,7 @@ from src.app.api.schemas.processors import (
     SummarizeRequest,
     SummarizeResponse,
 )
-from src.app.processors import (
+from app.processors import (
     ArticleSummarizer,
     ContentClassifier,
     ImportanceEvaluator,
