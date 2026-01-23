@@ -170,7 +170,7 @@ class OnboardingChatbot:
     def _ask_keywords(self) -> None:
         """키워드를 질문한다."""
         question = f"""
-좋아요! **{", ".join(st.session_state.collected_info['research_fields'])}** 분야군요.
+좋아요! **{", ".join(st.session_state.collected_info["research_fields"])}** 분야군요.
 
 **질문 2/5**: 특히 관심있는 **키워드**를 알려주세요.
 
@@ -297,11 +297,11 @@ class OnboardingChatbot:
 
 설정이 완료되었습니다. 확인해주세요:
 
-**연구 분야**: {", ".join(info['research_fields'])}
-**키워드**: {", ".join(info['keywords'])}
+**연구 분야**: {", ".join(info["research_fields"])}
+**키워드**: {", ".join(info["keywords"])}
 **정보 유형**: 논문 {paper_pct}%, 뉴스 {news_pct}%, 리포트 {report_pct}%
-**이메일 발송 시간**: {info['email_time']}
-**일일 제공량**: {info['daily_limit']}개
+**이메일 발송 시간**: {info["email_time"]}
+**일일 제공량**: {info["daily_limit"]}개
 
 이대로 저장하시겠습니까?
 

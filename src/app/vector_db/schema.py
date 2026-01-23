@@ -198,8 +198,7 @@ def verify_collection_schema(client: QdrantClientWrapper | None = None) -> dict[
     # 벡터 크기 검증
     if info["vector_size"] != CollectionSchema.VECTOR_SIZE:
         result["errors"].append(
-            f"Vector size mismatch: expected {CollectionSchema.VECTOR_SIZE}, "
-            f"got {info['vector_size']}",
+            f"Vector size mismatch: expected {CollectionSchema.VECTOR_SIZE}, got {info['vector_size']}",
         )
     else:
         result["schema_valid"] = True

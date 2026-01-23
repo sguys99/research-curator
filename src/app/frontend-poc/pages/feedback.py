@@ -298,7 +298,7 @@ def _show_feedback_history(api: APIClient, user_id: str) -> None:
             # 피드백 표시
             for idx, feedback in enumerate(filtered_feedbacks):
                 with st.expander(
-                    f"{'⭐' * feedback.get('rating', 0)} - " f"{feedback.get('created_at', 'N/A')[:10]}",
+                    f"{'⭐' * feedback.get('rating', 0)} - {feedback.get('created_at', 'N/A')[:10]}",
                     expanded=(idx < 3),
                 ):
                     col1, col2 = st.columns([2, 1])

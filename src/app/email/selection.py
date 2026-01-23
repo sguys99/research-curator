@@ -217,7 +217,7 @@ def _fallback_title_search(
         if any(kw.lower() in title_lower for kw in keywords):
             matched.append(article)
 
-    logger.info(f"Fallback title search found {len(matched)} articles " f"matching keywords: {keywords}")
+    logger.info(f"Fallback title search found {len(matched)} articles matching keywords: {keywords}")
 
     return matched
 
@@ -344,7 +344,7 @@ async def _semantic_filter(
 
         if not vectorized_articles:
             logger.warning(
-                f"No articles have vector_id set. " f"Total articles: {len(articles)}, Vectorized: 0",
+                f"No articles have vector_id set. Total articles: {len(articles)}, Vectorized: 0",
             )
             return []
 
@@ -375,8 +375,7 @@ async def _semantic_filter(
         matched_articles = [article for article, _score in scored_articles[:limit]]
 
         logger.info(
-            f"Semantic search found {len(matched_articles)} matches "
-            f"above threshold {score_threshold}",
+            f"Semantic search found {len(matched_articles)} matches above threshold {score_threshold}",
         )
 
         return matched_articles

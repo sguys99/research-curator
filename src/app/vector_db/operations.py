@@ -118,8 +118,7 @@ class VectorOperations:
             )
 
             logger.info(
-                f"Inserted article '{title[:50]}...' "
-                f"(article_id={article_id}, vector_id={vector_id})",
+                f"Inserted article '{title[:50]}...' (article_id={article_id}, vector_id={vector_id})",
             )
 
             return vector_id

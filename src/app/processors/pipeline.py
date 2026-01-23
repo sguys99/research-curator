@@ -393,8 +393,7 @@ if __name__ == "__main__":
         print(f"\n처리 완료: {len(results)}개")
         for i, article in enumerate(results, 1):
             print(
-                f"  [{i}] {article.title[:40]}... → "
-                f"{article.importance_score:.2f} ({article.category})",
+                f"  [{i}] {article.title[:40]}... → {article.importance_score:.2f} ({article.category})",
             )
 
         # 상위 아티클

@@ -5,14 +5,12 @@ import logging
 import time
 from collections.abc import Awaitable, Callable
 from functools import wraps
-from typing import Any, TypeVar
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
-T = TypeVar("T")
 
-
-async def async_with_retry(
+async def async_with_retry[T](
     func: Callable[[], Awaitable[T]],
     max_attempts: int = 3,
     initial_delay: float = 1.0,
@@ -49,7 +47,7 @@ async def async_with_retry(
                 raise
 
             logger.warning(
-                f"Attempt {attempt + 1}/{max_attempts} failed: {e}. " f"Retrying in {delay:.2f}s...",
+                f"Attempt {attempt + 1}/{max_attempts} failed: {e}. Retrying in {delay:.2f}s...",
             )
 
             await asyncio.sleep(delay)
@@ -147,7 +145,7 @@ def retry_with_backoff(
     return decorator
 
 
-def with_retry(
+def with_retry[T](
     func: Callable[[], T],
     max_attempts: int = 3,
     initial_delay: float = 1.0,
@@ -184,7 +182,7 @@ def with_retry(
                 raise
 
             logger.warning(
-                f"Attempt {attempt + 1}/{max_attempts} failed: {e}. " f"Retrying in {delay:.2f}s...",
+                f"Attempt {attempt + 1}/{max_attempts} failed: {e}. Retrying in {delay:.2f}s...",
             )
 
             time.sleep(delay)

@@ -83,7 +83,7 @@ class ArticleSummarizer:
 
             summary = response.strip()
             logger.info(
-                f"Summary generated: {len(summary)} chars " f"(lang={language}, length={length})",
+                f"Summary generated: {len(summary)} chars (lang={language}, length={length})",
             )
 
             return summary

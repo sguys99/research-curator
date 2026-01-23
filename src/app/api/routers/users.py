@@ -280,8 +280,7 @@ async def send_test_digest(
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=(
-                    "No articles match your preferences. "
-                    "Try adjusting your keywords or research fields."
+                    "No articles match your preferences. Try adjusting your keywords or research fields."
                 ),
             )
 

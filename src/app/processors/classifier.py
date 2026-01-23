@@ -265,7 +265,7 @@ class ContentClassifier:
         Returns:
             카테고리별 개수 {"paper": 5, "news": 3, ...}
         """
-        distribution = {cat: 0 for cat in self.valid_categories}
+        distribution = dict.fromkeys(self.valid_categories, 0)
 
         for result in classifications:
             category = result.get("category", "other")

@@ -1,11 +1,8 @@
 """API 공통 Pydantic 스키마."""
 
-from typing import Any, Generic, TypeVar
+from typing import Any
 
 from pydantic import BaseModel, Field
-
-# 페이지네이션 응답용 제네릭 타입
-T = TypeVar("T")
 
 
 class PaginationParams(BaseModel):
@@ -15,7 +12,7 @@ class PaginationParams(BaseModel):
     limit: int = Field(10, ge=1, le=100, description="반환할 항목 수")
 
 
-class PaginatedResponse(BaseModel, Generic[T]):
+class PaginatedResponse[T](BaseModel):
     """페이지네이션 응답 스키마."""
 
     items: list[T] = Field(default_factory=list, description="항목 목록")
