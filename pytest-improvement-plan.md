@@ -138,3 +138,5 @@ external dependencies, and introducing shared pytest infrastructure.
   - required env vars
   - optional services (docker compose)
   - expected runtime targets
+#### Progress
+- Added `tests/README.md` with run commands, env vars, and service requirements.
