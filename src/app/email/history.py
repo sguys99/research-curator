@@ -1,4 +1,4 @@
-"""Email sending history management."""
+"""이메일 발송 히스토리 관리."""
 
 import logging
 from datetime import UTC, datetime
@@ -19,22 +19,22 @@ async def save_sent_digest(
     article_ids: list[str],
 ) -> SentDigest:
     """
-    Save email digest sending history to database.
+    다이제스트 발송 히스토리를 DB에 저장한다.
 
     Args:
-        session: Database session
-        user_id: User UUID
-        article_ids: List of article IDs included in the digest
+        session: DB 세션
+        user_id: 사용자 UUID
+        article_ids: 다이제스트에 포함된 아티클 ID 목록
 
     Returns:
-        SentDigest: Created digest record
+        SentDigest: 생성된 다이제스트 기록
     """
     try:
-        # Convert user_id to UUID if string
+        # 문자열이면 UUID로 변환
         if isinstance(user_id, str):
             user_id = UUID(user_id)
 
-        # Create digest record
+        # 다이제스트 레코드 생성
         digest = SentDigest(
             user_id=user_id,
             article_ids=article_ids,
@@ -59,22 +59,22 @@ async def get_user_digest_history(
     limit: int = 10,
 ) -> list[SentDigest]:
     """
-    Get email digest history for a user.
+    사용자별 이메일 다이제스트 히스토리를 조회한다.
 
     Args:
-        session: Database session
-        user_id: User UUID
-        limit: Maximum number of records to return
+        session: DB 세션
+        user_id: 사용자 UUID
+        limit: 반환할 최대 개수
 
     Returns:
-        list[SentDigest]: List of digest records
+        list[SentDigest]: 다이제스트 기록 목록
     """
     try:
-        # Convert user_id to UUID if string
+        # 문자열이면 UUID로 변환
         if isinstance(user_id, str):
             user_id = UUID(user_id)
 
-        # Query digest history
+        # 히스토리 조회
         stmt = (
             select(SentDigest)
             .where(SentDigest.user_id == user_id)
@@ -98,22 +98,22 @@ async def mark_email_opened(
     opened_at: datetime | None = None,
 ) -> SentDigest | None:
     """
-    Mark an email as opened.
+    이메일 오픈 상태를 표시한다.
 
     Args:
-        session: Database session
-        digest_id: Digest UUID
-        opened_at: Timestamp when email was opened (defaults to now)
+        session: DB 세션
+        digest_id: 다이제스트 UUID
+        opened_at: 오픈 시각(기본값: 현재 시각)
 
     Returns:
-        SentDigest | None: Updated digest record or None if not found
+        SentDigest | None: 업데이트된 레코드(없으면 None)
     """
     try:
-        # Convert digest_id to UUID if string
+        # 문자열이면 UUID로 변환
         if isinstance(digest_id, str):
             digest_id = UUID(digest_id)
 
-        # Get digest
+        # 다이제스트 조회
         stmt = select(SentDigest).where(SentDigest.id == digest_id)
         result = await session.execute(stmt)
         digest = result.scalar_one_or_none()
@@ -122,7 +122,7 @@ async def mark_email_opened(
             logger.warning(f"Digest {digest_id} not found")
             return None
 
-        # Update opened status
+        # 오픈 상태 업데이트
         digest.email_opened = True
         digest.opened_at = opened_at or datetime.now(UTC)
 
@@ -140,21 +140,21 @@ async def mark_email_opened(
 
 async def get_digest_stats(session: AsyncSession, user_id: UUID | str) -> dict[str, Any]:
     """
-    Get email digest statistics for a user.
+    사용자별 이메일 다이제스트 통계를 반환한다.
 
     Args:
-        session: Database session
-        user_id: User UUID
+        session: DB 세션
+        user_id: 사용자 UUID
 
     Returns:
-        dict: Statistics including total_sent, total_opened, open_rate
+        dict: total_sent, total_opened, open_rate 통계
     """
     try:
-        # Convert user_id to UUID if string
+        # 문자열이면 UUID로 변환
         if isinstance(user_id, str):
             user_id = UUID(user_id)
 
-        # Get all digests for user
+        # 사용자 전체 다이제스트 조회
         stmt = select(SentDigest).where(SentDigest.user_id == user_id)
         result = await session.execute(stmt)
         digests = result.scalars().all()

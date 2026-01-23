@@ -1,4 +1,4 @@
-"""LLM client wrapper using LiteLLM for unified API access."""
+"""LiteLLM 기반 LLM 클라이언트 래퍼."""
 
 import json
 import warnings
@@ -11,7 +11,7 @@ from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponen
 
 from app.core.config import settings
 
-# Disable verbose logging for litellm
+# LiteLLM 상세 로그 비활성화
 litellm.suppress_debug_info = True
 
 _RETRYABLE_LLM_ERROR_NAMES = {
@@ -35,10 +35,9 @@ def _is_retryable_llm_error(exc: BaseException) -> bool:
 
 class LLMClient:
     """
-    Unified LLM client that supports multiple providers (OpenAI, Claude, etc.).
+    여러 제공자(OpenAI, Claude 등)를 지원하는 통합 LLM 클라이언트.
 
-    Uses LiteLLM to provide a consistent OpenAI-compatible interface
-    regardless of the underlying provider.
+    LiteLLM을 사용해 제공자와 무관하게 OpenAI 호환 인터페이스를 제공한다.
     """
 
     def __init__(
@@ -49,19 +48,19 @@ class LLMClient:
         max_tokens: int = 2000,
     ):
         """
-        Initialize LLM client.
+        LLM 클라이언트를 초기화한다.
 
         Args:
-            provider: LLM provider to use (openai or claude)
-            model: Model name (if None, uses default from settings)
-            temperature: Sampling temperature (0.0 to 1.0)
-            max_tokens: Maximum tokens in response
+            provider: 사용할 제공자(openai 또는 claude)
+            model: 모델 이름(None이면 설정 기본값 사용)
+            temperature: 샘플링 온도(0.0~1.0)
+            max_tokens: 응답 최대 토큰 수
         """
         self.provider = provider
         self.temperature = temperature
         self.max_tokens = max_tokens
 
-        # Set API keys based on provider
+        # 제공자별 API 키 설정
         if provider == "openai":
             litellm.openai_key = settings.OPENAI_API_KEY
             self._validate_api_key(settings.OPENAI_API_KEY, "OPENAI_API_KEY")
@@ -102,34 +101,34 @@ class LLMClient:
         **kwargs: Any,
     ) -> str | Any:
         """
-        Generate chat completion using the configured LLM.
+        설정된 LLM으로 채팅 완료 응답을 생성한다.
 
         Args:
-            messages: List of message dicts with 'role' and 'content'
-            temperature: Override default temperature
-            max_tokens: Override default max_tokens
-            response_format: Response format (text or json)
-            stream: Enable streaming mode (yields chunks instead of full response)
-            **kwargs: Additional parameters to pass to LiteLLM
+            messages: role/content를 포함한 메시지 목록
+            temperature: 기본 temperature 재정의
+            max_tokens: 기본 max_tokens 재정의
+            response_format: 응답 형식(text 또는 json)
+            stream: 스트리밍 모드 사용(전체 대신 청크 반환)
+            **kwargs: LiteLLM에 전달할 추가 파라미터
 
         Returns:
-            Generated text response (str) or generator if stream=True
+            생성된 텍스트 응답(str) 또는 stream=True인 경우 제너레이터
 
-        Example:
+        예시:
             >>> client = LLMClient(provider="openai")
             >>> messages = [
             ...     {"role": "system", "content": "You are a helpful assistant."},
             ...     {"role": "user", "content": "Summarize this article."}
             ... ]
             >>> response = client.chat_completion(messages)
-            >>> # Streaming mode
+            >>> # 스트리밍 모드
             >>> for chunk in client.chat_completion(messages, stream=True):
             ...     print(chunk, end="", flush=True)
         """
         temp = temperature if temperature is not None else self.temperature
         max_tok = max_tokens if max_tokens is not None else self.max_tokens
 
-        # Prepare completion parameters
+        # 요청 파라미터 구성
         completion_params = {
             "model": self.model,
             "messages": messages,
@@ -139,12 +138,12 @@ class LLMClient:
             **kwargs,
         }
 
-        # Add response format for JSON mode
-        # openai 만 json 모드를 지원한다. claude의 경우 프롬프트에 json 요청으로 유도해야함
+        # JSON 모드 응답 형식 추가
+        # openai만 json 모드를 지원한다. claude는 프롬프트로 JSON을 유도해야 함
         if response_format == "json":
             if self.provider == "openai":
                 completion_params["response_format"] = {"type": "json_object"}
-            # Claude doesn't have native JSON mode, but we can add instructions
+            # Claude는 네이티브 JSON 모드가 없어 프롬프트로 유도해야 함
 
         try:
             response = completion(**completion_params)  # litellm 함수임
@@ -156,15 +155,15 @@ class LLMClient:
             # stream=False면 일반 텍스트 응답 반환
             content = response.choices[0].message.content
 
-            # Validate JSON if requested, json 응답 검증 및 복구
+            # JSON 응답 검증 및 복구
             if response_format == "json":
                 try:
                     json.loads(content)
                 except json.JSONDecodeError:
-                    # If not valid JSON, try to extract JSON from the response
+                    # JSON이 아니면 응답에서 JSON 추출 시도
                     import re
 
-                    # json이 아니면 정규 식으로 추출 시도
+                    # 정규식으로 JSON 추출 시도
                     json_match = re.search(r"\{.*\}", content, re.DOTALL)
                     if json_match:
                         content = json_match.group(0)
@@ -205,16 +204,16 @@ class LLMClient:
     )
     def generate_embedding(self, text: str, model: str | None = None) -> list[float]:
         """
-        Generate embedding vector for given text.
+        주어진 텍스트의 임베딩 벡터를 생성한다.
 
         Args:
-            text: Input text to embed
-            model: Embedding model name (if None, uses default)
+            text: 임베딩할 입력 텍스트
+            model: 임베딩 모델 이름(None이면 기본값 사용)
 
         Returns:
-            Embedding vector as list of floats
+            float 리스트 형태의 임베딩 벡터
 
-        Example:
+        예시:
             >>> client = LLMClient()
             >>> vec = client.generate_embedding("AI research trends")
             >>> len(vec)
@@ -258,21 +257,21 @@ class LLMClient:
         **kwargs: Any,
     ) -> str | Any:
         """
-        Async version of chat_completion.
+        chat_completion의 비동기 버전.
 
         Args:
-            messages: List of message dicts with 'role' and 'content'
-            temperature: Override default temperature
-            max_tokens: Override default max_tokens
-            response_format: Response format (text or json)
-            stream: Enable streaming mode (yields chunks instead of full response)
-            **kwargs: Additional parameters to pass to LiteLLM
+            messages: role/content를 포함한 메시지 목록
+            temperature: 기본 temperature 재정의
+            max_tokens: 기본 max_tokens 재정의
+            response_format: 응답 형식(text 또는 json)
+            stream: 스트리밍 모드 사용(전체 대신 청크 반환)
+            **kwargs: LiteLLM에 전달할 추가 파라미터
 
         Returns:
-            Generated text response (str) or async generator if stream=True
+            생성된 텍스트 응답(str) 또는 stream=True인 경우 비동기 제너레이터
 
-        Example:
-            >>> # Streaming mode
+        예시:
+            >>> # 스트리밍 모드
             >>> async for chunk in client.achat_completion(messages, stream=True):
             ...     print(chunk, end="", flush=True)
         """
@@ -326,14 +325,14 @@ class LLMClient:
     )
     async def agenerate_embedding(self, text: str, model: str | None = None) -> list[float]:
         """
-        Async version of generate_embedding.
+        generate_embedding의 비동기 버전.
 
         Args:
-            text: Input text to embed
-            model: Embedding model name (if None, uses default)
+            text: 임베딩할 입력 텍스트
+            model: 임베딩 모델 이름(None이면 기본값 사용)
 
         Returns:
-            Embedding vector as list of floats
+            float 리스트 형태의 임베딩 벡터
         """
         embedding_model = model or settings.OPENAI_EMBEDDING_MODEL
 
@@ -354,14 +353,14 @@ def get_llm_client(
     model: str | None = None,
 ) -> LLMClient:
     """
-    Get cached LLM client instance.
+    캐시된 LLM 클라이언트 인스턴스를 반환한다.
 
     Args:
-        provider: LLM provider to use
-        model: Model name (optional)
+        provider: 사용할 LLM 제공자
+        model: 모델 이름(선택)
 
     Returns:
-        Cached LLMClient instance
+        캐시된 LLMClient 인스턴스
     """
     return LLMClient(provider=provider, model=model)
 

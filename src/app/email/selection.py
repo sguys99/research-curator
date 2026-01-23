@@ -1,4 +1,4 @@
-"""Article selection and filtering logic for daily digests."""
+"""일일 다이제스트용 아티클 선택/필터링 로직."""
 
 import asyncio
 import logging
@@ -15,7 +15,7 @@ def select_articles_for_user(
     preferences: UserPreference,
     limit: int | None = None,
 ) -> list[CollectedArticle]:
-    """Synchronous wrapper for async selection (for sync callers)."""
+    """비동기 선택 로직을 동기로 감싼 래퍼."""
     return asyncio.run(select_articles_for_user_async(articles, preferences, limit))
 
 
@@ -25,35 +25,35 @@ async def select_articles_for_user_async(
     limit: int | None = None,
 ) -> list[CollectedArticle]:
     """
-    Select and filter articles based on user preferences.
+    사용자 선호도에 따라 아티클을 선택/필터링한다.
 
-    Strategy (updated with semantic search and fallback cascade):
-    1. Try semantic search via Qdrant (if articles are vectorized)
-    2. If semantic fails, try keyword/field filtering
-    3. If that fails, try title-only matching
-    4. If that fails, use importance ranking
-    5. Apply category distribution
-    6. Sort by importance score
-    7. Select top N
+    전략(시맨틱 검색과 폴백 포함):
+    1. Qdrant 시맨틱 검색(벡터화된 경우)
+    2. 실패 시 키워드/분야 필터링
+    3. 실패 시 제목만 매칭
+    4. 실패 시 중요도 랭킹
+    5. 카테고리 분포 적용
+    6. 중요도 점수 정렬
+    7. 상위 N개 선택
 
     Args:
-        articles: Available articles
-        preferences: User preferences
-        limit: Maximum articles to select (defaults to preferences.daily_limit)
+        articles: 후보 아티클 목록
+        preferences: 사용자 선호도
+        limit: 최대 선택 수(기본값은 preferences.daily_limit)
 
     Returns:
-        list[CollectedArticle]: Selected articles
+        list[CollectedArticle]: 선택된 아티클
     """
     if not articles:
         return []
 
     limit = limit or preferences.daily_limit or 5
 
-    # Step 1: Try semantic search first (most powerful)
+    # 1단계: 시맨틱 검색 우선 시도
     filtered = await _semantic_filter(
         articles,
         preferences,
-        limit=limit * 3,  # Get more candidates for distribution
+        limit=limit * 3,  # 분포 적용을 위해 후보를 더 확보
         score_threshold=0.65,
     )
 
@@ -62,7 +62,7 @@ async def select_articles_for_user_async(
     else:
         logger.info("Semantic search yielded no results, trying keyword matching")
 
-        # Step 2: Try traditional keyword/field filtering
+        # 2단계: 키워드/분야 필터링
         filtered = _filter_by_preferences(articles, preferences)
 
         if not filtered:
@@ -72,13 +72,13 @@ async def select_articles_for_user_async(
                 f"Trying fallback strategies.",
             )
 
-            # Step 3: Fallback to title-only keyword matching
+            # 3단계: 제목만 키워드 매칭(폴백)
             filtered = _fallback_title_search(articles, preferences)
 
             if not filtered:
                 logger.warning("Title fallback found nothing. Trying importance ranking.")
 
-                # Step 4: Final fallback to importance ranking
+                # 4단계: 중요도 랭킹으로 최종 폴백
                 filtered = _fallback_importance_ranking(articles, limit=limit)
 
             if not filtered:
@@ -90,17 +90,17 @@ async def select_articles_for_user_async(
 
             logger.info(f"Fallback strategy succeeded with {len(filtered)} articles")
 
-    # Step 5: Apply category distribution
+    # 5단계: 카테고리 분포 적용
     distributed = _apply_category_distribution(filtered, preferences)
 
-    # Step 6: Sort by importance score
+    # 6단계: 중요도 점수 정렬
     sorted_articles = sorted(
         distributed,
         key=lambda x: x.importance_score or 0.0,
         reverse=True,
     )
 
-    # Step 7: Select top N
+    # 7단계: 상위 N개 선택
     selected = sorted_articles[:limit]
 
     logger.info(
@@ -116,14 +116,14 @@ def _filter_by_preferences(
     preferences: UserPreference,
 ) -> list[CollectedArticle]:
     """
-    Filter articles by user's research fields and keywords.
+    사용자 연구 분야/키워드로 아티클을 필터링한다.
 
     Args:
-        articles: Available articles
-        preferences: User preferences
+        articles: 후보 아티클 목록
+        preferences: 사용자 선호도
 
     Returns:
-        list[CollectedArticle]: Filtered articles
+        list[CollectedArticle]: 필터링된 아티클
     """
     keywords = preferences.keywords or []
     research_fields = preferences.research_fields or []
@@ -131,7 +131,7 @@ def _filter_by_preferences(
     if not keywords and not research_fields:
         return articles
 
-    # First, filter out articles without sufficient metadata
+    # 먼저 메타데이터가 충분한 아티클만 선별
     validated_articles = [a for a in articles if _has_sufficient_metadata(a)]
 
     if not validated_articles:
@@ -144,10 +144,10 @@ def _filter_by_preferences(
     filtered = []
 
     for article in validated_articles:
-        # Check if article matches keywords
+        # 키워드 매칭 여부 확인
         matches_keyword = False
         if keywords:
-            # Include content field (first 500 chars) to handle articles with empty summaries
+            # 요약이 비어 있는 경우를 위해 본문 일부(최대 500자) 포함
             article_text = (
                 f"{article.title} {article.summary or ''} "
                 f"{article.category or ''} {(article.content or '')[:500]}"
@@ -155,13 +155,13 @@ def _filter_by_preferences(
             article_text_lower = article_text.lower()
             matches_keyword = any(kw.lower() in article_text_lower for kw in keywords)
 
-        # Check if article matches research fields
+        # 연구 분야 매칭 여부 확인
         matches_field = False
         if research_fields:
             article_category = (article.category or "").lower()
             matches_field = any(field.lower() in article_category for field in research_fields)
 
-        # Include article if it matches keywords OR research fields
+        # 키워드 또는 연구 분야에 매칭되면 포함
         if matches_keyword or matches_field:
             filtered.append(article)
 
@@ -170,16 +170,15 @@ def _filter_by_preferences(
 
 def _has_sufficient_metadata(article: CollectedArticle) -> bool:
     """
-    Check if article has sufficient metadata for filtering.
+    필터링에 충분한 메타데이터가 있는지 확인한다.
 
     Args:
-        article: Article to check
+        article: 확인할 아티클
 
     Returns:
-        True if article has been fully processed with LLM
+        LLM 처리 완료 여부
     """
-    # Article needs at least summary OR category to be considered processed
-    # AND importance_score must be set (not None and not default 0.5)
+    # 요약 또는 카테고리가 있어야 하며, 중요도 점수도 설정되어야 함
     has_summary = bool(article.summary and article.summary.strip())
     has_category = bool(article.category and article.category.strip())
     has_score = article.importance_score is not None and article.importance_score != 0.5
@@ -192,17 +191,16 @@ def _fallback_title_search(
     preferences: UserPreference,
 ) -> list[CollectedArticle]:
     """
-    Fallback: Match keywords against titles only when full filtering fails.
+    폴백: 전체 필터링이 실패했을 때 제목만 키워드 매칭한다.
 
-    This is more restrictive than full-text search but better than returning
-    all articles.
+    전체 텍스트 검색보다 제한적이지만, 전부 반환하는 것보다는 낫다.
 
     Args:
-        articles: Available articles
-        preferences: User preferences
+        articles: 후보 아티클 목록
+        preferences: 사용자 선호도
 
     Returns:
-        Articles matching keywords in title
+        제목에 키워드가 매칭된 아티클
     """
     keywords = preferences.keywords or []
 
@@ -229,26 +227,26 @@ def _fallback_importance_ranking(
     limit: int = 5,
 ) -> list[CollectedArticle]:
     """
-    Last resort fallback: Select top articles by importance score.
+    최후의 폴백: 중요도 점수로 상위 아티클을 선택한다.
 
-    When all other strategies fail, return highest-rated articles
-    that have been processed.
+    다른 전략이 모두 실패한 경우, 처리 완료된 아티클 중
+    점수가 높은 순으로 반환한다.
 
     Args:
-        articles: Available articles
-        limit: Maximum number to return
+        articles: 후보 아티클 목록
+        limit: 반환 최대 수
 
     Returns:
-        Top articles by importance
+        중요도 상위 아티클
     """
-    # Only use validated articles
+    # 검증된 아티클만 사용
     validated = [a for a in articles if _has_sufficient_metadata(a)]
 
     if not validated:
         logger.warning("No validated articles for importance fallback")
         return []
 
-    # Sort by importance score descending
+    # 중요도 점수 내림차순 정렬
     sorted_articles = sorted(
         validated,
         key=lambda x: x.importance_score or 0.0,
@@ -267,18 +265,17 @@ def _fallback_importance_ranking(
 
 async def _generate_preference_embedding(preferences: UserPreference) -> list[float] | None:
     """
-    Generate embedding from user preferences for semantic search.
+    시맨틱 검색용 사용자 선호도 임베딩을 생성한다.
 
-    Combines research_fields and keywords into a single text and generates
-    embedding.
+    research_fields와 keywords를 하나의 텍스트로 합쳐 임베딩한다.
 
     Args:
-        preferences: User preferences
+        preferences: 사용자 선호도
 
     Returns:
-        Embedding vector or None if generation fails
+        임베딩 벡터(실패 시 None)
     """
-    # Build preference text from fields and keywords
+    # 연구 분야와 키워드로 텍스트 구성
     fields = preferences.research_fields or []
     keywords = preferences.keywords or []
 
@@ -286,7 +283,7 @@ async def _generate_preference_embedding(preferences: UserPreference) -> list[fl
         logger.warning("No fields or keywords to generate embedding from")
         return None
 
-    # Combine into searchable text
+    # 검색 가능한 텍스트로 결합
     preference_text = "Research interests: " + ", ".join(fields)
     if keywords:
         preference_text += ". Keywords: " + ", ".join(keywords)
@@ -312,37 +309,37 @@ async def _semantic_filter(
     score_threshold: float = 0.65,
 ) -> list[CollectedArticle]:
     """
-    Filter articles using semantic similarity search via Qdrant.
+    Qdrant 시맨틱 유사도 검색으로 아티클을 필터링한다.
 
-    Strategy:
-    1. Generate embedding from user's research_fields + keywords
-    2. Search Qdrant for semantically similar articles
-    3. Filter results to only include articles from provided list
-    4. Return top matches above threshold
+    전략:
+    1. research_fields + keywords로 임베딩 생성
+    2. Qdrant에서 유사 아티클 검색
+    3. 제공된 목록 내 아티클만 필터링
+    4. 임계값 이상 상위 매치 반환
 
     Args:
-        articles: Available articles (should have vector_id set)
-        preferences: User preferences
-        limit: Max articles to return
-        score_threshold: Minimum similarity score (0.0-1.0)
+        articles: 후보 아티클 목록(vector_id 필요)
+        preferences: 사용자 선호도
+        limit: 최대 반환 수
+        score_threshold: 최소 유사도 점수(0.0~1.0)
 
     Returns:
-        Semantically matched articles ordered by relevance
+        관련도 순으로 정렬된 아티클
     """
     try:
-        # Generate preference embedding
+        # 선호도 임베딩 생성
         preference_embedding = await _generate_preference_embedding(preferences)
 
         if not preference_embedding:
             logger.warning("Could not generate preference embedding, skipping semantic search")
             return []
 
-        # Get vector operations client
+        # 벡터 연산 클라이언트 확보
         from app.vector_db.operations import VectorOperations
 
         vector_ops = VectorOperations()
 
-        # Filter articles that have vector_id (embedded in Qdrant)
+        # vector_id가 있는 아티클만 사용(Qdrant에 임베딩됨)
         vectorized_articles = [a for a in articles if a.vector_id]
 
         if not vectorized_articles:
@@ -353,27 +350,27 @@ async def _semantic_filter(
 
         logger.info(f"Performing semantic search on {len(vectorized_articles)} articles")
 
-        # Search Qdrant with preference embedding
+        # 선호도 임베딩으로 Qdrant 검색
         search_results = vector_ops.qdrant_client.client.query_points(
             collection_name=vector_ops.collection_name,
             query=preference_embedding,
-            limit=limit * 2,  # Get more results to filter
+            limit=limit * 2,  # 필터링을 위해 더 많은 결과 확보
             score_threshold=score_threshold,
             with_payload=True,
             with_vectors=False,
         ).points
 
-        # Create mapping of vector_id -> article
+        # vector_id -> 아티클 매핑 생성
         article_map = {a.vector_id: a for a in vectorized_articles}
 
-        # Filter results to only include our available articles
+        # 현재 목록에 있는 아티클만 필터링
         scored_articles: list[tuple[CollectedArticle, float]] = []
         for hit in search_results:
             vector_id = str(hit.id)
             if vector_id in article_map:
                 scored_articles.append((article_map[vector_id], hit.score))
 
-        # Sort by semantic score and limit
+        # 시맨틱 점수 기준 정렬 후 제한
         scored_articles.sort(key=lambda item: item[1], reverse=True)
         matched_articles = [article for article, _score in scored_articles[:limit]]
 
@@ -396,9 +393,9 @@ def _semantic_filter_sync(
     score_threshold: float = 0.65,
 ) -> list[CollectedArticle]:
     """
-    Synchronous wrapper for semantic filtering.
+    시맨틱 필터링의 동기 래퍼.
 
-    This allows calling from sync code like select_articles_for_user.
+    select_articles_for_user 같은 동기 코드에서 호출하기 위함.
     """
     try:
         return asyncio.run(_semantic_filter(articles, preferences, limit, score_threshold))
@@ -412,40 +409,40 @@ def _apply_category_distribution(
     preferences: UserPreference,
 ) -> list[CollectedArticle]:
     """
-    Apply category distribution based on user preferences.
+    사용자 선호도에 따라 카테고리 분포를 적용한다.
 
     Args:
-        articles: Filtered articles
-        preferences: User preferences with info_types
+        articles: 필터링된 아티클 목록
+        preferences: info_types를 포함한 사용자 선호도
 
     Returns:
-        list[CollectedArticle]: Articles with balanced category distribution
+        list[CollectedArticle]: 분포가 적용된 아티클
     """
     info_types = preferences.info_types or {}
 
-    # Default distribution if not specified
+    # 기본 분포(미지정 시)
     default_distribution = {"paper": 50, "news": 30, "report": 20}
     distribution = {**default_distribution, **info_types}
 
-    # Normalize distribution to percentages
+    # 분포를 비율로 정규화
     total = sum(distribution.values())
     if total == 0:
         return articles
 
     normalized = {k: v / total for k, v in distribution.items()}
 
-    # Group articles by type
+    # 유형별 그룹화
     papers = [a for a in articles if a.source_type == "paper"]
     news = [a for a in articles if a.source_type == "news"]
     reports = [a for a in articles if a.source_type == "report"]
 
-    # Calculate target counts
+    # 목표 수량 계산
     total_articles = len(articles)
     target_paper = int(total_articles * normalized.get("paper", 0.5))
     target_news = int(total_articles * normalized.get("news", 0.3))
     target_report = int(total_articles * normalized.get("report", 0.2))
 
-    # Select articles from each category
+    # 각 카테고리에서 선택
     selected = []
     selected.extend(_select_top_by_importance(papers, target_paper))
     selected.extend(_select_top_by_importance(news, target_news))
@@ -456,14 +453,14 @@ def _apply_category_distribution(
 
 def _select_top_by_importance(articles: list[CollectedArticle], count: int) -> list[CollectedArticle]:
     """
-    Select top N articles by importance score.
+    중요도 점수 기준으로 상위 N개를 선택한다.
 
     Args:
-        articles: Articles to select from
-        count: Number to select
+        articles: 후보 아티클 목록
+        count: 선택 개수
 
     Returns:
-        list[CollectedArticle]: Top N articles
+        list[CollectedArticle]: 상위 N개 아티클
     """
     sorted_articles = sorted(articles, key=lambda x: x.importance_score or 0.0, reverse=True)
     return sorted_articles[:count]
@@ -475,15 +472,15 @@ def filter_by_date_range(
     end_date: Any | None = None,
 ) -> list[CollectedArticle]:
     """
-    Filter articles by collection date range.
+    수집 일자 범위로 아티클을 필터링한다.
 
     Args:
-        articles: Articles to filter
-        start_date: Start date (inclusive)
-        end_date: End date (inclusive)
+        articles: 후보 아티클 목록
+        start_date: 시작 일자(포함)
+        end_date: 종료 일자(포함)
 
     Returns:
-        list[CollectedArticle]: Filtered articles
+        list[CollectedArticle]: 필터링된 아티클
     """
     filtered = articles
 
@@ -498,13 +495,13 @@ def filter_by_date_range(
 
 def get_category_distribution(articles: list[CollectedArticle]) -> dict[str, int]:
     """
-    Get distribution of articles by category.
+    카테고리별 아티클 분포를 계산한다.
 
     Args:
-        articles: Articles to analyze
+        articles: 분석할 아티클 목록
 
     Returns:
-        dict: Category counts
+        dict: 카테고리별 개수
     """
     distribution = {"paper": 0, "news": 0, "report": 0, "other": 0}
 

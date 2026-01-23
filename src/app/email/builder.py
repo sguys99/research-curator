@@ -1,4 +1,4 @@
-"""Email content builder for daily research digest."""
+"""일일 연구 다이제스트 이메일 콘텐츠 빌더."""
 
 import os
 from datetime import datetime
@@ -12,11 +12,11 @@ from app.db.models import CollectedArticle
 
 
 class EmailBuilder:
-    """Builder class for generating HTML email content from templates."""
+    """템플릿 기반 HTML 이메일 콘텐츠 생성 빌더."""
 
     # 진자 환경 초기화
     def __init__(self):
-        """Initialize the email builder with Jinja2 environment."""
+        """Jinja2 환경을 초기화한다."""
         template_dir = Path(__file__).parent / "templates"
         self.env = Environment(
             loader=FileSystemLoader(str(template_dir)),
@@ -32,24 +32,24 @@ class EmailBuilder:
         daily_limit: int = 5,
     ) -> str:
         """
-        Build HTML email content for daily digest.
+        일일 다이제스트 HTML 이메일 콘텐츠를 생성한다.
 
         Args:
-            user_name: User's name for personalization
-            user_email: User's email address
-            articles: List of collected articles
-            daily_limit: Maximum number of articles to include
+            user_name: 개인화에 사용할 사용자 이름
+            user_email: 사용자 이메일 주소
+            articles: 수집된 아티클 목록
+            daily_limit: 포함할 최대 아티클 수
 
         Returns:
-            str: Rendered HTML email content
+            str: 렌더링된 HTML 이메일 콘텐츠
         """
-        # Select top articles
+        # 상위 아티클 선택
         selected_articles = self._select_top_articles(articles, daily_limit)
 
-        # Group by category
+        # 카테고리별 그룹화
         papers, news, reports = self._group_by_category(selected_articles)
 
-        # Prepare template context
+        # 템플릿 컨텍스트 준비
         context = {
             "service_name": os.getenv("SERVICE_NAME", "Research Curator"),
             "date": datetime.now().strftime("%Y년 %m월 %d일"),
@@ -63,10 +63,10 @@ class EmailBuilder:
             "unsubscribe_url": self._get_unsubscribe_url(user_email),
         }
 
-        # Render template
+        # 템플릿 렌더링
         html = self.render_template("daily_digest.html", context)
 
-        # Convert CSS to inline styles for better email client compatibility (especially Naver)
+        # 이메일 클라이언트 호환성을 위해 CSS를 인라인으로 변환(특히 네이버)
         return self._inline_css(html)
 
     def _select_top_articles(
@@ -75,27 +75,27 @@ class EmailBuilder:
         limit: int,
     ) -> list[CollectedArticle]:
         """
-        Select top N articles based on importance score.
+        중요도 점수 기준으로 상위 N개 아티클을 선택한다.
 
-        Strategy:
-        1. Sort all articles by importance_score (descending)
-        2. Try to maintain balance across categories
-        3. Select top N articles
+        전략:
+        1. importance_score 내림차순 정렬
+        2. 카테고리 균형을 고려
+        3. 상위 N개 선택
 
         Args:
-            articles: List of collected articles
-            limit: Maximum number of articles to select
+            articles: 수집된 아티클 목록
+            limit: 선택할 최대 아티클 수
 
         Returns:
-            list[CollectedArticle]: Selected top articles
+            list[CollectedArticle]: 선택된 상위 아티클
         """
         if not articles:
             return []
 
-        # Sort by importance score
+        # 중요도 점수 정렬
         sorted_articles = sorted(articles, key=lambda x: x.importance_score or 0.0, reverse=True)
 
-        # Select top N
+        # 상위 N개 선택
         return sorted_articles[:limit]
 
     def _group_by_category(
@@ -103,20 +103,20 @@ class EmailBuilder:
         articles: list[CollectedArticle],
     ) -> tuple[list[CollectedArticle], list[CollectedArticle], list[CollectedArticle]]:
         """
-        Group articles by category (paper/news/report).
+        카테고리(paper/news/report)별로 아티클을 그룹화한다.
 
         Args:
-            articles: List of collected articles
+            articles: 수집된 아티클 목록
 
         Returns:
-            tuple: (papers, news, reports) lists
+            tuple: (papers, news, reports) 목록
         """
         papers = []
         news = []
         reports = []
 
         for article in articles:
-            # Use LLM-classified category instead of source_type
+            # source_type 대신 LLM 분류 카테고리 사용
             category = (article.category or "").lower()
             if category == "paper":
                 papers.append(article)
@@ -129,16 +129,15 @@ class EmailBuilder:
 
     def _format_article(self, article: CollectedArticle) -> dict[str, Any]:
         """
-        Format article data for template rendering.
+        템플릿 렌더링용 아티클 데이터를 가공한다.
 
         Args:
-            article: CollectedArticle object
+            article: CollectedArticle 객체
 
         Returns:
-            dict: Formatted article data
+            dict: 가공된 아티클 데이터
         """
-        # Calculate importance level and stars
-        # Adjusted thresholds: 0.6 for high, 0.4 for medium
+        # 중요도 등급과 별점 계산(임계값: 0.6/0.4)
         importance_score = article.importance_score or 0.0
         if importance_score >= 0.6:
             importance_level = "high"
@@ -153,20 +152,20 @@ class EmailBuilder:
             importance_stars = "⭐"
             importance_label = "낮음"
 
-        # Truncate summary if too long
+        # 요약이 길면 자르기
         summary = article.summary or article.content or ""
         if len(summary) > 200:
             summary = summary[:197] + "..."
 
-        # Extract metadata
+        # 메타데이터 추출
         metadata = article.article_metadata or {}
 
-        # Format published date
+        # 발행일 포맷
         published_date = None
         if article.collected_at:
             published_date = article.collected_at.strftime("%Y-%m-%d")
 
-        # Build formatted data
+        # 렌더링용 데이터 구성
         formatted = {
             "title": article.title,
             "summary": summary,
@@ -178,7 +177,7 @@ class EmailBuilder:
             "published_date": published_date,
         }
 
-        # Add source-specific metadata
+        # 소스별 메타데이터 추가
         if article.source_type == "paper":
             formatted["authors"] = self._format_authors(metadata.get("authors", []))
             formatted["citations"] = metadata.get("citations")
@@ -191,13 +190,13 @@ class EmailBuilder:
 
     def _format_authors(self, authors: list[str]) -> str | None:
         """
-        Format authors list for display.
+        표시용 저자 목록을 포맷한다.
 
         Args:
-            authors: List of author names
+            authors: 저자 이름 목록
 
         Returns:
-            str | None: Formatted authors string (max 3 authors + "외")
+            str | None: 포맷된 저자 문자열(최대 3명 + "외")
         """
         if not authors:
             return None
@@ -208,44 +207,44 @@ class EmailBuilder:
         return f"{', '.join(authors[:3])} 외 {len(authors) - 3}명"
 
     def _get_settings_url(self) -> str:
-        """Get settings page URL."""
+        """설정 페이지 URL을 반환한다."""
         base_url = os.getenv("FRONTEND_URL", "http://localhost:8501")
         return f"{base_url}/settings"
 
     def _get_feedback_url(self) -> str:
-        """Get feedback page URL."""
+        """피드백 페이지 URL을 반환한다."""
         base_url = os.getenv("FRONTEND_URL", "http://localhost:8501")
         return f"{base_url}/feedback"
 
     def _get_unsubscribe_url(self, user_email: str) -> str:
-        """Get unsubscribe URL with user email."""
+        """사용자 이메일을 포함한 구독 해지 URL을 반환한다."""
         base_url = os.getenv("FRONTEND_URL", "http://localhost:8501")
         return f"{base_url}/unsubscribe?email={user_email}"
 
     def render_template(self, template_name: str, context: dict[str, Any]) -> str:
         """
-        Render a Jinja2 template with given context.
+        Jinja2 템플릿을 렌더링한다.
 
         Args:
-            template_name: Name of the template file
-            context: Template context data
+            template_name: 템플릿 파일 이름
+            context: 템플릿 컨텍스트 데이터
 
         Returns:
-            str: Rendered HTML content
+            str: 렌더링된 HTML 콘텐츠
         """
         template = self.env.get_template(template_name)
         return template.render(**context)
 
     def build_magic_link_email(self, magic_link: str, user_email: str) -> str:
         """
-        Build HTML email content for magic link authentication.
+        매직 링크 인증용 HTML 이메일을 생성한다.
 
         Args:
-            magic_link: The magic link URL for authentication
-            user_email: User's email address
+            magic_link: 인증용 매직 링크 URL
+            user_email: 사용자 이메일 주소
 
         Returns:
-            str: Rendered HTML email content with inline CSS
+            str: 인라인 CSS가 적용된 HTML 이메일
         """
         html = f"""
         <!DOCTYPE html>
@@ -284,46 +283,46 @@ class EmailBuilder:
         </html>
         """
 
-        # Convert CSS to inline styles for better email client compatibility (especially Naver)
+        # 이메일 클라이언트 호환성을 위해 CSS를 인라인으로 변환(특히 네이버)
         return self._inline_css(html)
 
     def _inline_css(self, html: str) -> str:
         """
-        Convert CSS styles to inline styles for better email client compatibility.
+        이메일 클라이언트 호환성을 위해 CSS를 인라인 스타일로 변환한다.
 
-        This is especially important for email clients like Naver that strip <style> tags.
-        Uses premailer to automatically convert all CSS to inline style attributes.
+        특히 <style> 태그를 제거하는 클라이언트(예: 네이버)에서 중요하다.
+        premailer로 CSS를 자동 인라인 변환한다.
 
         Args:
-            html: HTML content with <style> tags
+            html: <style> 태그가 포함된 HTML
 
         Returns:
-            str: HTML content with inline styles
+            str: 인라인 스타일이 적용된 HTML
         """
         try:
-            # Suppress cssutils warnings about modern CSS properties
+            # cssutils 경고 로그 억제
             import logging
 
             cssutils_logger = logging.getLogger("CSSUTILS")
             original_level = cssutils_logger.level
             cssutils_logger.setLevel(logging.CRITICAL)
 
-            # Transform CSS to inline styles
+            # CSS를 인라인 스타일로 변환
             result = transform(html)
 
-            # Restore original log level
+            # 로그 레벨 복원
             cssutils_logger.setLevel(original_level)
 
             return result
         except Exception as e:
-            # If inlining fails, return original HTML
+            # 인라인 변환 실패 시 원본 HTML 반환
             import logging
 
             logging.warning(f"Failed to inline CSS: {e}")
             return html
 
 
-# Convenience function for quick email building
+# 빠른 이메일 빌드용 편의 함수
 def build_daily_digest_email(
     user_name: str,
     user_email: str,
@@ -331,16 +330,16 @@ def build_daily_digest_email(
     daily_limit: int = 5,
 ) -> str:
     """
-    Build daily digest email HTML content.
+    일일 다이제스트 이메일 HTML을 생성한다.
 
     Args:
-        user_name: User's name
-        user_email: User's email
-        articles: List of collected articles
-        daily_limit: Maximum articles to include
+        user_name: 사용자 이름
+        user_email: 사용자 이메일
+        articles: 수집된 아티클 목록
+        daily_limit: 포함할 최대 아티클 수
 
     Returns:
-        str: Rendered HTML email
+        str: 렌더링된 HTML 이메일
     """
     builder = EmailBuilder()
     return builder.build_daily_digest(user_name, user_email, articles, daily_limit)

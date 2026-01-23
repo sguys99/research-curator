@@ -1,4 +1,4 @@
-"""Email sender using SMTP with retry logic."""
+"""SMTP 재시도 로직을 포함한 이메일 발송기."""
 
 import logging
 import os
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 # SMTP 이메일 발송을 담당하는 메인 클래스
 class EmailSender:
-    """SMTP email sender with async support and retry logic."""
+    """비동기 지원 및 재시도 로직이 포함된 SMTP 발송기."""
 
     def __init__(
         self,
@@ -27,15 +27,15 @@ class EmailSender:
         from_name: str | None = None,
     ):
         """
-        Initialize email sender with SMTP configuration.
+        SMTP 설정으로 이메일 발송기를 초기화한다.
 
         Args:
-            smtp_host: SMTP server hostname
-            smtp_port: SMTP server port
-            smtp_user: SMTP username
-            smtp_password: SMTP password
-            from_email: Sender email address
-            from_name: Sender name
+            smtp_host: SMTP 서버 호스트
+            smtp_port: SMTP 서버 포트
+            smtp_user: SMTP 사용자명
+            smtp_password: SMTP 비밀번호
+            from_email: 발신 이메일 주소
+            from_name: 발신자 이름
         """
         self.smtp_host = smtp_host or os.getenv("SMTP_HOST", "smtp.gmail.com")
         self.smtp_port = smtp_port or int(os.getenv("SMTP_PORT", "587"))
@@ -44,7 +44,7 @@ class EmailSender:
         self.from_email = from_email or os.getenv("SMTP_FROM_EMAIL", self.smtp_user)
         self.from_name = from_name or os.getenv("SMTP_FROM_NAME", "Research Curator")
 
-        # Validate configuration, 항목 누락 시 즉시 오류 발생
+        # 설정 검증(누락 시 즉시 오류)
         if not all([self.smtp_host, self.smtp_user, self.smtp_password]):
             raise ValueError("SMTP configuration is incomplete. Check environment variables.")
 
@@ -61,37 +61,37 @@ class EmailSender:
         text_content: str | None = None,
     ) -> bool:
         """
-        Send a single email with retry logic.
+        재시도 로직을 포함해 단일 이메일을 발송한다.
 
         Args:
-            to_email: Recipient email address
-            subject: Email subject
-            html_content: HTML email body
-            text_content: Plain text email body (optional)
+            to_email: 수신자 이메일 주소
+            subject: 이메일 제목
+            html_content: HTML 본문
+            text_content: 일반 텍스트 본문(선택)
 
         Returns:
-            bool: True if email was sent successfully
+            bool: 발송 성공 여부
 
         Raises:
-            aiosmtplib.SMTPException: If sending fails after retries
+            aiosmtplib.SMTPException: 재시도 후에도 발송 실패한 경우
         """
         try:
-            # Create message
+            # 메시지 생성
             message = MIMEMultipart("alternative")
             message["From"] = f"{self.from_name} <{self.from_email}>"
             message["To"] = to_email
             message["Subject"] = subject
 
-            # Add text part (fallback)
+            # 텍스트 파트 추가(폴백)
             if text_content:
                 text_part = MIMEText(text_content, "plain", "utf-8")
                 message.attach(text_part)
 
-            # Add HTML part
+            # HTML 파트 추가
             html_part = MIMEText(html_content, "html", "utf-8")
             message.attach(html_part)
 
-            # Send email ,SMTP 전송
+            # SMTP 전송
             tls_context = ssl.create_default_context()
             await aiosmtplib.send(
                 message,
@@ -121,14 +121,14 @@ class EmailSender:
         max_failures: int = 5,
     ) -> dict[str, Any]:
         """
-        Send emails to multiple recipients.
+        다수 수신자에게 이메일을 발송한다.
 
         Args:
-            recipients: List of dicts with keys: to_email, subject, html_content, text_content
-            max_failures: Maximum number of failures before stopping
+            recipients: to_email, subject, html_content, text_content 키가 있는 목록
+            max_failures: 중단 전 허용 실패 횟수
 
         Returns:
-            dict: Summary with success_count, failure_count, failed_emails
+            dict: 성공/실패 개수와 실패 목록 요약
         """
         success_count = 0
         failure_count = 0
@@ -161,7 +161,7 @@ class EmailSender:
         }
 
 
-# Convenience function for quick email sending
+# 빠른 이메일 발송용 편의 함수
 async def send_email(
     to_email: str,
     subject: str,
@@ -169,16 +169,16 @@ async def send_email(
     text_content: str | None = None,
 ) -> bool:
     """
-    Send a single email using default SMTP configuration.
+    기본 SMTP 설정으로 단일 이메일을 발송한다.
 
     Args:
-        to_email: Recipient email address
-        subject: Email subject
-        html_content: HTML email body
-        text_content: Plain text email body (optional)
+        to_email: 수신자 이메일 주소
+        subject: 이메일 제목
+        html_content: HTML 본문
+        text_content: 일반 텍스트 본문(선택)
 
     Returns:
-        bool: True if email was sent successfully
+        bool: 발송 성공 여부
     """
     sender = EmailSender()
     return await sender.send_email(to_email, subject, html_content, text_content)
@@ -186,13 +186,13 @@ async def send_email(
 
 async def send_batch_emails(recipients: list[dict[str, Any]]) -> dict[str, Any]:
     """
-    Send emails to multiple recipients using default SMTP configuration.
+    기본 SMTP 설정으로 다수 수신자에게 이메일을 발송한다.
 
     Args:
-        recipients: List of dicts with keys: to_email, subject, html_content, text_content
+        recipients: to_email, subject, html_content, text_content 키가 있는 목록
 
     Returns:
-        dict: Summary with success_count, failure_count, failed_emails
+        dict: 성공/실패 개수와 실패 목록 요약
     """
     sender = EmailSender()
     return await sender.send_batch_emails(recipients)

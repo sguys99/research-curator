@@ -1,4 +1,4 @@
-"""Daily digest orchestration - integrates builder, sender, and history."""
+"""일일 다이제스트 오케스트레이션(빌더/발송/히스토리 통합)."""
 
 import logging
 from datetime import datetime
@@ -16,16 +16,16 @@ from app.email.sender import EmailSender
 logger = logging.getLogger(__name__)
 
 
-# Builder, Sender, History를 통합하여 실제 이메일 발송 워크플로우 관리
+# 빌더/발송/히스토리를 통합해 실제 이메일 발송 워크플로우 관리
 class DigestOrchestrator:
-    """Orchestrates the daily digest workflow."""
+    """일일 다이제스트 워크플로우를 오케스트레이션한다."""
 
     def __init__(self, email_sender: EmailSender | None = None):
         """
-        Initialize digest orchestrator.
+        다이제스트 오케스트레이터를 초기화한다.
 
         Args:
-            email_sender: Optional custom email sender (defaults to new instance)
+            email_sender: 커스텀 이메일 발송기(기본값: 새 인스턴스)
         """
         self.builder = EmailBuilder()
         self.sender = email_sender or EmailSender()
@@ -39,26 +39,26 @@ class DigestOrchestrator:
         subject: str | None = None,
     ) -> dict[str, Any]:
         """
-        Send daily digest email to a single user.
+        단일 사용자에게 일일 다이제스트 이메일을 발송한다.
 
         Args:
-            session: Database session
-            user_id: User UUID
-            articles: List of collected articles
-            subject: Optional custom subject (defaults to date-based)
+            session: DB 세션
+            user_id: 사용자 UUID
+            articles: 수집된 아티클 목록
+            subject: 커스텀 제목(기본값: 날짜 기반)
 
         Returns:
-            dict: Result with success status and digest_id
+            dict: 성공 여부와 digest_id를 포함한 결과
 
         Raises:
-            ValueError: If user not found or has no preferences
+            ValueError: 사용자가 없거나 선호도가 없는 경우
         """
         try:
-            # Convert user_id to UUID if string
+            # 문자열이면 UUID로 변환
             if isinstance(user_id, str):
                 user_id = UUID(user_id)
 
-            # Load user and preferences, 1. 사용자 로드
+            # 사용자 및 선호도 로드(1단계)
             user = await self._load_user(session, user_id)
             if not user:
                 raise ValueError(f"User {user_id} not found")
@@ -67,10 +67,10 @@ class DigestOrchestrator:
             if not preferences:
                 raise ValueError(f"User {user_id} has no preferences")
 
-            # Get daily limit from preferences
+            # 선호도에서 일일 제한 수 확인
             daily_limit = preferences.daily_limit or 5
 
-            # Build email content, 2. HTML 빌드
+            # 이메일 콘텐츠 생성(2단계)
             html_content = self.builder.build_daily_digest(
                 user_name=user.name,
                 user_email=user.email,
@@ -78,19 +78,19 @@ class DigestOrchestrator:
                 daily_limit=daily_limit,
             )
 
-            # Generate subject, 3. 제목생성
+            # 제목 생성(3단계)
             if not subject:
                 date_str = datetime.now().strftime("%Y년 %m월 %d일")
                 subject = f"🔬 Research Curator - {date_str} AI 연구 동향"
 
-            # Send email, 4. 이메일 발송
+            # 이메일 발송(4단계)
             await self.sender.send_email(
                 to_email=user.email,
                 subject=subject,
                 html_content=html_content,
             )
 
-            # Save digest history
+            # 다이제스트 히스토리 저장
             article_ids = [str(article.id) for article in articles[:daily_limit]]
             digest = await save_sent_digest(session, user_id, article_ids)
 
@@ -119,15 +119,15 @@ class DigestOrchestrator:
         max_failures: int = 5,
     ) -> dict[str, Any]:
         """
-        Send daily digests to multiple users.
+        여러 사용자에게 일일 다이제스트를 발송한다.
 
         Args:
-            session: Database session
-            user_articles: Dict mapping user_id to list of articles
-            max_failures: Maximum number of failures before stopping
+            session: DB 세션
+            user_articles: user_id -> 아티클 목록 매핑
+            max_failures: 중단 전 허용 실패 횟수
 
         Returns:
-            dict: Summary with success_count, failure_count, results
+            dict: 성공/실패 개수와 결과 요약
         """
         success_count = 0
         failure_count = 0
@@ -155,7 +155,7 @@ class DigestOrchestrator:
         }
 
     async def _load_user(self, session: AsyncSession, user_id: UUID) -> User | None:
-        """Load user from database."""
+        """DB에서 사용자를 로드한다."""
         stmt = select(User).where(User.id == user_id)
         result = await session.execute(stmt)
         return result.scalar_one_or_none()
@@ -165,7 +165,7 @@ class DigestOrchestrator:
         session: AsyncSession,
         user_id: UUID,
     ) -> UserPreference | None:
-        """Load user preferences from database."""
+        """DB에서 사용자 선호도를 로드한다."""
         stmt = select(UserPreference).where(UserPreference.user_id == user_id)
         result = await session.execute(stmt)
         return result.scalar_one_or_none()
@@ -179,16 +179,16 @@ async def send_daily_digest(
     subject: str | None = None,
 ) -> dict[str, Any]:
     """
-    Convenience function to send daily digest to a single user.
+    단일 사용자 다이제스트 발송용 편의 함수.
 
     Args:
-        session: Database session
-        user_id: User UUID
-        articles: List of collected articles
-        subject: Optional custom subject
+        session: DB 세션
+        user_id: 사용자 UUID
+        articles: 수집된 아티클 목록
+        subject: 커스텀 제목(선택)
 
     Returns:
-        dict: Result with success status and digest_id
+        dict: 성공 여부와 digest_id를 포함한 결과
     """
     orchestrator = DigestOrchestrator()
     return await orchestrator.send_user_digest(session, user_id, articles, subject)
@@ -200,15 +200,15 @@ async def send_batch_daily_digests(
     max_failures: int = 5,
 ) -> dict[str, Any]:
     """
-    Convenience function to send daily digests to multiple users.
+    다수 사용자 다이제스트 발송용 편의 함수.
 
     Args:
-        session: Database session
-        user_articles: Dict mapping user_id to list of articles
-        max_failures: Maximum number of failures before stopping
+        session: DB 세션
+        user_articles: user_id -> 아티클 목록 매핑
+        max_failures: 중단 전 허용 실패 횟수
 
     Returns:
-        dict: Summary with success_count, failure_count, results
+        dict: 성공/실패 개수와 결과 요약
     """
     orchestrator = DigestOrchestrator()
     return await orchestrator.send_batch_digests(session, user_articles, max_failures)

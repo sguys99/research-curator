@@ -1,4 +1,4 @@
-"""LLM integration module."""
+"""LLM 통합 모듈."""
 
 from app.llm.client import LLMClient, get_llm_client
 

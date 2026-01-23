@@ -1,1 +1,1 @@
-"""Email module for sending research digest emails."""
+"""연구 다이제스트 이메일 발송 모듈."""

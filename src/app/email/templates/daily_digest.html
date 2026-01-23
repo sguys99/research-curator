@@ -6,12 +6,12 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>{{ service_name }} - 오늘의 AI 연구 동향</title>
     <style>
-        /* Reset styles */
+        /* 기본 리셋 스타일 */
         body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
         table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
         img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
 
-        /* Body styles */
+        /* 본문 스타일 */
         body {
             margin: 0;
             padding: 0;
@@ -20,14 +20,14 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
         }
 
-        /* Container styles */
+        /* 컨테이너 스타일 */
         .email-container {
             max-width: 600px;
             margin: 0 auto;
             background-color: #ffffff;
         }
 
-        /* Header styles */
+        /* 헤더 스타일 */
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             padding: 30px 20px;
@@ -46,7 +46,7 @@
             opacity: 0.9;
         }
 
-        /* Content styles */
+        /* 콘텐츠 스타일 */
         .content {
             padding: 20px;
         }
@@ -57,7 +57,7 @@
             margin-bottom: 20px;
         }
 
-        /* Section styles */
+        /* 섹션 스타일 */
         .section {
             margin-bottom: 30px;
         }
@@ -89,7 +89,7 @@
             margin-left: 8px;
         }
 
-        /* Article card styles */
+        /* 아티클 카드 스타일 */
         .article {
             border: 1px solid #e0e0e0;
             border-radius: 8px;
@@ -179,7 +179,7 @@
             background-color: #5568d3;
         }
 
-        /* Empty state */
+        /* 빈 상태 */
         .empty-state {
             text-align: center;
             padding: 40px 20px;
@@ -191,7 +191,7 @@
             margin-bottom: 16px;
         }
 
-        /* Footer styles */
+        /* 푸터 스타일 */
         .footer {
             background-color: #f8f9fa;
             padding: 30px 20px;
@@ -227,7 +227,7 @@
             line-height: 1.6;
         }
 
-        /* Responsive styles */
+        /* 반응형 스타일 */
         @media only screen and (max-width: 600px) {
             .email-container {
                 width: 100% !important;
@@ -257,7 +257,7 @@
         <tr>
             <td align="center" style="padding: 20px 0;">
                 <table role="presentation" class="email-container" cellspacing="0" cellpadding="0" border="0">
-                    <!-- Header -->
+                    <!-- 헤더 -->
                     <tr>
                         <td class="header">
                             <h1>🔬 {{ service_name }}</h1>
@@ -265,17 +265,17 @@
                         </td>
                     </tr>
 
-                    <!-- Content -->
+                    <!-- 콘텐츠 -->
                     <tr>
                         <td class="content">
-                            <!-- Greeting -->
+                            <!-- 인사말 -->
                             <div class="greeting">
                                 안녕하세요, {{ user_name }}님! 👋<br>
                                 오늘의 AI 연구 동향을 전해드립니다.
                             </div>
 
                             {% if papers and papers|length > 0 %}
-                            <!-- Papers Section -->
+                            <!-- 논문 섹션 -->
                             <div class="section">
                                 <div class="section-header">
                                     <span class="icon">📚</span>
@@ -311,7 +311,7 @@
                             {% endif %}
 
                             {% if news and news|length > 0 %}
-                            <!-- News Section -->
+                            <!-- 뉴스 섹션 -->
                             <div class="section">
                                 <div class="section-header">
                                     <span class="icon">📰</span>
@@ -344,7 +344,7 @@
                             {% endif %}
 
                             {% if reports and reports|length > 0 %}
-                            <!-- Reports Section -->
+                            <!-- 리포트 섹션 -->
                             <div class="section">
                                 <div class="section-header">
                                     <span class="icon">📊</span>
@@ -377,7 +377,7 @@
                             {% endif %}
 
                             {% if (not papers or papers|length == 0) and (not news or news|length == 0) and (not reports or reports|length == 0) %}
-                            <!-- Empty State -->
+                            <!-- 빈 상태 -->
                             <div class="empty-state">
                                 <div class="empty-state-icon">📭</div>
                                 <p>오늘은 새로운 자료가 없습니다.<br>내일 다시 찾아뵙겠습니다!</p>
@@ -386,7 +386,7 @@
                         </td>
                     </tr>
 
-                    <!-- Footer -->
+                    <!-- 푸터 -->
                     <tr>
                         <td class="footer">
                             <div class="footer-actions">
