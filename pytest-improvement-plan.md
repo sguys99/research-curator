@@ -106,6 +106,7 @@ external dependencies, and introducing shared pytest infrastructure.
 - Refactored `tests/test_api_processors.py` to use `client` + `llm_mock` and added unit markers.
   - Fixed malformed end-to-end/error handling sections and removed script runner.
 - Split `tests/test_llm_client.py` into unit vs integration classes with markers and skips.
+- Rewrote `tests/test_llm_api.py` as pytest e2e tests with live server/env guards.
 
 ### 5) Coverage expansion (new)
 - Add missing tests for:
