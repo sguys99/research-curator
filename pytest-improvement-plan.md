@@ -102,6 +102,7 @@ external dependencies, and introducing shared pytest infrastructure.
 - Add explicit `skipif` guards for env/service requirements.
 #### Progress
 - Refactored `tests/test_processors.py` to pytest style with `llm_mock` and `@pytest.mark.unit`.
+- Refactored `tests/test_pipeline.py` to pytest style with fixtures and removed timing-based asserts.
 
 ### 5) Coverage expansion (new)
 - Add missing tests for:
