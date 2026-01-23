@@ -25,7 +25,7 @@ class EmailSender:
         smtp_password: str | None = None,
         from_email: str | None = None,
         from_name: str | None = None,
-    ):
+    ) -> None:
         """
         SMTP 설정으로 이메일 발송기를 초기화한다.
 

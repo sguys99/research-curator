@@ -5,9 +5,11 @@ import logging
 from datetime import UTC, datetime, timedelta
 
 from app.collectors.arxiv import ArxivCollector
+from app.collectors.base import CollectedData
 from app.collectors.news import NewsCollector
 from app.core.retry import async_with_retry
 from app.db import crud
+from app.db.models import UserPreference
 from app.db.session import SessionLocal
 from app.email.builder import EmailBuilder
 from app.email.selection import select_articles_for_user_async
@@ -798,7 +800,10 @@ def unified_collect_and_send_task() -> None:
     asyncio.run(unified_collect_and_send_task_async())
 
 
-def _match_articles_to_user(raw_articles: list, preferences) -> list:
+def _match_articles_to_user(
+    raw_articles: list[CollectedData],
+    preferences: UserPreference,
+) -> list[CollectedData]:
     """
     단순 키워드 매칭으로 사용자 선호도에 맞는 아티클을 찾는다.
 

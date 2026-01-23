@@ -8,7 +8,7 @@ from app.frontend.utils.api_client import get_api_client
 from app.frontend.utils.session import get_user_id, is_authenticated
 
 
-def show_dashboard_page():
+def show_dashboard_page() -> None:
     """최근 다이제스트와 통계를 표시하는 대시보드를 보여준다."""
     if not is_authenticated():
         st.warning("⚠️ 로그인이 필요합니다.")

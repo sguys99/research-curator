@@ -12,7 +12,7 @@ from app.api.schemas.collectors import (
     SourcesResponse,
 )
 from app.collectors.arxiv import ArxivCollector
-from app.collectors.base import CollectedData, CollectorError
+from app.collectors.base import BaseCollector, CollectedData, CollectorError
 from app.collectors.news import NewsCollector
 
 logger = logging.getLogger(__name__)
@@ -23,14 +23,14 @@ router = APIRouter(prefix="/collectors", tags=["collectors"])
 class CollectorRegistry:
     """사용 가능한 모든 수집기를 관리하는 레지스트리."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """수집기 레지스트리를 초기화한다."""
         self._collectors = {
             "arxiv": ArxivCollector(),
             "news": NewsCollector(),
         }
 
-    def get(self, name: str):
+    def get(self, name: str) -> BaseCollector | None:
         """이름으로 수집기를 조회한다."""
         return self._collectors.get(name)
 

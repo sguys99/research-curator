@@ -25,7 +25,7 @@ class VectorOperations:
         qdrant_client: QdrantClientWrapper | None = None,
         embedder: TextEmbedder | None = None,
         collection_name: str | None = None,
-    ):
+    ) -> None:
         """벡터 작업 클래스를 초기화한다.
 
         Args:

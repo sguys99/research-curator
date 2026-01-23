@@ -2,6 +2,7 @@
 
 import logging
 import threading
+from types import TracebackType
 from typing import Any
 
 from qdrant_client import QdrantClient
@@ -255,7 +256,12 @@ class QdrantClientWrapper:
         """컨텍스트 매니저 진입."""
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         """컨텍스트 매니저 종료."""
         self.close()
 

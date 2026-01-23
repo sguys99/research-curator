@@ -23,7 +23,7 @@ def load_config(path: str) -> dict[str, Any]:
     return config
 
 
-def load_all_configs(data_type="HPMC"):
+def load_all_configs(data_type: str = "HPMC") -> dict[str, Any]:
     """
     데이터 처리/모델 학습에 필요한 설정 파일을 로드한다.
 

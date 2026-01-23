@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class PromptManager:
     """프롬프트 로드 및 관리 클래스."""
 
-    def __init__(self, prompts_path: Path | None = None):
+    def __init__(self, prompts_path: Path | None = None) -> None:
         """
         Args:
             prompts_path: prompts.yaml 파일 경로(None이면 기본 경로 사용)
@@ -117,7 +117,7 @@ class PromptManager:
             return self.get(f"{category}.{subcategory}.user_template")
         return self.get(f"{category}.user_template")
 
-    def format_prompt(self, template: str, **kwargs) -> str:
+    def format_prompt(self, template: str, **kwargs: Any) -> str:
         """
         프롬프트 템플릿에 변수를 치환한다.
 
@@ -147,7 +147,7 @@ class PromptManager:
         self,
         category: str,
         subcategory: str | None = None,
-        **template_vars,
+        **template_vars: Any,
     ) -> list[dict[str, str]]:
         """
         LLM API용 메시지 리스트를 생성한다.
@@ -234,13 +234,13 @@ def get_prompt(key_path: str, default: Any = None) -> Any:
 def build_messages(
     category: str,
     subcategory: str | None = None,
-    **template_vars,
+    **template_vars: Any,
 ) -> list[dict[str, str]]:
     """메시지 빌드를 위한 편의 함수."""
     return get_prompt_manager().build_messages(category, subcategory, **template_vars)
 
 
-def format_prompt(template: str, **kwargs) -> str:
+def format_prompt(template: str, **kwargs: Any) -> str:
     """프롬프트 포맷을 위한 편의 함수."""
     return get_prompt_manager().format_prompt(template, **kwargs)
 

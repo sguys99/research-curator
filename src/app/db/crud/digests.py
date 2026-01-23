@@ -111,7 +111,7 @@ def get_digest_by_id(db: Session, digest_id: UUID) -> SentDigest | None:
 def update_digest_opened(
     db: Session,
     digest_id: UUID,
-    opened_at,
+    opened_at: datetime,
 ) -> SentDigest | None:
     """
     다이제스트를 열림 상태로 표시하고 시각을 기록한다.

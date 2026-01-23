@@ -4,11 +4,11 @@ import streamlit as st
 
 from app.frontend.components.article_card import show_article_list
 from app.frontend.components.sidebar import show_page_header
-from app.frontend.utils.api_client import get_api_client
+from app.frontend.utils.api_client import APIClient, get_api_client
 from app.frontend.utils.session import is_authenticated
 
 
-def show_search_page():
+def show_search_page() -> None:
     """시맨틱 검색 기능이 있는 검색 페이지를 표시한다."""
     if not is_authenticated():
         st.warning("⚠️ 로그인이 필요합니다.")
@@ -201,7 +201,7 @@ def show_search_page():
                 st.rerun()
 
 
-def _show_similar_search(api):
+def _show_similar_search(api: APIClient) -> None:
     """유사 아티클 검색 결과를 표시한다."""
     article_id = st.session_state.get("search_similar_id")
 

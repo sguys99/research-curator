@@ -6,7 +6,7 @@ from app.frontend.components.chatbot import show_onboarding_chatbot
 from app.frontend.utils.session import is_authenticated
 
 
-def show_onboarding_page():
+def show_onboarding_page() -> None:
     """AI 챗봇 온보딩 페이지를 표시한다."""
     if not is_authenticated():
         st.warning("⚠️ 로그인이 필요합니다.")

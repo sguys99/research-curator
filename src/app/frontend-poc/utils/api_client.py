@@ -9,7 +9,7 @@ import streamlit as st
 class APIClient:
     """FastAPI 백엔드와 통신하는 클라이언트."""
 
-    def __init__(self, base_url: str = "http://localhost:8000"):
+    def __init__(self, base_url: str = "http://localhost:8000") -> None:
         self.base_url = base_url
         self.timeout = 30.0
 

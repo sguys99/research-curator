@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class ArxivCollector(BaseCollector):
     """arXiv 논문 수집기."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """arXiv 수집기를 초기화한다."""
         super().__init__(source_name="arXiv", source_type=SourceType.PAPER)
         self.client = arxiv.Client()

@@ -3,11 +3,11 @@
 import streamlit as st
 
 from app.frontend.components.sidebar import show_page_header
-from app.frontend.utils.api_client import get_api_client
+from app.frontend.utils.api_client import APIClient, get_api_client
 from app.frontend.utils.session import get_user_id, is_authenticated
 
 
-def show_feedback_page():
+def show_feedback_page() -> None:
     """아티클 평점/코멘트 제출 화면을 표시한다."""
     if not is_authenticated():
         st.warning("⚠️ 로그인이 필요합니다.")
@@ -31,7 +31,7 @@ def show_feedback_page():
         _show_article_stats(api)
 
 
-def _show_feedback_submission(api, user_id: str):
+def _show_feedback_submission(api: APIClient, user_id: str) -> None:
     """피드백 제출 폼을 표시한다."""
     st.markdown("### 📝 아티클 피드백 제출")
 
@@ -203,7 +203,7 @@ def _show_feedback_submission(api, user_id: str):
                         st.error(f"❌ 피드백 제출 중 오류가 발생했습니다: {str(e)}")
 
 
-def _show_feedback_history(api, user_id: str):
+def _show_feedback_history(api: APIClient, user_id: str) -> None:
     """피드백 이력을 표시한다."""
     st.markdown("### 📊 피드백 이력")
 
@@ -413,7 +413,7 @@ def _show_feedback_history(api, user_id: str):
         )
 
 
-def _show_article_stats(api):
+def _show_article_stats(api: APIClient) -> None:
     """아티클 피드백 통계를 표시한다."""
     st.markdown("### 📈 아티클 피드백 통계")
 

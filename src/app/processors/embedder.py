@@ -35,7 +35,7 @@ class TextEmbedder:
         max_retries: int = 3,
         retry_wait_min: int = 1,
         retry_wait_max: int = 10,
-    ):
+    ) -> None:
         """텍스트 임베더를 초기화한다.
 
         Args:
@@ -464,7 +464,7 @@ if __name__ == "__main__":
         "summary": "Transformer 아키텍처를 제안하는 논문입니다.",
     }
 
-    async def test():
+    async def test() -> None:
         embedder = TextEmbedder(use_cache=True)
 
         print("=" * 60)

@@ -26,7 +26,7 @@ st.set_page_config(
 )
 
 
-def main():
+def main() -> None:
     """메인 애플리케이션 로직."""
     # 세션 상태 초기화
     init_session_state()

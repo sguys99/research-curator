@@ -8,11 +8,11 @@ from app.frontend.utils.api_client import get_api_client
 class OnboardingChatbot:
     """온보딩 중 사용자 선호도 수집을 위한 AI 챗봇."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.api = get_api_client()
         self._init_session_state()
 
-    def _init_session_state(self):
+    def _init_session_state(self) -> None:
         """챗봇 세션 상태를 초기화한다."""
         if "chat_messages" not in st.session_state:
             st.session_state.chat_messages = []
@@ -30,7 +30,7 @@ class OnboardingChatbot:
                 "daily_limit": 5,
             }
 
-    def render(self):
+    def render(self) -> None:
         """챗봇 UI를 렌더링한다."""
         st.title("🎯 AI 온보딩")
         st.markdown("AI 챗봇과 대화하며 맞춤형 설정을 완료해보세요!")
@@ -47,7 +47,7 @@ class OnboardingChatbot:
             with st.expander("🔧 수집된 정보 (디버그)"):
                 st.json(st.session_state.collected_info)
 
-    def _display_messages(self):
+    def _display_messages(self) -> None:
         """채팅 메시지 히스토리를 표시한다."""
         for message in st.session_state.chat_messages:
             with st.chat_message(message["role"]):
@@ -57,7 +57,7 @@ class OnboardingChatbot:
                 if message.get("options"):
                     self._render_options(message["options"])
 
-    def _render_options(self, options: list[str]):
+    def _render_options(self, options: list[str]) -> None:
         """객관식 옵션 버튼을 렌더링한다."""
         cols = st.columns(min(len(options), 3))
         for idx, option in enumerate(options):
@@ -66,7 +66,7 @@ class OnboardingChatbot:
                 if st.button(option, key=f"option_{idx}_{option}"):
                     self._handle_option_selected(option)
 
-    def _handle_option_selected(self, option: str):
+    def _handle_option_selected(self, option: str) -> None:
         """옵션 버튼 클릭을 처리한다."""
         # 사용자 메시지 추가
         st.session_state.chat_messages.append({"role": "user", "content": option})
@@ -76,7 +76,7 @@ class OnboardingChatbot:
 
         st.rerun()
 
-    def _handle_user_input(self):
+    def _handle_user_input(self) -> None:
         """사용자 텍스트 입력을 처리한다."""
         # 메시지가 없으면 초기 메시지 표시
         if len(st.session_state.chat_messages) == 0:
@@ -100,7 +100,7 @@ class OnboardingChatbot:
 
             st.rerun()
 
-    def _show_welcome_message(self):
+    def _show_welcome_message(self) -> None:
         """초기 स्वागत 메시지를 표시한다."""
         welcome_msg = """
 안녕하세요! 👋
@@ -124,7 +124,7 @@ class OnboardingChatbot:
         st.session_state.chat_step = 1
         st.rerun()
 
-    def _process_response(self, user_input: str):
+    def _process_response(self, user_input: str) -> None:
         """사용자 응답을 처리하고 다음 질문을 한다."""
         step = st.session_state.chat_step
 
@@ -157,7 +157,7 @@ class OnboardingChatbot:
                 st.session_state.chat_step = 1
                 self._show_welcome_message()
 
-    def _extract_research_fields(self, text: str):
+    def _extract_research_fields(self, text: str) -> None:
         """사용자 입력에서 연구 분야를 추출한다."""
         # 쉼표로 분리해 다중 단어 구 유지(예: "vector db")
         fields = [field.strip() for field in text.split(",") if len(field.strip()) > 2]
@@ -167,7 +167,7 @@ class OnboardingChatbot:
 
         st.session_state.collected_info["research_fields"] = fields[:5]  # 최대 5개
 
-    def _ask_keywords(self):
+    def _ask_keywords(self) -> None:
         """키워드를 질문한다."""
         question = f"""
 좋아요! **{", ".join(st.session_state.collected_info['research_fields'])}** 분야군요.
@@ -179,7 +179,7 @@ class OnboardingChatbot:
         st.session_state.chat_messages.append({"role": "assistant", "content": question})
         st.session_state.chat_step = 2
 
-    def _extract_keywords(self, text: str):
+    def _extract_keywords(self, text: str) -> None:
         """사용자 입력에서 키워드를 추출한다."""
         # 쉼표로 분리해 다중 단어 구 유지(예: "vector db")
         keywords = [kw.strip() for kw in text.split(",") if len(kw.strip()) > 1]
@@ -189,7 +189,7 @@ class OnboardingChatbot:
 
         st.session_state.collected_info["keywords"] = keywords[:10]  # 최대 10개
 
-    def _ask_info_types(self):
+    def _ask_info_types(self) -> None:
         """선호 정보 유형을 질문한다."""
         question = """
 **질문 3/5**: 어떤 유형의 정보를 받고 싶으신가요?
@@ -208,7 +208,7 @@ class OnboardingChatbot:
         )
         st.session_state.chat_step = 3
 
-    def _extract_info_types(self, text: str):
+    def _extract_info_types(self, text: str) -> None:
         """사용자 입력에서 정보 유형을 추출한다."""
         if "논문" in text or "paper" in text.lower():
             st.session_state.collected_info["info_types"] = {
@@ -236,7 +236,7 @@ class OnboardingChatbot:
                 "report": 0.2,
             }
 
-    def _ask_sources(self):
+    def _ask_sources(self) -> None:
         """추가 소스를 질문한다."""
         question = """
 **질문 4/5**: 특별히 포함하고 싶은 웹사이트가 있나요?
@@ -248,7 +248,7 @@ class OnboardingChatbot:
         st.session_state.chat_messages.append({"role": "assistant", "content": question})
         st.session_state.chat_step = 4
 
-    def _extract_sources(self, text: str):
+    def _extract_sources(self, text: str) -> None:
         """사용자 입력에서 소스를 추출한다."""
         if "없음" in text or "기본" in text or "skip" in text.lower():
             st.session_state.collected_info["sources"] = []
@@ -257,7 +257,7 @@ class OnboardingChatbot:
             sources = [src.strip() for src in text.replace(",", " ").split() if "." in src]
             st.session_state.collected_info["sources"] = sources[:5]  # 최대 5개
 
-    def _ask_email_settings(self):
+    def _ask_email_settings(self) -> None:
         """이메일 설정을 질문한다."""
         question = """
 **질문 5/5**: 이메일 설정을 선택해주세요.
@@ -269,7 +269,7 @@ class OnboardingChatbot:
         )
         st.session_state.chat_step = 5
 
-    def _extract_email_settings(self, text: str):
+    def _extract_email_settings(self, text: str) -> None:
         """사용자 입력에서 이메일 설정을 추출한다."""
         time_map = {
             "오전 8시": "08:00",
@@ -283,7 +283,7 @@ class OnboardingChatbot:
                 st.session_state.collected_info["email_time"] = value
                 break
 
-    def _ask_confirmation(self):
+    def _ask_confirmation(self) -> None:
         """최종 확인을 요청한다."""
         info = st.session_state.collected_info
 
@@ -310,7 +310,7 @@ class OnboardingChatbot:
         st.session_state.chat_messages.append({"role": "assistant", "content": summary})
         st.session_state.chat_step = 6
 
-    def _show_completion_message(self):
+    def _show_completion_message(self) -> None:
         """완료 메시지와 저장 버튼을 표시한다."""
         if (
             len(st.session_state.chat_messages) > 0
@@ -369,7 +369,7 @@ class OnboardingChatbot:
             return False
 
 
-def show_onboarding_chatbot():
+def show_onboarding_chatbot() -> None:
     """온보딩 챗봇 UI를 표시한다."""
     chatbot = OnboardingChatbot()
     chatbot.render()

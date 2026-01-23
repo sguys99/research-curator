@@ -1,6 +1,7 @@
 """LLM API 엔드포인트."""
 
 import json
+from collections.abc import AsyncIterator
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
@@ -21,7 +22,9 @@ router = APIRouter(prefix="/llm", tags=["LLM"])
 
 
 @router.post("/chat/completions")
-async def chat_completion(request: ChatCompletionRequest):
+async def chat_completion(
+    request: ChatCompletionRequest,
+) -> ChatCompletionResponse | StreamingResponse:
     """
     지정한 LLM 제공자를 사용해 채팅 응답을 생성한다.
 
@@ -43,7 +46,7 @@ async def chat_completion(request: ChatCompletionRequest):
         # 스트리밍 모드
         if request.stream:
 
-            async def stream_generator():
+            async def stream_generator() -> AsyncIterator[str]:
                 """LLM 응답으로 SSE 스트림을 생성한다."""
                 try:
                     response_stream = await client.achat_completion(

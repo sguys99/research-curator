@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class SearchClient:
     """Serper와 Brave 검색 API를 통합하는 클라이언트."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """검색 클라이언트를 초기화한다."""
         self.serper_api_key = settings.SERPER_API_KEY
         self.brave_api_key = settings.BRAVE_API_KEY

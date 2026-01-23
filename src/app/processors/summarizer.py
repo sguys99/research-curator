@@ -25,7 +25,7 @@ class ArticleSummarizer:
         provider: str = "openai",
         model: str | None = None,
         temperature: float = 0.3,
-    ):
+    ) -> None:
         """
         Args:
             provider: LLM 프로바이더 ("openai" 또는 "claude")
@@ -199,7 +199,7 @@ if __name__ == "__main__":
         """,
     }
 
-    async def test():
+    async def test() -> None:
         # Summarizer 생성
         summarizer = ArticleSummarizer(provider="openai")
 

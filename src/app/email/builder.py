@@ -15,7 +15,7 @@ class EmailBuilder:
     """템플릿 기반 HTML 이메일 콘텐츠 생성 빌더."""
 
     # 진자 환경 초기화
-    def __init__(self):
+    def __init__(self) -> None:
         """Jinja2 환경을 초기화한다."""
         template_dir = Path(__file__).parent / "templates"
         self.env = Environment(

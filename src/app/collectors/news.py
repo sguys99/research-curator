@@ -23,7 +23,7 @@ class NewsCollector(BaseCollector):
         "zdnet.com",
     ]
 
-    def __init__(self, search_provider: str = "serper"):
+    def __init__(self, search_provider: str = "serper") -> None:
         """뉴스 수집기를 초기화한다.
 
         Args:

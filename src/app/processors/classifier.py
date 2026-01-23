@@ -23,7 +23,7 @@ class ContentClassifier:
         provider: str = "openai",
         model: str | None = None,
         temperature: float = 0.1,
-    ):
+    ) -> None:
         """
         Args:
             provider: LLM 프로바이더
@@ -302,7 +302,7 @@ if __name__ == "__main__":
         },
     ]
 
-    async def test():
+    async def test() -> None:
         classifier = ContentClassifier(provider="openai")
 
         print("=" * 60)

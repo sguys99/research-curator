@@ -65,7 +65,7 @@ class ProcessingPipeline:
         summary_length: str = "medium",
         summary_language: str = "ko",
         use_embedding_cache: bool = True,
-    ):
+    ) -> None:
         """
         Args:
             provider: LLM 프로바이더 ("openai" 또는 "claude")
@@ -362,7 +362,7 @@ if __name__ == "__main__":
         },
     ]
 
-    async def test():
+    async def test() -> None:
         pipeline = ProcessingPipeline(provider="openai", summary_length="medium")
 
         print("=" * 60)

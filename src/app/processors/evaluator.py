@@ -25,7 +25,7 @@ class ImportanceEvaluator:
         temperature: float = 0.2,
         llm_weight: float = 0.7,
         metadata_weight: float = 0.3,
-    ):
+    ) -> None:
         """
         Args:
             provider: LLM 프로바이더
@@ -320,7 +320,7 @@ if __name__ == "__main__":
         "metadata": {"citations": 50000, "year": 2017, "source_name": "arXiv"},
     }
 
-    async def test():
+    async def test() -> None:
         evaluator = ImportanceEvaluator(provider="openai")
 
         print("=" * 60)

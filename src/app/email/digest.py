@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 class DigestOrchestrator:
     """일일 다이제스트 워크플로우를 오케스트레이션한다."""
 
-    def __init__(self, email_sender: EmailSender | None = None):
+    def __init__(self, email_sender: EmailSender | None = None) -> None:
         """
         다이제스트 오케스트레이터를 초기화한다.
 

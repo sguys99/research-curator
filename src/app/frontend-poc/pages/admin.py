@@ -13,7 +13,7 @@ from app.frontend.utils.db_helpers import (
 from app.frontend.utils.session import is_admin_user, is_authenticated
 
 
-def show_admin_page():
+def show_admin_page() -> None:
     """관리자 대시보드 페이지를 표시한다."""
     # 1. 인증 체크
     if not is_authenticated():
@@ -50,7 +50,7 @@ def show_admin_page():
         show_digests_section()
 
 
-def show_system_overview():
+def show_system_overview() -> None:
     """시스템 전체 통계를 표시한다."""
     st.subheader("📊 System Statistics")
 
@@ -156,7 +156,7 @@ def show_system_overview():
         st.error(f"Error loading scheduler status: {e}")
 
 
-def show_users_section():
+def show_users_section() -> None:
     """모든 사용자와 통계를 표시한다."""
     st.subheader("👥 All Users")
 
@@ -209,7 +209,7 @@ def show_users_section():
         st.error(f"Error loading users: {e}")
 
 
-def show_articles_section():
+def show_articles_section() -> None:
     """아티클 통계와 목록을 표시한다."""
     st.subheader("📚 Articles")
 
@@ -272,7 +272,7 @@ def show_articles_section():
         st.error(f"Error loading articles: {e}")
 
 
-def show_digests_section():
+def show_digests_section() -> None:
     """전체 사용자 다이제스트 히스토리를 표시한다."""
     st.subheader("📧 Digest History")
 

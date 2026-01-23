@@ -45,7 +45,7 @@ class CollectedData:
 class BaseCollector(ABC):
     """모든 수집기의 추상 베이스 클래스."""
 
-    def __init__(self, source_name: str, source_type: SourceType):
+    def __init__(self, source_name: str, source_type: SourceType) -> None:
         """수집기를 초기화한다.
 
         Args:

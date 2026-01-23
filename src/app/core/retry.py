@@ -67,7 +67,7 @@ def retry_with_backoff(
     max_delay: float = 60.0,
     backoff_factor: float = 2.0,
     exceptions: tuple[type[Exception], ...] = (Exception,),
-):
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """지수 백오프로 함수를 재시도하는 데코레이터.
 
     Args:
@@ -200,7 +200,7 @@ def with_retry(
 class RateLimiter:
     """API 호출을 위한 간단한 레이트 리미터."""
 
-    def __init__(self, max_calls: int, time_window: float):
+    def __init__(self, max_calls: int, time_window: float) -> None:
         """레이트 리미터를 초기화한다.
 
         Args:
@@ -211,7 +211,7 @@ class RateLimiter:
         self.time_window = time_window
         self.calls: list[float] = []
 
-    async def acquire(self):
+    async def acquire(self) -> None:
         """호출 슬롯이 열릴 때까지 대기한다."""
         import time
 

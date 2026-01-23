@@ -53,7 +53,7 @@ def get_db() -> Generator[Session, None, None]:
 
 
 # 모든 테이블 생성(테스트용). 실제로는 Alembic 사용
-def create_tables():
+def create_tables() -> None:
     """모든 테이블을 생성한다(테스트 전용, 실제 마이그레이션은 Alembic 사용)."""
     from app.db.models import Base
 
@@ -61,7 +61,7 @@ def create_tables():
 
 
 # 모든 테이블 삭제(테스트용)
-def drop_tables():
+def drop_tables() -> None:
     """모든 테이블을 삭제한다(테스트 전용)."""
     from app.db.models import Base
 

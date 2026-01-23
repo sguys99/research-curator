@@ -3,7 +3,13 @@
 import logging
 from datetime import datetime
 
-from apscheduler.events import EVENT_JOB_ERROR, EVENT_JOB_EXECUTED, EVENT_JOB_SUBMITTED
+from apscheduler.events import (
+    EVENT_JOB_ERROR,
+    EVENT_JOB_EXECUTED,
+    EVENT_JOB_SUBMITTED,
+    JobExecutionEvent,
+    JobSubmissionEvent,
+)
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from pytz import timezone
@@ -27,21 +33,21 @@ scheduler = BackgroundScheduler(timezone=KST)
 
 
 # 잡 모니터링 이벤트 리스너
-def job_submitted_listener(event):
+def job_submitted_listener(event: JobSubmissionEvent) -> None:
     """잡 실행 시작 시 로그를 남긴다."""
     job = scheduler.get_job(event.job_id)
     if job:
         logger.info(f"⏰ Job started: {job.name} (ID: {job.id})")
 
 
-def job_executed_listener(event):
+def job_executed_listener(event: JobExecutionEvent) -> None:
     """잡이 정상 완료되면 로그를 남긴다."""
     job = scheduler.get_job(event.job_id)
     if job:
         logger.info(f"✅ Job completed: {job.name} (ID: {job.id})")
 
 
-def job_error_listener(event):
+def job_error_listener(event: JobExecutionEvent) -> None:
     """잡에서 오류가 발생하면 로그를 남긴다."""
     job = scheduler.get_job(event.job_id)
     job_name = job.name if job else event.job_id

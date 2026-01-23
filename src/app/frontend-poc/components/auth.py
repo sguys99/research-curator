@@ -1,5 +1,8 @@
 """Streamlit 앱 인증 컴포넌트."""
 
+from collections.abc import Callable
+from typing import Any
+
 import streamlit as st
 
 from app.frontend.utils.api_client import get_api_client
@@ -159,10 +162,10 @@ def show_user_info() -> None:
         st.sidebar.markdown("---")
 
 
-def require_auth(func):
+def require_auth(func: Callable[..., Any]) -> Callable[..., Any]:
     """페이지 접근 시 인증을 요구하는 데코레이터."""
 
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         if not is_authenticated():
             st.warning("⚠️ 로그인이 필요한 페이지입니다.")
             show_login_page()

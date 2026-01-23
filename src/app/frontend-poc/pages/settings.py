@@ -7,7 +7,7 @@ from app.frontend.utils.api_client import get_api_client
 from app.frontend.utils.session import get_user_id, is_authenticated
 
 
-def show_settings_page():
+def show_settings_page() -> None:
     """선호도 관리 설정 페이지를 표시한다."""
     if not is_authenticated():
         st.warning("⚠️ 로그인이 필요합니다.")

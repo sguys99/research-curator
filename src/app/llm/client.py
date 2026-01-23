@@ -46,7 +46,7 @@ class LLMClient:
         model: str | None = None,
         temperature: float = 0.7,
         max_tokens: int = 2000,
-    ):
+    ) -> None:
         """
         LLM 클라이언트를 초기화한다.
 

@@ -1,6 +1,7 @@
 """FastAPI 애플리케이션 진입점."""
 
 import logging
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -15,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """시작/종료 이벤트를 처리하는 lifespan 컨텍스트 매니저."""
     # 시작
     logger.info("Starting up application...")
@@ -71,7 +72,7 @@ app.add_middleware(
 
 
 @app.get("/")
-async def root():
+async def root() -> dict[str, str]:
     """헬스 체크 엔드포인트."""
     return {
         "name": settings.APP_NAME,
@@ -81,7 +82,7 @@ async def root():
 
 
 @app.get("/health")
-async def health_check():
+async def health_check() -> dict[str, str]:
     """모니터링용 헬스 체크."""
     return {"status": "healthy"}
 

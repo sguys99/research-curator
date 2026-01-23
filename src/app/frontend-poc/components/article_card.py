@@ -1,6 +1,7 @@
 """연구 아티클 표시용 카드 컴포넌트."""
 
 from datetime import datetime
+from typing import Any
 
 import streamlit as st
 
@@ -13,10 +14,10 @@ def show_article_card(
     importance_score: float,
     url: str,
     collected_at: str | None = None,
-    metadata: dict | None = None,
+    metadata: dict[str, Any] | None = None,
     show_similar_button: bool = False,
     article_id: str | None = None,
-):
+) -> None:
     """제목/요약/메타데이터를 포함한 아티클 카드를 표시한다.
 
     Args:
@@ -119,10 +120,10 @@ def show_article_card(
 
 
 def show_article_list(
-    articles: list[dict],
+    articles: list[dict[str, Any]],
     show_similar_button: bool = False,
     empty_message: str = "표시할 아티클이 없습니다.",
-):
+) -> None:
     """아티클 카드 목록을 표시한다.
 
     Args:
@@ -157,7 +158,7 @@ def show_compact_article_card(
     source_type: str,
     importance_score: float,
     url: str,
-):
+) -> None:
     """컴팩트 아티클 카드를 표시한다(사이드바/작은 영역용).
 
     Args:
