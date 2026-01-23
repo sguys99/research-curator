@@ -1,4 +1,4 @@
-"""Tests for LLM client integration."""
+"""Tests for LLM client."""
 
 import json
 import os
@@ -12,8 +12,9 @@ HAS_OPENAI_KEY = bool(os.getenv("OPENAI_API_KEY"))
 HAS_ANTHROPIC_KEY = bool(os.getenv("ANTHROPIC_API_KEY"))
 
 
-class TestLLMClient:
-    """Test LLM client functionality."""
+@pytest.mark.unit
+class TestLLMClientUnit:
+    """Unit tests for LLM client without external calls."""
 
     def test_openai_client_initialization(self):
         """Test OpenAI client initialization."""
@@ -31,6 +32,11 @@ class TestLLMClient:
         """Test initialization with invalid provider."""
         with pytest.raises(ValueError):
             LLMClient(provider="invalid")
+
+
+@pytest.mark.integration
+class TestLLMClientIntegration:
+    """Integration tests for LLM client using real APIs."""
 
     @pytest.mark.skipif(not HAS_OPENAI_KEY, reason="Requires OPENAI_API_KEY")
     def test_openai_chat_completion(self):
