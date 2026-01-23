@@ -91,6 +91,12 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+addopts = "-m unit"
+markers = [
+    "unit: fast, isolated tests with no external dependencies",
+    "integration: tests that require external services or API keys",
+    "e2e: end-to-end tests requiring a running server and database",
+]
 
 [dependency-groups]
 dev = [

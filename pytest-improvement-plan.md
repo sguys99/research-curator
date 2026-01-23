@@ -54,10 +54,10 @@ external dependencies, and introducing shared pytest infrastructure.
   - `skip_if_no_llm_key`: skip when required env vars missing.
   - `skip_if_no_qdrant`: skip when Qdrant not reachable.
 
-### 2) Introduce test markers and defaults
-- Add markers: `unit`, `integration`, `e2e`.
-- Update `pyproject.toml` to register markers and default to unit-only.
-- Provide `-m "integration"` and `-m "e2e"` run instructions.
+### 2) Introduce test markers and defaults (completed)
+- Added markers: `unit`, `integration`, `e2e`.
+- Updated `pyproject.toml` to register markers and default to unit-only via `addopts = "-m unit"`.
+- Next: document run instructions in `tests/README.md`.
 
 ### 3) Isolate external dependencies
 - LLM: mock `LLMClient` / providers for unit tests.
