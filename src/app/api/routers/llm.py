@@ -21,10 +21,10 @@ from app.llm import LLMClient
 router = APIRouter(prefix="/llm", tags=["LLM"])
 
 
-@router.post("/chat/completions")
+@router.post("/chat/completions", response_model=ChatCompletionResponse)
 async def chat_completion(
     request: ChatCompletionRequest,
-) -> ChatCompletionResponse | StreamingResponse:
+) -> ChatCompletionResponse:
     """
     지정한 LLM 제공자를 사용해 채팅 응답을 생성한다.
 
