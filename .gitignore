@@ -209,3 +209,5 @@ __marimo__/
 # Flex python ml project
 # data/
 # logs/
+
+node_modules/
