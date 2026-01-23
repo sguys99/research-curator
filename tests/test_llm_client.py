@@ -35,6 +35,7 @@ class TestLLMClientUnit:
 
 
 @pytest.mark.integration
+@pytest.mark.usefixtures("skip_if_no_llm_key")
 class TestLLMClientIntegration:
     """Integration tests for LLM client using real APIs."""
 

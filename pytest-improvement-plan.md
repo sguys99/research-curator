@@ -140,3 +140,4 @@ external dependencies, and introducing shared pytest infrastructure.
   - expected runtime targets
 #### Progress
 - Added `tests/README.md` with run commands, env vars, and service requirements.
+- Added `skip_if_no_llm_key` guard to `tests/test_llm_client.py` integration tests.
