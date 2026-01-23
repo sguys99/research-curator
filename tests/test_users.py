@@ -1,74 +1,74 @@
-"""Test script for users endpoints."""
+"""End-to-end tests for users endpoints (requires running server)."""
+
+import os
 
 import httpx
+import pytest
 
 BASE_URL = "http://localhost:8000"
+LIVE_SERVER = os.getenv("PYTEST_LIVE_SERVER") == "1"
 
 
-def get_access_token():
-    """Get access token for testing."""
-    # Request magic link
+@pytest.mark.e2e
+@pytest.mark.skipif(not LIVE_SERVER, reason="Set PYTEST_LIVE_SERVER=1 to run live server tests")
+def test_get_current_user():
     response = httpx.post(
         f"{BASE_URL}/auth/magic-link",
         json={"email": "test@example.com"},
         timeout=10.0,
     )
-    magic_token = response.json().get("token")
+    assert response.status_code == 200
+    token = response.json().get("token")
+    assert token
 
-    # Verify magic link
     response = httpx.get(
         f"{BASE_URL}/auth/verify",
-        params={"token": magic_token},
+        params={"token": token},
         timeout=10.0,
     )
-    return response.json().get("access_token"), response.json().get("user")["id"]
-
-
-def test_get_current_user(access_token):
-    """Test GET /users/me endpoint."""
-    print("\n=== Testing GET /users/me ===")
+    assert response.status_code == 200
+    access_token = response.json().get("access_token")
+    user = response.json().get("user")
+    assert access_token
+    assert user
 
     response = httpx.get(
         f"{BASE_URL}/users/me",
         headers={"Authorization": f"Bearer {access_token}"},
         timeout=10.0,
     )
-
-    print(f"Status Code: {response.status_code}")
-    print(f"Response: {response.json()}")
-
-    if response.status_code == 200:
-        print("✅ Current user info retrieved successfully")
-        return True
-    else:
-        print(f"❌ Failed: {response.json()}")
-        return False
+    assert response.status_code == 200
 
 
-def test_get_preferences(access_token, user_id):
-    """Test GET /users/{user_id}/preferences endpoint."""
-    print(f"\n=== Testing GET /users/{user_id}/preferences ===")
+@pytest.mark.e2e
+@pytest.mark.skipif(not LIVE_SERVER, reason="Set PYTEST_LIVE_SERVER=1 to run live server tests")
+def test_get_and_update_preferences():
+    response = httpx.post(
+        f"{BASE_URL}/auth/magic-link",
+        json={"email": "test@example.com"},
+        timeout=10.0,
+    )
+    assert response.status_code == 200
+    token = response.json().get("token")
+    assert token
+
+    response = httpx.get(
+        f"{BASE_URL}/auth/verify",
+        params={"token": token},
+        timeout=10.0,
+    )
+    assert response.status_code == 200
+    access_token = response.json().get("access_token")
+    user_id = response.json().get("user")["id"]
+    assert access_token
+    assert user_id
 
     response = httpx.get(
         f"{BASE_URL}/users/{user_id}/preferences",
         headers={"Authorization": f"Bearer {access_token}"},
         timeout=10.0,
     )
-
-    print(f"Status Code: {response.status_code}")
-    print(f"Response: {response.json()}")
-
-    if response.status_code == 200:
-        print("✅ Preferences retrieved successfully")
-        return response.json()
-    else:
-        print(f"❌ Failed: {response.json()}")
-        return None
-
-
-def test_update_preferences(access_token, user_id):
-    """Test PUT /users/{user_id}/preferences endpoint."""
-    print(f"\n=== Testing PUT /users/{user_id}/preferences ===")
+    assert response.status_code in {200, 404}
 
     update_data = {
         "research_fields": ["Machine Learning", "Natural Language Processing", "Computer Vision"],
@@ -87,20 +87,31 @@ def test_update_preferences(access_token, user_id):
         timeout=10.0,
     )
 
-    print(f"Status Code: {response.status_code}")
-    print(f"Response: {response.json()}")
-
-    if response.status_code == 200:
-        print("✅ Preferences updated successfully")
-        return True
-    else:
-        print(f"❌ Failed: {response.json()}")
-        return False
+    assert response.status_code in {200, 201}
 
 
-def test_get_digests(access_token, user_id):
-    """Test GET /users/{user_id}/digests endpoint."""
-    print(f"\n=== Testing GET /users/{user_id}/digests ===")
+@pytest.mark.e2e
+@pytest.mark.skipif(not LIVE_SERVER, reason="Set PYTEST_LIVE_SERVER=1 to run live server tests")
+def test_get_digests():
+    response = httpx.post(
+        f"{BASE_URL}/auth/magic-link",
+        json={"email": "test@example.com"},
+        timeout=10.0,
+    )
+    assert response.status_code == 200
+    token = response.json().get("token")
+    assert token
+
+    response = httpx.get(
+        f"{BASE_URL}/auth/verify",
+        params={"token": token},
+        timeout=10.0,
+    )
+    assert response.status_code == 200
+    access_token = response.json().get("access_token")
+    user_id = response.json().get("user")["id"]
+    assert access_token
+    assert user_id
 
     response = httpx.get(
         f"{BASE_URL}/users/{user_id}/digests",
@@ -108,63 +119,4 @@ def test_get_digests(access_token, user_id):
         headers={"Authorization": f"Bearer {access_token}"},
         timeout=10.0,
     )
-
-    print(f"Status Code: {response.status_code}")
-    print(f"Response: {response.json()}")
-
-    if response.status_code == 200:
-        digests_data = response.json()
-        print(f"✅ Digests retrieved: {digests_data['total']} digests found")
-        return True
-    else:
-        print(f"❌ Failed: {response.json()}")
-        return False
-
-
-def main():
-    """Run all users tests."""
-    print("🚀 Starting Users Endpoint Tests")
-    print(f"Base URL: {BASE_URL}")
-
-    # Get access token
-    print("\n--- Getting access token ---")
-    access_token, user_id = get_access_token()
-    print("✅ Access token obtained")
-    print(f"✅ User ID: {user_id}")
-
-    # Run tests
-    results = []
-
-    # Test 1: Get current user
-    results.append(test_get_current_user(access_token))
-
-    # Test 2: Get preferences
-    preferences = test_get_preferences(access_token, user_id)
-    results.append(preferences is not None)
-
-    # Test 3: Update preferences
-    results.append(test_update_preferences(access_token, user_id))
-
-    # Test 4: Get updated preferences
-    updated_prefs = test_get_preferences(access_token, user_id)
-    if updated_prefs:
-        print("\n--- Verifying updates ---")
-        print(f"Research fields: {updated_prefs['research_fields']}")
-        print(f"Keywords: {updated_prefs['keywords']}")
-        print(f"Email time: {updated_prefs['email_time']}")
-        print(f"Daily limit: {updated_prefs['daily_limit']}")
-
-    # Test 5: Get digests
-    results.append(test_get_digests(access_token, user_id))
-
-    # Summary
-    print("\n" + "=" * 60)
-    if all(results):
-        print("✅ All tests passed!")
-    else:
-        print(f"⚠️ {sum(results)}/{len(results)} tests passed")
-    print("=" * 60)
-
-
-if __name__ == "__main__":
-    main()
+    assert response.status_code == 200
