@@ -1,4 +1,4 @@
-"""SQLAlchemy database models.(ORM 데이터베이스 모델을 정의)"""
+"""SQLAlchemy 데이터베이스 모델(ORM 모델 정의)."""
 
 from datetime import UTC, datetime
 from typing import Any
@@ -10,21 +10,21 @@ from uuid_extensions import uuid7
 
 
 def utcnow() -> datetime:
-    """Get current UTC time with timezone."""
+    """타임존을 포함한 현재 UTC 시간을 반환한다."""
     return datetime.now(UTC)
 
 
-# SQLAlchemy ORM 데이터베이스 모델의 공통 부모 클래스
+# SQLAlchemy ORM 모델의 공통 베이스 클래스
 class Base(DeclarativeBase):
-    """Base class for all database models."""
+    """모든 DB 모델의 베이스 클래스."""
 
     pass
 
 
 class User(Base):
-    """User account model."""
+    """사용자 계정 모델."""
 
-    __tablename__ = "users"  # Base를 상속 받은 모델은 자동 등록됨
+    __tablename__ = "users"  # Base를 상속받은 모델은 자동 등록됨
 
     id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
@@ -36,13 +36,13 @@ class User(Base):
         onupdate=utcnow,
     )
 
-    # Relationships
+    # 관계
     # 1:1 관계
     preference: Mapped["UserPreference"] = relationship(
         "UserPreference",
         back_populates="user",  # 양방향 관계 설정, UserPreference의 user 속성과 연결
         uselist=False,
-        cascade="all, delete-orphan",  # User 삭제시 관련 데이터 자동삭제(다른 테이블)
+        cascade="all, delete-orphan",  # User 삭제 시 관련 데이터 자동 삭제(다른 테이블)
     )
     # 1:N 관계
     digests: Mapped[list["SentDigest"]] = relationship(
@@ -63,7 +63,7 @@ class User(Base):
 
 
 class UserPreference(Base):
-    """User preferences and settings."""
+    """사용자 선호도 및 설정."""
 
     __tablename__ = "user_preferences"
 
@@ -76,11 +76,11 @@ class UserPreference(Base):
         index=True,
     )
 
-    # Research interests: 논문/ 뉴스 수집 시 아래 키워드로 필터링
+    # 연구 관심사: 논문/뉴스 수집 시 아래 키워드로 필터링
     research_fields: Mapped[list[str]] = mapped_column(JSON, default=list)
     keywords: Mapped[list[str]] = mapped_column(JSON, default=list)
 
-    # Source configuration(소스 설정), 사용자마다 다른 소스에서 데이터를 수집하도록 함
+    # 소스 설정: 사용자마다 다른 소스에서 데이터를 수집하도록 함
     # 저장 예시
     #     preference.sources = {
     #     "arxiv": {"enabled": True, "categories": ["cs.AI", "cs.CL"]},
@@ -90,18 +90,18 @@ class UserPreference(Base):
     #      }
     sources: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
 
-    # Content preferences(컨텐츠 선호도, 비율)
+    # 콘텐츠 선호도(비율)
     info_types: Mapped[dict[str, int]] = mapped_column(
         JSON,
         default={"paper": 40, "news": 40, "report": 20},
     )
 
-    # Email settings: 발송시간, 일일아티클수 제한, 이메일 활성화
-    email_time: Mapped[str] = mapped_column(String(5), default="08:00")  # HH:MM format
+    # 이메일 설정: 발송 시간, 일일 아티클 수 제한, 이메일 활성화
+    email_time: Mapped[str] = mapped_column(String(5), default="08:00")  # 시:분 형식(예: 08:00)
     daily_limit: Mapped[int] = mapped_column(Integer, default=5)
     email_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
 
-    # Timestamps
+    # 타임스탬프
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -109,11 +109,11 @@ class UserPreference(Base):
         onupdate=utcnow,
     )
 
-    # Relationships
-    # 양방향 접근이 가능(아래 예시)
-    # UserPreference → User
+    # 관계
+    # 양방향 접근 예시
+    # 예: UserPreference → User
     # preference.user.email  # "user@example.com"
-    # # User → UserPreference
+    # 예: User → UserPreference
     # user.preference.research_fields  # ["NLP", "CV"]
     user: Mapped["User"] = relationship("User", back_populates="preference")
 
@@ -121,9 +121,9 @@ class UserPreference(Base):
         return f"<UserPreference(user_id={self.user_id})>"
 
 
-# 수집된 논문, 뉴스, 리포트를 저장하는 핵심 테이블
+# 수집된 논문/뉴스/리포트를 저장하는 핵심 테이블
 class CollectedArticle(Base):
-    """Collected research articles, news, and reports."""
+    """수집된 연구 아티클, 뉴스, 리포트."""
 
     __tablename__ = "collected_articles"
 
@@ -140,12 +140,12 @@ class CollectedArticle(Base):
         String(50),
         nullable=False,
         index=True,
-    )  # paper, news, report 세종류 값만 가능
-    # LLM이 분류한 카테고리: 예) "NLP", "Computer Vision", "Reinforcement Learning"
+    )  # paper, news, report 값만 허용
+    # LLM이 분류한 카테고리 예시: "NLP", "Computer Vision", "Reinforcement Learning"
     category: Mapped[str] = mapped_column(String(100), nullable=True, index=True)
     importance_score: Mapped[float] = mapped_column(Float, nullable=True, index=True)  # 0.0~1.0
 
-    # Article metadata (authors, publish_date, citations, etc.)
+    # 아티클 메타데이터(저자, 발행일, 인용 수 등)
     # 추가 정보를 유연하게 저장. 아래 예시
     # article.article_metadata = {
     #     "authors": ["Vaswani", "Shazeer", "Parmar"],
@@ -164,7 +164,7 @@ class CollectedArticle(Base):
     # }
     article_metadata: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
 
-    # Vector DB reference: Qdrant 참조 ID
+    # 벡터 DB 참조 ID: Qdrant ID
     vector_id: Mapped[str] = mapped_column(String(255), nullable=True, unique=True)
 
     # 아티클 수집 시간
@@ -172,7 +172,7 @@ class CollectedArticle(Base):
     # 원본 발행 시간: 예) 논문 발표일
     published_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    # Relationships
+    # 관계
     feedbacks: Mapped[list["Feedback"]] = relationship(  # 사용자 피드백
         "Feedback",
         back_populates="article",
@@ -206,7 +206,7 @@ class CollectedArticle(Base):
 # article.category = llm.classify_category(article.content)
 # db.commit()
 
-# # 3. 임베딩 생성 및 Vector DB 저장
+# # 3. 임베딩 생성 및 벡터 DB 저장
 # embedding = openai.embeddings.create(input=article.content)
 # qdrant_client.upsert(
 #     collection_name="research_articles",
@@ -231,29 +231,29 @@ class CollectedArticle(Base):
 
 
 # 이메일 발송 기록(히스토리)을 추적하는 테이블
-# 누구에게, 언제, 어떤 아티클들을 보냈는지, 이메일을 열어봤는지
+# 누구에게, 언제, 어떤 아티클을 보냈는지, 이메일을 열었는지 기록
 class SentDigest(Base):
-    """Email digest sending history."""
+    """이메일 다이제스트 발송 기록."""
 
     __tablename__ = "sent_digests"
 
     id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid7)
-    user_id: Mapped[UUID] = mapped_column(  # 수신자 아이디
+    user_id: Mapped[UUID] = mapped_column(  # 수신자 ID
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
 
-    # Articles included in this digest: 이메일에 포함된 아티클 목록, ID, JSON 배열로 저장됨
+    # 다이제스트에 포함된 아티클 목록: ID를 JSON 배열로 저장
     article_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
 
-    # Email tracking
+    # 이메일 추적
     sent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
     email_opened: Mapped[bool] = mapped_column(Boolean, default=False)
     opened_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    # Relationships, 발송 대상 사용자 테이블과 연결
+    # 관계: 발송 대상 사용자 테이블과 연결
     user: Mapped["User"] = relationship("User", back_populates="digests")
 
     def __repr__(self) -> str:
@@ -261,7 +261,7 @@ class SentDigest(Base):
 
 
 class Feedback(Base):
-    """User feedback on articles."""
+    """아티클에 대한 사용자 피드백."""
 
     __tablename__ = "feedback"
 
@@ -278,21 +278,21 @@ class Feedback(Base):
         ForeignKey(
             "collected_articles.id",
             ondelete="CASCADE",
-        ),  # 아티클이 삭제되면, 관련 피드백도 삭제됨
+        ),  # 아티클이 삭제되면 관련 피드백도 삭제됨
         nullable=False,
         index=True,
     )
 
-    # Rating (1-5 stars), 별점 없이 코멘트만 잠길수도 있음
+    # 평점(1-5), 별점 없이 코멘트만 남길 수도 있음
     rating: Mapped[int] = mapped_column(Integer, nullable=True)
 
-    # Optional comment, 코멘트 없이 별점만 남길수도 있음
+    # 선택적 코멘트, 코멘트 없이 별점만 남길 수도 있음
     comment: Mapped[str] = mapped_column(Text, nullable=True)
 
-    # Timestamp
+    # 타임스탬프
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
-    # Relationships
+    # 관계
     user: Mapped["User"] = relationship("User", back_populates="feedbacks")  # 피드백 작성자
     article: Mapped["CollectedArticle"] = relationship(
         "CollectedArticle",

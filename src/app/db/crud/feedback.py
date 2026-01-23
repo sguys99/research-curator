@@ -1,4 +1,4 @@
-"""CRUD operations for feedback."""
+"""피드백 CRUD 작업."""
 
 from datetime import UTC, datetime
 from uuid import UUID
@@ -19,14 +19,14 @@ def _commit_or_rollback(db: Session) -> None:
 
 def get_feedback_by_id(db: Session, feedback_id: UUID) -> Feedback | None:
     """
-    Get feedback by ID.
+    ID로 피드백을 조회한다.
 
     Args:
-        db: Database session
-        feedback_id: Feedback UUID
+        db: 데이터베이스 세션
+        feedback_id: 피드백 UUID
 
     Returns:
-        Feedback object or None if not found
+        Feedback 객체 또는 None
     """
     stmt = select(Feedback).where(Feedback.id == feedback_id)
     return db.scalar(stmt)
@@ -39,16 +39,16 @@ def get_user_feedback(
     limit: int = 20,
 ) -> tuple[list[Feedback], int]:
     """
-    Get user's feedback with pagination.
+    페이지네이션으로 사용자 피드백을 조회한다.
 
     Args:
-        db: Database session
-        user_id: User UUID
-        skip: Number of records to skip
-        limit: Maximum number of records to return
+        db: 데이터베이스 세션
+        user_id: 사용자 UUID
+        skip: 건너뛸 레코드 수
+        limit: 반환할 최대 레코드 수
 
     Returns:
-        Tuple of (feedback list, total count)
+        (피드백 목록, 총 개수)
     """
     total_stmt = select(func.count()).select_from(Feedback).where(Feedback.user_id == user_id)
     total = db.scalar(total_stmt) or 0
@@ -71,16 +71,16 @@ def get_article_feedback(
     limit: int = 20,
 ) -> tuple[list[Feedback], int]:
     """
-    Get feedback for a specific article.
+    특정 아티클의 피드백을 조회한다.
 
     Args:
-        db: Database session
-        article_id: Article UUID
-        skip: Number of records to skip
-        limit: Maximum number of records to return
+        db: 데이터베이스 세션
+        article_id: 아티클 UUID
+        skip: 건너뛸 레코드 수
+        limit: 반환할 최대 레코드 수
 
     Returns:
-        Tuple of (feedback list, total count)
+        (피드백 목록, 총 개수)
     """
     total_stmt = select(func.count()).select_from(Feedback).where(Feedback.article_id == article_id)
     total = db.scalar(total_stmt) or 0
@@ -104,17 +104,17 @@ def create_feedback(
     comment: str | None = None,
 ) -> Feedback:
     """
-    Create new feedback.
+    새 피드백을 생성한다.
 
     Args:
-        db: Database session
-        user_id: User UUID
-        article_id: Article UUID
-        rating: Rating (1-5)
-        comment: Optional comment text
+        db: 데이터베이스 세션
+        user_id: 사용자 UUID
+        article_id: 아티클 UUID
+        rating: 평점(1-5)
+        comment: 선택적 코멘트
 
     Returns:
-        Created Feedback object
+        생성된 Feedback 객체
     """
     feedback = Feedback(
         user_id=user_id,
@@ -136,16 +136,16 @@ def update_feedback(
     comment: str | None = None,
 ) -> Feedback | None:
     """
-    Update feedback.
+    피드백을 업데이트한다.
 
     Args:
-        db: Database session
-        feedback_id: Feedback UUID
-        rating: New rating (optional)
-        comment: New comment (optional)
+        db: 데이터베이스 세션
+        feedback_id: 피드백 UUID
+        rating: 새 평점(선택)
+        comment: 새 코멘트(선택)
 
     Returns:
-        Updated Feedback object or None if not found
+        업데이트된 Feedback 객체 또는 None
     """
     feedback = get_feedback_by_id(db, feedback_id)
     if not feedback:
@@ -163,14 +163,14 @@ def update_feedback(
 
 def delete_feedback(db: Session, feedback_id: UUID) -> bool:
     """
-    Delete feedback.
+    피드백을 삭제한다.
 
     Args:
-        db: Database session
-        feedback_id: Feedback UUID
+        db: 데이터베이스 세션
+        feedback_id: 피드백 UUID
 
     Returns:
-        True if deleted, False if not found
+        삭제 성공 시 True, 미존재 시 False
     """
     feedback = get_feedback_by_id(db, feedback_id)
     if not feedback:
@@ -183,14 +183,14 @@ def delete_feedback(db: Session, feedback_id: UUID) -> bool:
 
 def get_article_feedback_stats(db: Session, article_id: UUID) -> dict:
     """
-    Get feedback statistics for an article.
+    아티클의 피드백 통계를 조회한다.
 
     Args:
-        db: Database session
-        article_id: Article UUID
+        db: 데이터베이스 세션
+        article_id: 아티클 UUID
 
     Returns:
-        Dictionary with statistics (count, average_rating, rating_distribution)
+        통계 딕셔너리(count, average_rating, rating_distribution)
     """
     feedback_stmt = select(Feedback).where(Feedback.article_id == article_id)
     feedback_list = list(db.scalars(feedback_stmt).all())
@@ -202,12 +202,12 @@ def get_article_feedback_stats(db: Session, article_id: UUID) -> dict:
             "rating_distribution": {1: 0, 2: 0, 3: 0, 4: 0, 5: 0},
         }
 
-    # Calculate statistics
+    # 통계 계산
     total_count = len(feedback_list)
     total_rating = sum(f.rating for f in feedback_list)
     average_rating = total_rating / total_count if total_count > 0 else 0.0
 
-    # Rating distribution
+    # 평점 분포
     rating_counts_stmt = (
         select(Feedback.rating, func.count(Feedback.id))
         .where(Feedback.article_id == article_id)
@@ -232,15 +232,15 @@ def get_user_feedback_for_article(
     article_id: UUID,
 ) -> Feedback | None:
     """
-    Get specific user's feedback for a specific article.
+    특정 사용자/아티클의 피드백을 조회한다.
 
     Args:
-        db: Database session
-        user_id: User UUID
-        article_id: Article UUID
+        db: 데이터베이스 세션
+        user_id: 사용자 UUID
+        article_id: 아티클 UUID
 
     Returns:
-        Feedback object or None if not found
+        Feedback 객체 또는 None
     """
     stmt = select(Feedback).where(
         Feedback.user_id == user_id,
@@ -256,16 +256,16 @@ def list_article_feedbacks(
     limit: int = 20,
 ) -> list[Feedback]:
     """
-    List feedbacks for an article (simplified version).
+    아티클의 피드백 목록을 조회한다(간단 버전).
 
     Args:
-        db: Database session
-        article_id: Article UUID
-        skip: Number of records to skip
-        limit: Maximum number of records to return
+        db: 데이터베이스 세션
+        article_id: 아티클 UUID
+        skip: 건너뛸 레코드 수
+        limit: 반환할 최대 레코드 수
 
     Returns:
-        List of Feedback objects
+        Feedback 객체 목록
     """
     stmt = (
         select(Feedback)
@@ -284,16 +284,16 @@ def list_user_feedbacks(
     limit: int = 20,
 ) -> list[Feedback]:
     """
-    List user's feedbacks (simplified version).
+    사용자 피드백 목록을 조회한다(간단 버전).
 
     Args:
-        db: Database session
-        user_id: User UUID
-        skip: Number of records to skip
-        limit: Maximum number of records to return
+        db: 데이터베이스 세션
+        user_id: 사용자 UUID
+        skip: 건너뛸 레코드 수
+        limit: 반환할 최대 레코드 수
 
     Returns:
-        List of Feedback objects
+        Feedback 객체 목록
     """
     stmt = (
         select(Feedback)
@@ -310,14 +310,14 @@ def get_article_average_rating(
     article_id: UUID,
 ) -> float | None:
     """
-    Calculate average rating for an article.
+    아티클의 평균 평점을 계산한다.
 
     Args:
-        db: Database session
-        article_id: Article UUID
+        db: 데이터베이스 세션
+        article_id: 아티클 UUID
 
     Returns:
-        Average rating (float) or None if no ratings
+        평균 평점(float) 또는 None
     """
     stats = get_article_feedback_stats(db, article_id)
     if stats["count"] == 0:

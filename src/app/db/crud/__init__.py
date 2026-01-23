@@ -1,4 +1,4 @@
-"""CRUD operations package."""
+"""CRUD 작업 패키지."""
 
 from app.db.crud.articles import (
     count_articles,
@@ -54,7 +54,7 @@ from app.db.crud.users import (
 )
 
 __all__ = [
-    # Users
+    # 사용자
     "get_user_by_id",
     "get_user_by_email",
     "create_user",
@@ -62,11 +62,11 @@ __all__ = [
     "update_user",
     "delete_user",
     "list_users",
-    # Preferences
+    # 선호도
     "get_user_preference",
     "create_user_preference",
     "update_user_preference",
-    # Digests
+    # 다이제스트
     "get_user_digests",
     "get_latest_digest",
     "create_digest",
@@ -75,7 +75,7 @@ __all__ = [
     "list_user_digests",
     "get_user_sent_article_ids",
     "has_digest_sent_today",
-    # Articles
+    # 아티클
     "get_articles",
     "get_article_by_id",
     "get_article_by_url",
@@ -89,7 +89,7 @@ __all__ = [
     "list_articles",
     "count_articles",
     "get_top_articles_by_importance",
-    # Feedback
+    # 피드백
     "get_feedback_by_id",
     "get_user_feedback",
     "get_article_feedback",

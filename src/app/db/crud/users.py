@@ -1,4 +1,4 @@
-"""CRUD operations for users."""
+"""사용자 CRUD 작업."""
 
 from datetime import UTC, datetime
 from uuid import UUID
@@ -19,14 +19,14 @@ def _commit_or_rollback(db: Session) -> None:
 
 def get_user_by_id(db: Session, user_id: UUID) -> User | None:
     """
-    Get user by ID.
+    ID로 사용자를 조회한다.
 
     Args:
-        db: Database session
-        user_id: User UUID
+        db: 데이터베이스 세션
+        user_id: 사용자 UUID
 
     Returns:
-        User object or None if not found
+        User 객체 또는 None
     """
     stmt = select(User).where(User.id == user_id)
     return db.scalar(stmt)
@@ -34,14 +34,14 @@ def get_user_by_id(db: Session, user_id: UUID) -> User | None:
 
 def get_user_by_email(db: Session, email: str) -> User | None:
     """
-    Get user by email address.
+    이메일로 사용자를 조회한다.
 
     Args:
-        db: Database session
-        email: User email
+        db: 데이터베이스 세션
+        email: 사용자 이메일
 
     Returns:
-        User object or None if not found
+        User 객체 또는 None
     """
     stmt = select(User).where(User.email == email)
     return db.scalar(stmt)
@@ -49,22 +49,22 @@ def get_user_by_email(db: Session, email: str) -> User | None:
 
 def create_user(db: Session, email: str, name: str | None = None) -> User:
     """
-    Create a new user.
+    새 사용자를 생성한다.
 
     Args:
-        db: Database session
-        email: User email
-        name: User name (optional)
+        db: 데이터베이스 세션
+        email: 사용자 이메일
+        name: 사용자 이름(선택)
 
     Returns:
-        Created User object
+        생성된 User 객체
     """
     user = User(email=email, name=name)
     db.add(user)
     _commit_or_rollback(db)
     db.refresh(user)
 
-    # Create default preferences for the user
+    # 사용자 기본 선호도 생성
     preference = UserPreference(user_id=user.id)
     db.add(preference)
     _commit_or_rollback(db)
@@ -74,14 +74,14 @@ def create_user(db: Session, email: str, name: str | None = None) -> User:
 
 def update_user_last_login(db: Session, user_id: UUID) -> User | None:
     """
-    Update user's last login timestamp.
+    사용자의 마지막 로그인 시간을 갱신한다.
 
     Args:
-        db: Database session
-        user_id: User UUID
+        db: 데이터베이스 세션
+        user_id: 사용자 UUID
 
     Returns:
-        Updated User object or None if not found
+        업데이트된 User 객체 또는 None
     """
     user = get_user_by_id(db, user_id)
     if user:
@@ -98,16 +98,16 @@ def update_user(
     name: str | None = None,
 ) -> User | None:
     """
-    Update user information.
+    사용자 정보를 업데이트한다.
 
     Args:
-        db: Database session
-        user_id: User UUID
-        email: New email (optional)
-        name: New name (optional)
+        db: 데이터베이스 세션
+        user_id: 사용자 UUID
+        email: 새 이메일(선택)
+        name: 새 이름(선택)
 
     Returns:
-        Updated User object or None if not found
+        업데이트된 User 객체 또는 None
     """
     user = get_user_by_id(db, user_id)
     if not user:
@@ -125,14 +125,14 @@ def update_user(
 
 def delete_user(db: Session, user_id: UUID) -> bool:
     """
-    Delete user (CASCADE will delete related data).
+    사용자를 삭제한다(CASCADE로 연관 데이터 삭제).
 
     Args:
-        db: Database session
-        user_id: User UUID
+        db: 데이터베이스 세션
+        user_id: 사용자 UUID
 
     Returns:
-        True if deleted, False if not found
+        삭제 성공 시 True, 미존재 시 False
     """
     user = get_user_by_id(db, user_id)
     if not user:
@@ -149,15 +149,15 @@ def list_users(
     limit: int = 20,
 ) -> list[User]:
     """
-    List all users with pagination.
+    페이지네이션으로 사용자 목록을 조회한다.
 
     Args:
-        db: Database session
-        skip: Number of records to skip
-        limit: Maximum number of records to return
+        db: 데이터베이스 세션
+        skip: 건너뛸 레코드 수
+        limit: 반환할 최대 레코드 수
 
     Returns:
-        List of User objects
+        User 객체 목록
     """
     stmt = select(User).offset(skip).limit(limit)
     return list(db.scalars(stmt).all())

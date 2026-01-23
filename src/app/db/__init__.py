@@ -1,1 +1,1 @@
-"""Database package for models, session management, and CRUD operations."""
+"""모델, 세션 관리, CRUD를 포함한 데이터베이스 패키지."""

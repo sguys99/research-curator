@@ -1,4 +1,4 @@
-"""CRUD operations for articles."""
+"""아티클 CRUD 작업."""
 
 from datetime import UTC, datetime
 from typing import Any
@@ -31,24 +31,24 @@ def get_articles(
     order_desc: bool = True,
 ) -> tuple[list[CollectedArticle], int]:
     """
-    Get list of articles with filtering, sorting, and pagination.
+    필터/정렬/페이지네이션을 적용해 아티클 목록을 조회한다.
 
     Args:
-        db: Database session
-        skip: Number of records to skip
-        limit: Maximum number of records to return
-        source_type: Filter by source type (paper/news/report)
-        category: Filter by category
-        min_importance_score: Minimum importance score
-        date_from: Filter articles from this date
-        date_to: Filter articles until this date
-        order_by: Field to order by (collected_at, importance_score)
-        order_desc: Order descending if True
+        db: 데이터베이스 세션
+        skip: 건너뛸 레코드 수
+        limit: 반환할 최대 레코드 수
+        source_type: 소스 유형 필터(paper/news/report)
+        category: 카테고리 필터
+        min_importance_score: 최소 중요도 점수
+        date_from: 시작 날짜 필터
+        date_to: 종료 날짜 필터
+        order_by: 정렬 필드(collected_at, importance_score)
+        order_desc: True면 내림차순 정렬
 
     Returns:
-        Tuple of (articles list, total count)
+        (아티클 목록, 총 개수)
     """
-    # Apply filters
+    # 필터 적용
     filters = []
     if source_type:
         filters.append(CollectedArticle.source_type.in_(source_type))
@@ -70,7 +70,7 @@ def get_articles(
     if filters:
         stmt = stmt.where(and_(*filters))
 
-    # Apply ordering
+    # 정렬 적용
     if order_by == "importance_score":
         order_field = CollectedArticle.importance_score
     else:
@@ -81,7 +81,7 @@ def get_articles(
     else:
         stmt = stmt.order_by(order_field)
 
-    # Apply pagination
+    # 페이지네이션 적용
     stmt = stmt.offset(skip).limit(limit)
     articles = list(db.scalars(stmt).all())
 
@@ -90,14 +90,14 @@ def get_articles(
 
 def get_article_by_id(db: Session, article_id: UUID) -> CollectedArticle | None:
     """
-    Get article by ID.
+    ID로 아티클을 조회한다.
 
     Args:
-        db: Database session
-        article_id: Article UUID
+        db: 데이터베이스 세션
+        article_id: 아티클 UUID
 
     Returns:
-        CollectedArticle object or None if not found
+        CollectedArticle 객체 또는 None
     """
     stmt = select(CollectedArticle).where(CollectedArticle.id == article_id)
     return db.scalar(stmt)
@@ -105,14 +105,14 @@ def get_article_by_id(db: Session, article_id: UUID) -> CollectedArticle | None:
 
 def get_article_by_url(db: Session, source_url: str) -> CollectedArticle | None:
     """
-    Get article by source URL (for duplicate detection).
+    소스 URL로 아티클을 조회한다(중복 감지).
 
     Args:
-        db: Database session
-        source_url: Source URL
+        db: 데이터베이스 세션
+        source_url: 소스 URL
 
     Returns:
-        CollectedArticle object or None if not found
+        CollectedArticle 객체 또는 None
     """
     stmt = select(CollectedArticle).where(CollectedArticle.source_url == source_url)
     return db.scalar(stmt)
@@ -123,14 +123,14 @@ def get_articles_by_ids(
     article_ids: list[UUID],
 ) -> list[CollectedArticle]:
     """
-    Get multiple articles by IDs (batch retrieval).
+    여러 ID로 아티클을 일괄 조회한다.
 
     Args:
-        db: Database session
-        article_ids: List of article UUIDs
+        db: 데이터베이스 세션
+        article_ids: 아티클 UUID 목록
 
     Returns:
-        List of CollectedArticle objects
+        CollectedArticle 객체 목록
     """
     stmt = select(CollectedArticle).where(CollectedArticle.id.in_(article_ids))
     return list(db.scalars(stmt).all())
@@ -149,22 +149,22 @@ def create_article(
     vector_id: str | None = None,
 ) -> CollectedArticle:
     """
-    Create a new article.
+    새 아티클을 생성한다.
 
     Args:
-        db: Database session
-        title: Article title
-        content: Article content
-        summary: Article summary
-        source_url: Source URL (must be unique)
-        source_type: Source type (paper/news/report)
-        category: Category
-        importance_score: Importance score (0.0-1.0)
-        metadata: Additional metadata
-        vector_id: Qdrant vector ID (optional)
+        db: 데이터베이스 세션
+        title: 아티클 제목
+        content: 아티클 내용
+        summary: 아티클 요약
+        source_url: 소스 URL(유일해야 함)
+        source_type: 소스 유형(paper/news/report)
+        category: 카테고리
+        importance_score: 중요도 점수(0.0-1.0)
+        metadata: 추가 메타데이터
+        vector_id: Qdrant 벡터 ID(선택)
 
     Returns:
-        Created CollectedArticle object
+        생성된 CollectedArticle 객체
     """
     article = CollectedArticle(
         title=title,
@@ -196,21 +196,21 @@ def update_article(
     vector_id: str | None = None,
 ) -> CollectedArticle | None:
     """
-    Update article fields.
+    아티클 필드를 업데이트한다.
 
     Args:
-        db: Database session
-        article_id: Article UUID
-        title: New title (optional)
-        content: New content (optional)
-        summary: New summary (optional)
-        category: New category (optional)
-        importance_score: New importance score (optional)
-        metadata: New metadata (optional)
-        vector_id: New vector ID (optional)
+        db: 데이터베이스 세션
+        article_id: 아티클 UUID
+        title: 새 제목(선택)
+        content: 새 내용(선택)
+        summary: 새 요약(선택)
+        category: 새 카테고리(선택)
+        importance_score: 새 중요도 점수(선택)
+        metadata: 새 메타데이터(선택)
+        vector_id: 새 벡터 ID(선택)
 
     Returns:
-        Updated CollectedArticle object or None if not found
+        업데이트된 CollectedArticle 객체 또는 None
     """
     article = get_article_by_id(db, article_id)
     if not article:
@@ -238,14 +238,14 @@ def update_article(
 
 def delete_article(db: Session, article_id: UUID) -> bool:
     """
-    Delete article.
+    아티클을 삭제한다.
 
     Args:
-        db: Database session
-        article_id: Article UUID
+        db: 데이터베이스 세션
+        article_id: 아티클 UUID
 
     Returns:
-        True if deleted, False if not found
+        삭제 성공 시 True, 미존재 시 False
     """
     article = get_article_by_id(db, article_id)
     if not article:
@@ -262,15 +262,15 @@ def get_article_statistics(
     date_to: datetime | None = None,
 ) -> dict[str, Any]:
     """
-    Get article statistics (counts by category, source type, etc.).
+    아티클 통계를 조회한다(카테고리/소스 유형 등).
 
     Args:
-        db: Database session
-        date_from: Filter from this date (optional)
-        date_to: Filter until this date (optional)
+        db: 데이터베이스 세션
+        date_from: 시작 날짜 필터(선택)
+        date_to: 종료 날짜 필터(선택)
 
     Returns:
-        Dictionary with statistics
+        통계 딕셔너리
     """
     filters = []
     if date_from:
@@ -321,19 +321,19 @@ def search_articles(
     limit: int = 20,
 ) -> tuple[list[CollectedArticle], int]:
     """
-    Search articles by keyword in title, content, or summary.
+    제목/본문/요약에서 키워드로 아티클을 검색한다.
 
-    Note: For semantic search, use Vector DB operations instead.
-    This is a simple keyword-based search.
+    참고: 시맨틱 검색은 Vector DB 작업을 사용한다.
+    이 함수는 단순 키워드 검색이다.
 
     Args:
-        db: Database session
-        search_query: Search query string
-        skip: Number of records to skip
-        limit: Maximum number of records to return
+        db: 데이터베이스 세션
+        search_query: 검색 쿼리 문자열
+        skip: 건너뛸 레코드 수
+        limit: 반환할 최대 레코드 수
 
     Returns:
-        Tuple of (articles list, total count)
+        (아티클 목록, 총 개수)
     """
     search_pattern = f"%{search_query}%"
     search_condition = or_(
@@ -364,22 +364,22 @@ def list_articles(
     min_importance: float | None = None,
 ) -> list[CollectedArticle]:
     """
-    List articles with filtering (simplified version of get_articles).
+    필터를 적용해 아티클 목록을 조회한다(get_articles의 간단 버전).
 
     Args:
-        db: Database session
-        skip: Number of records to skip
-        limit: Maximum number of records to return
-        source_type: Filter by source type (optional)
-        category: Filter by category (optional)
-        min_importance: Minimum importance score (optional)
+        db: 데이터베이스 세션
+        skip: 건너뛸 레코드 수
+        limit: 반환할 최대 레코드 수
+        source_type: 소스 유형 필터(선택)
+        category: 카테고리 필터(선택)
+        min_importance: 최소 중요도 점수(선택)
 
     Returns:
-        List of CollectedArticle objects
+        CollectedArticle 객체 목록
     """
     stmt = select(CollectedArticle)
 
-    # Apply filters
+    # 필터 적용
     if source_type:
         stmt = stmt.where(CollectedArticle.source_type == source_type)
     if category:
@@ -387,10 +387,10 @@ def list_articles(
     if min_importance is not None:
         stmt = stmt.where(CollectedArticle.importance_score >= min_importance)
 
-    # Order by collection date (newest first)
+    # 수집 시각 기준 정렬(최신 우선)
     stmt = stmt.order_by(desc(CollectedArticle.collected_at))
 
-    # Apply pagination
+    # 페이지네이션 적용
     stmt = stmt.offset(skip).limit(limit)
     return list(db.scalars(stmt).all())
 
@@ -400,14 +400,14 @@ def count_articles(
     source_type: str | None = None,
 ) -> int:
     """
-    Count total articles with optional filtering.
+    아티클 총 개수를 조회한다(필터 옵션 포함).
 
     Args:
-        db: Database session
-        source_type: Filter by source type (optional)
+        db: 데이터베이스 세션
+        source_type: 소스 유형 필터(선택)
 
     Returns:
-        Total count of articles
+        아티클 총 개수
     """
     stmt = select(func.count()).select_from(CollectedArticle)
     if source_type:
@@ -420,14 +420,14 @@ def get_articles_since(
     since: datetime,
 ) -> list[CollectedArticle]:
     """
-    Get all articles collected after a specific datetime.
+    특정 시각 이후 수집된 아티클을 조회한다.
 
     Args:
-        db: Database session
-        since: Start datetime
+        db: 데이터베이스 세션
+        since: 시작 시각
 
     Returns:
-        List of articles ordered by importance score
+        중요도 점수 기준으로 정렬된 아티클 목록
     """
     stmt = (
         select(CollectedArticle)
@@ -443,15 +443,15 @@ def get_top_articles_by_importance(
     since: datetime | None = None,
 ) -> list[CollectedArticle]:
     """
-    Get top N articles ordered by importance score.
+    중요도 점수 기준 상위 N개 아티클을 조회한다.
 
     Args:
-        db: Database session
-        limit: Maximum number of articles to return
-        since: Filter articles collected after this datetime (optional)
+        db: 데이터베이스 세션
+        limit: 반환할 최대 아티클 수
+        since: 특정 시각 이후로 필터(선택)
 
     Returns:
-        List of top-rated articles
+        상위 아티클 목록
     """
     stmt = select(CollectedArticle)
     if since:

@@ -1,4 +1,4 @@
-"""CRUD operations for user preferences."""
+"""사용자 선호도 CRUD 작업."""
 
 from typing import Any
 from uuid import UUID
@@ -19,14 +19,14 @@ def _commit_or_rollback(db: Session) -> None:
 
 def get_user_preference(db: Session, user_id: UUID) -> UserPreference | None:
     """
-    Get user preferences by user ID.
+    사용자 ID로 선호도를 조회한다.
 
     Args:
-        db: Database session
-        user_id: User UUID
+        db: 데이터베이스 세션
+        user_id: 사용자 UUID
 
     Returns:
-        UserPreference object or None if not found
+        UserPreference 객체 또는 None
     """
     stmt = select(UserPreference).where(UserPreference.user_id == user_id)
     return db.scalar(stmt)
@@ -38,15 +38,15 @@ def create_user_preference(
     **kwargs: Any,
 ) -> UserPreference:
     """
-    Create user preferences.
+    사용자 선호도를 생성한다.
 
     Args:
-        db: Database session
-        user_id: User UUID
-        **kwargs: Preference fields
+        db: 데이터베이스 세션
+        user_id: 사용자 UUID
+        **kwargs: 선호도 필드
 
     Returns:
-        Created UserPreference object
+        생성된 UserPreference 객체
     """
     preference = UserPreference(user_id=user_id, **kwargs)
     db.add(preference)
@@ -61,21 +61,21 @@ def update_user_preference(
     **kwargs: Any,
 ) -> UserPreference | None:
     """
-    Update user preferences.
+    사용자 선호도를 업데이트한다.
 
     Args:
-        db: Database session
-        user_id: User UUID
-        **kwargs: Fields to update
+        db: 데이터베이스 세션
+        user_id: 사용자 UUID
+        **kwargs: 업데이트할 필드
 
     Returns:
-        Updated UserPreference object or None if not found
+        업데이트된 UserPreference 객체 또는 None
     """
     preference = get_user_preference(db, user_id)
     if not preference:
         return None
 
-    # Update fields
+    # 필드 업데이트
     for key, value in kwargs.items():
         if value is not None and hasattr(preference, key):
             setattr(preference, key, value)
