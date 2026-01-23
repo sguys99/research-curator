@@ -1,4 +1,4 @@
-"""Tests for email digest orchestration."""
+"""Unit tests for email digest orchestration."""
 
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -10,6 +10,7 @@ from app.db.models import CollectedArticle, User, UserPreference
 from app.email.digest import DigestOrchestrator, send_daily_digest
 
 
+@pytest.mark.unit
 @pytest.fixture
 def mock_user():
     """Create mock user."""
@@ -21,6 +22,7 @@ def mock_user():
     )
 
 
+@pytest.mark.unit
 @pytest.fixture
 def mock_preferences():
     """Create mock user preferences."""
@@ -34,6 +36,7 @@ def mock_preferences():
     )
 
 
+@pytest.mark.unit
 @pytest.fixture
 def sample_articles():
     """Create sample articles."""
@@ -51,6 +54,7 @@ def sample_articles():
     ]
 
 
+@pytest.mark.unit
 class TestDigestOrchestrator:
     """Test cases for DigestOrchestrator."""
 

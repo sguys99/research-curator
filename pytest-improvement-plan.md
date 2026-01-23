@@ -109,6 +109,8 @@ external dependencies, and introducing shared pytest infrastructure.
 - Rewrote `tests/test_llm_api.py` as pytest e2e tests with live server/env guards.
 - Rewrote `tests/test_auth.py` and `tests/test_users.py` as pytest e2e tests with live server guards.
 - Rewrote `tests/test_vector_db_integration.py` as pytest integration tests with Qdrant guards.
+- Marked email-related tests as unit (`tests/test_email_builder.py`, `tests/test_email_sender.py`,
+  `tests/test_email_digest.py`).
 
 ### 5) Coverage expansion (new)
 - Add missing tests for:

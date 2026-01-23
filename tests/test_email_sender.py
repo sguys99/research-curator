@@ -1,4 +1,4 @@
-"""Tests for email sender functionality."""
+"""Unit tests for email sender functionality."""
 
 import os
 from unittest.mock import AsyncMock, patch
@@ -9,6 +9,7 @@ from aiosmtplib import SMTPException
 from app.email.sender import EmailSender, send_batch_emails, send_email
 
 
+@pytest.mark.unit
 class TestEmailSender:
     """Test cases for EmailSender class."""
 

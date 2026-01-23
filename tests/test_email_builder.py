@@ -1,4 +1,4 @@
-"""Tests for email builder functionality."""
+"""Unit tests for email builder functionality."""
 
 from datetime import datetime
 from pathlib import Path
@@ -9,6 +9,7 @@ from app.db.models import CollectedArticle
 from app.email.builder import EmailBuilder, build_daily_digest_email
 
 
+@pytest.mark.unit
 @pytest.fixture
 def sample_articles():
     """Create sample articles for testing."""
@@ -79,6 +80,7 @@ def sample_articles():
     ]
 
 
+@pytest.mark.unit
 class TestEmailBuilder:
     """Test cases for EmailBuilder class."""
 
