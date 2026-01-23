@@ -103,6 +103,8 @@ external dependencies, and introducing shared pytest infrastructure.
 #### Progress
 - Refactored `tests/test_processors.py` to pytest style with `llm_mock` and `@pytest.mark.unit`.
 - Refactored `tests/test_pipeline.py` to pytest style with fixtures and removed timing-based asserts.
+- Refactored `tests/test_api_processors.py` to use `client` + `llm_mock` and added unit markers.
+  - Fixed malformed end-to-end/error handling sections and removed script runner.
 
 ### 5) Coverage expansion (new)
 - Add missing tests for:
