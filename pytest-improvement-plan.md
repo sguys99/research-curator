@@ -59,18 +59,68 @@ external dependencies, and introducing shared pytest infrastructure.
 - Updated `pyproject.toml` to register markers and default to unit-only via `addopts = "-m unit"`.
 - Next: document run instructions in `tests/README.md`.
 
-### 3) Isolate external dependencies
+### 3) Audit and triage (new)
+- Create a failing/invalid test inventory:
+  - missing asserts, incorrect assertions, or tests that always pass/fail.
+  - tests that call live services without guards.
+  - tests that are scripts (`main()` blocks) vs pytest style.
+- Label each test with a target category: `unit`, `integration`, `e2e`.
+- Identify missing coverage areas by module (e.g., CRUD, API validation, error paths).
+#### Inventory (initial findings)
+- `tests/test_auth.py`
+  - Script-style (`main()`); uses `print`/return values instead of asserts.
+  - Requires running server; no markers/skip guards.
+- `tests/test_users.py`
+  - Script-style; test functions expect params that are not pytest fixtures.
+  - Requires running server + DB; no markers/skip guards.
+- `tests/test_llm_api.py`
+  - Script-style; prints/returns booleans; no assertions in error paths.
+  - Requires running server + LLM keys; no markers/skip guards.
+- `tests/test_processors.py`
+  - Live LLM dependency without skip; heavy `print` output.
+  - Includes integration "all processors" flow inside unit test file.
+- `tests/test_pipeline.py`
+  - Live LLM dependency without skip; timing-based asserts (<30s) are flaky.
+  - Script-style runner at bottom.
+- `tests/test_api_processors.py`
+  - Uses `TestClient` but still calls live LLM/embeddings; should be mocked or marked integration.
+- `tests/test_vector_db_integration.py`
+  - Uses direct sys.path hacking and live Qdrant + LLM.
+  - Async tests missing `pytest.mark.asyncio` and bundled in a runner.
+#### Additional gaps
+- Missing markers on existing tests (`unit/integration/e2e`) which can cause all tests to be skipped by default.
+- Missing `tests/README.md` for execution instructions and environment requirements.
+- Script-style tests still present (not pytest-compatible): `test_auth.py`, `test_users.py`, `test_llm_api.py`.
+- External dependency guards missing on several tests (LLM/Qdrant/HTTP).
+- New fixtures in `tests/conftest.py` are not yet adopted in tests.
+
+### 4) Correctness-first refactor (new)
+- Fix broken/incorrect tests before expanding coverage:
+  - remove side-effect prints and return values in tests.
+  - rewrite tests to assert deterministic outputs using mocks/fixtures.
+  - ensure async tests use `pytest.mark.asyncio` and await correctly.
+- Add explicit `skipif` guards for env/service requirements.
+
+### 5) Coverage expansion (new)
+- Add missing tests for:
+  - API validation errors and edge cases (schema-level).
+  - processor fallbacks when LLM JSON parsing fails.
+  - vector DB failures and error handling paths.
+  - auth token edge cases (expired/invalid types).
+- Favor unit tests with mocks; keep integration tests minimal.
+
+### 6) External dependency isolation
 - LLM: mock `LLMClient` / providers for unit tests.
 - HTTP: replace `httpx` live calls with `TestClient` or `respx`.
 - Qdrant: mock vector operations or run under `@pytest.mark.integration` with env guard.
 - Email: continue mocking SMTP at unit level; integration optional.
 
-### 4) Refactor existing tests
+### 7) Restructure existing tests
 - Convert script-style tests to pytest style (no `print`, clear asserts).
-- Split unit logic from integration workflow.
-- Add `skipif` for missing env vars/services.
+- Split unit logic from integration workflows.
+- Apply markers consistently and update test names to reflect behavior.
 
-### 5) Documentation
+### 8) Documentation
 - Add `tests/README.md` with:
   - test categories and how to run
   - required env vars
