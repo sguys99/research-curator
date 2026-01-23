@@ -16,6 +16,8 @@
   - `pytest -m integration`
 - e2e (live server required):
   - `PYTEST_LIVE_SERVER=1 pytest -m e2e`
+ - CI default (unit only):
+  - `pytest -m unit`
 
 ## Environment variables
 - LLM providers:

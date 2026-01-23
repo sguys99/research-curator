@@ -59,7 +59,7 @@ external dependencies, and introducing shared pytest infrastructure.
 - Updated `pyproject.toml` to register markers and default to unit-only via `addopts = "-m unit"`.
 - Next: document run instructions in `tests/README.md`.
 
-### 3) Audit and triage (new)
+### 3) Audit and triage (completed - initial pass)
 - Create a failing/invalid test inventory:
   - missing asserts, incorrect assertions, or tests that always pass/fail.
   - tests that call live services without guards.
@@ -94,7 +94,7 @@ external dependencies, and introducing shared pytest infrastructure.
 - External dependency guards missing on several tests (LLM/Qdrant/HTTP).
 - New fixtures in `tests/conftest.py` are not yet adopted in tests.
 
-### 4) Correctness-first refactor (new)
+### 4) Correctness-first refactor (in progress)
 - Fix broken/incorrect tests before expanding coverage:
   - remove side-effect prints and return values in tests.
   - rewrite tests to assert deterministic outputs using mocks/fixtures.
@@ -113,7 +113,7 @@ external dependencies, and introducing shared pytest infrastructure.
   `tests/test_email_digest.py`).
 - Added unit markers to `tests/test_security.py`.
 
-### 5) Coverage expansion (new)
+### 5) Coverage expansion (pending)
 - Add missing tests for:
   - API validation errors and edge cases (schema-level).
   - processor fallbacks when LLM JSON parsing fails.
@@ -121,18 +121,18 @@ external dependencies, and introducing shared pytest infrastructure.
   - auth token edge cases (expired/invalid types).
 - Favor unit tests with mocks; keep integration tests minimal.
 
-### 6) External dependency isolation
+### 6) External dependency isolation (in progress)
 - LLM: mock `LLMClient` / providers for unit tests.
 - HTTP: replace `httpx` live calls with `TestClient` or `respx`.
 - Qdrant: mock vector operations or run under `@pytest.mark.integration` with env guard.
 - Email: continue mocking SMTP at unit level; integration optional.
 
-### 7) Restructure existing tests
+### 7) Restructure existing tests (in progress)
 - Convert script-style tests to pytest style (no `print`, clear asserts).
 - Split unit logic from integration workflows.
 - Apply markers consistently and update test names to reflect behavior.
 
-### 8) Documentation
+### 8) Documentation (in progress)
 - Add `tests/README.md` with:
   - test categories and how to run
   - required env vars
@@ -142,3 +142,4 @@ external dependencies, and introducing shared pytest infrastructure.
 - Added `tests/README.md` with run commands, env vars, and service requirements.
 - Added `skip_if_no_llm_key` guard to `tests/test_llm_client.py` integration tests.
 - Added vector DB integration notes to `tests/README.md`.
+- Documented CI default command in `tests/README.md`.
