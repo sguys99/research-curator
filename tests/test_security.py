@@ -1,13 +1,15 @@
-"""Test security functions for JWT token creation and verification."""
+"""Unit tests for JWT token creation and verification."""
 
 from datetime import UTC, datetime, timedelta
 
+import pytest
 from jose import jwt
 
 from app.core.config import settings
 from app.core.security import create_access_token, create_magic_link_token, verify_token
 
 
+@pytest.mark.unit
 class TestMagicLinkToken:
     """Test suite for magic link token creation."""
 
@@ -46,6 +48,7 @@ class TestMagicLinkToken:
         assert token1 != token2
 
 
+@pytest.mark.unit
 class TestAccessToken:
     """Test suite for access token creation."""
 
@@ -84,6 +87,7 @@ class TestAccessToken:
         assert token1 != token2
 
 
+@pytest.mark.unit
 class TestTokenVerification:
     """Test suite for token verification."""
 
