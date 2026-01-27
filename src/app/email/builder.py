@@ -53,6 +53,7 @@ class EmailBuilder:
         context = {
             "service_name": os.getenv("SERVICE_NAME", "Research Curator"),
             "date": datetime.now().strftime("%Y년 %m월 %d일"),
+            "current_year": datetime.now().year,
             "user_name": user_name,
             "user_email": user_email,
             "papers": [self._format_article(a) for a in papers],
