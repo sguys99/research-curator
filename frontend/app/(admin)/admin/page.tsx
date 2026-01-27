@@ -42,7 +42,7 @@ export default function AdminPage() {
       .split(",")
       .map((email) => email.trim())
       .filter(Boolean);
-    return list.length ? list : ["sguys99@gmail.com"];
+    return list.length ? list : ["ai.rs.curator@gmail.com"];
   }, []);
 
   const isAdmin = Boolean(user?.email && adminEmails.includes(user.email));

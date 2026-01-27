@@ -31,7 +31,7 @@ export default function DashboardHeader() {
     .split(",")
     .map((email) => email.trim())
     .filter(Boolean);
-  const fallbackAdmins = adminEmails.length ? adminEmails : ["sguys99@gmail.com"];
+  const fallbackAdmins = adminEmails.length ? adminEmails : ["ai.rs.curator@gmail.com"];
   const isAdmin = Boolean(user?.email && fallbackAdmins.includes(user.email));
   const navItems = isAdmin
     ? [...baseNavItems, { label: "Admin", href: "/admin" }]
