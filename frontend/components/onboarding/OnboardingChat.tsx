@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 
 import { useChatStream } from "@/hooks/use-chat-stream";
-import { updateUserPreferences } from "@/lib/api/users";
+import { updateUser, updateUserPreferences } from "@/lib/api/users";
 import { useAuthStore } from "@/stores/auth-store";
 import { useOnboardingStore } from "@/stores/onboarding-store";
 import type { UserPreferences } from "@/types/user";
@@ -83,8 +83,8 @@ export default function OnboardingChat() {
   const initialized = useRef(false);
 
   const progressLabel = useMemo(() => {
-    if (step <= 0) {
-      return "Step 1 / 5";
+    if (step === 0) {
+      return "Welcome";
     }
     if (step >= 6) {
       return "Review";
@@ -111,10 +111,8 @@ export default function OnboardingChat() {
       "안녕하세요! 👋\n\n저는 Research Curator의 AI 어시스턴트입니다. 몇 가지 질문을 통해 맞춤형 설정을 완료해드릴게요.";
     addMessage({ id: createId(), role: "assistant", content: welcomeMessage });
 
-    await addAssistantMessage(
-      "\n**질문 1/5**: 어떤 연구 분야에 관심이 있으신가요?\n\n예시: Machine Learning, Natural Language Processing, Computer Vision",
-    );
-    setStep(1);
+    await addAssistantMessage("먼저, 어떻게 불러드리면 될까요?\n\n이름 또는 닉네임을 입력해주세요.");
+    setStep(0);
   }, [addAssistantMessage, addMessage, setStep]);
 
   useEffect(() => {
@@ -144,6 +142,26 @@ export default function OnboardingChat() {
     }
 
     addMessage({ id: createId(), role: "user", content });
+
+    // Step 0: 이름 입력
+    if (step === 0) {
+      const name = content.trim();
+      if (name.length > 0) {
+        // 이름 저장
+        if (user?.id) {
+          try {
+            await updateUser({ name });
+          } catch (error) {
+            console.error("이름 저장 실패:", error);
+          }
+        }
+        await addAssistantMessage(
+          `반갑습니다, ${name}님! 🎉\n\n**질문 1/5**: 어떤 연구 분야에 관심이 있으신가요?\n\n예시: Machine Learning, Natural Language Processing, Computer Vision`,
+        );
+        setStep(1);
+      }
+      return;
+    }
 
     if (step === 1) {
       const fields = content

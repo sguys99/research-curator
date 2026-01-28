@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -8,8 +8,73 @@ import { z } from "zod";
 
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { getUserPreferences, updateUserPreferences } from "@/lib/api/users";
-import type { UserPreferences } from "@/types/user";
+import { getUserPreferences, updateUser, updateUserPreferences } from "@/lib/api/users";
+import { useAuthStore } from "@/stores/auth-store";
+import type { User, UserPreferences } from "@/types/user";
+
+// 프로필 섹션 컴포넌트 (key를 통해 user 변경 시 리마운트)
+function ProfileSection({ initialName }: { initialName: string }) {
+  const { toast } = useToast();
+  const setUser = useAuthStore((state) => state.setUser);
+  const [profileName, setProfileName] = useState(initialName);
+
+  const profileMutation = useMutation({
+    mutationFn: (payload: { name: string }) => updateUser(payload),
+    onSuccess: (updatedUser: User) => {
+      setUser(updatedUser);
+      toast({
+        title: "Profile updated",
+        description: "Your name has been saved.",
+        variant: "success",
+      });
+    },
+    onError: () =>
+      toast({
+        title: "Unable to save profile",
+        description: "Check your connection and try again.",
+        variant: "error",
+      }),
+  });
+
+  const handleProfileSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmedName = profileName.trim();
+    if (trimmedName.length === 0) {
+      toast({
+        title: "Name required",
+        description: "Please enter your name.",
+        variant: "error",
+      });
+      return;
+    }
+    profileMutation.mutate({ name: trimmedName });
+  };
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <h2 className="font-display text-xl font-semibold text-slate-900">Profile</h2>
+      <p className="mt-2 text-sm text-slate-500">Update your display name.</p>
+      <form className="mt-6" onSubmit={handleProfileSubmit}>
+        <label className="block space-y-2 text-sm font-medium text-slate-700">
+          Name
+          <input
+            value={profileName}
+            onChange={(e) => setProfileName(e.target.value)}
+            placeholder="Your name"
+            className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+          />
+        </label>
+        <button
+          type="submit"
+          disabled={profileMutation.isPending}
+          className="mt-4 rounded-full bg-blue-600 px-6 py-3 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-400"
+        >
+          {profileMutation.isPending ? "Saving..." : "Save name"}
+        </button>
+      </form>
+    </div>
+  );
+}
 
 const preferencesSchema = z
   .object({
@@ -158,6 +223,10 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
+      {/* Profile Section - key로 user 변경 시 리마운트 */}
+      <ProfileSection key={user?.id} initialName={user?.name ?? ""} />
+
+      {/* Preferences Section */}
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="font-display text-xl font-semibold text-slate-900">Preferences</h2>
         <p className="mt-2 text-sm text-slate-500">

@@ -15,9 +15,11 @@ from app.api.schemas.users import (
     UserPreferenceResponse,
     UserPreferenceUpdate,
     UserResponse,
+    UserUpdate,
 )
 from app.db.crud.digests import get_user_digests
 from app.db.crud.preferences import get_user_preference, update_user_preference
+from app.db.crud.users import update_user
 from app.db.models import CollectedArticle, User
 from app.db.session import get_db
 from app.email.selection import select_articles_for_user_async
@@ -46,6 +48,47 @@ def get_current_user_info(
         name=current_user.name,
         created_at=current_user.created_at,
         last_login=current_user.last_login,
+    )
+
+
+@router.put("/me", response_model=UserResponse)
+def update_current_user(
+    update_data: UserUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> UserResponse:
+    """
+    현재 인증된 사용자 정보를 업데이트한다.
+
+    Args:
+        update_data: 업데이트할 사용자 데이터
+        db: 데이터베이스 세션
+        current_user: JWT 토큰에서 추출된 사용자
+
+    Returns:
+        업데이트된 사용자 정보
+
+    Raises:
+        HTTPException: 업데이트 실패 시
+    """
+    updated_user = update_user(
+        db,
+        current_user.id,
+        **update_data.model_dump(exclude_unset=True),
+    )
+
+    if not updated_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+
+    return UserResponse(
+        id=updated_user.id,
+        email=updated_user.email,
+        name=updated_user.name,
+        created_at=updated_user.created_at,
+        last_login=updated_user.last_login,
     )
 
 
