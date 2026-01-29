@@ -17,7 +17,7 @@ AI 연구자를 위한 맞춤형 리서치 큐레이션 서비스입니다. LLM�
 - **Database**: PostgreSQL
 - **Vector DB**: Qdrant
 - **LLM**: OpenAI GPT-4o via LiteLLM
-- **Frontend**: Next.js 14 (App Router), TypeScript, shadcn/ui, Tailwind CSS
+- **Frontend**: Next.js 16 (App Router), TypeScript, shadcn/ui, Tailwind CSS
 - **State Management**: Zustand + TanStack Query
 - **Scheduler**: APScheduler
 - **Package Manager**: uv (Backend), pnpm (Frontend)
