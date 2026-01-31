@@ -82,6 +82,7 @@ export default function OnboardingChat() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
   const initialized = useRef(false);
 
   const progressLabel = useMemo(() => {
@@ -137,6 +138,13 @@ export default function OnboardingChat() {
       cancelled = true;
     };
   }, [messages.length, seedConversation]);
+
+  useEffect(() => {
+    if (isStreaming || completed || isSaving || isProcessing) {
+      return;
+    }
+    inputRef.current?.focus();
+  }, [completed, isProcessing, isSaving, isStreaming, messages.length, step]);
 
   const handleUserResponse = async (content: string) => {
     if (!content.trim()) {
@@ -304,6 +312,7 @@ export default function OnboardingChat() {
     const value = inputValue.trim();
     setInputValue("");
     void handleUserResponse(value);
+    inputRef.current?.focus();
   };
 
   const canSend = !isStreaming && !completed && !isSaving && !isProcessing && inputValue.trim().length > 0;
@@ -369,6 +378,7 @@ export default function OnboardingChat() {
       {!completed ? (
         <div className="mt-6 flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3">
           <input
+            ref={inputRef}
             value={inputValue}
             onChange={(event) => setInputValue(event.target.value)}
             onKeyDown={(event) => {
