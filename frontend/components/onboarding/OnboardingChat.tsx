@@ -42,6 +42,7 @@ const infoTypeOptions = [
 ];
 
 const timeOptions = ["🕗 오전 8시 (기본)", "🕐 오후 1시", "🕕 오후 6시", "🕘 오후 9시"];
+const WEBSITE_NONE_OPTION = "없음";
 
 const buildSummary = (preferences: UserPreferences) => {
   const paper = Math.round(preferences.info_types.paper * 100);
@@ -205,7 +206,8 @@ export default function OnboardingChat() {
       }
       updatePreferences({ info_types: infoTypes });
       await addAssistantMessage(
-        "**질문 4/5**: 특별히 포함하고 싶은 웹사이트가 있나요?\n예시: techcrunch.com, venturebeat.com\n없으면 '없음'이라고 입력해주세요.",
+        "**질문 4/5**: 특별히 포함하고 싶은 웹사이트가 있나요?\n예시: techcrunch.com, venturebeat.com\n주소를 입력하거나 아래의 '없음' 버튼을 눌러주세요.",
+        [WEBSITE_NONE_OPTION],
       );
       setStep(4);
       return;
@@ -280,10 +282,10 @@ export default function OnboardingChat() {
     setIsProcessing(true);
 
     try {
-      // 응답 처리 완료 후 options 제거 (타이밍 문제 해결)
+      // 기존 옵션만 제거하고 새 질문 옵션은 유지
+      clearAllOptions();
       await handleUserResponse(option);
     } finally {
-      clearAllOptions();
       setIsProcessing(false);
     }
   };
@@ -298,6 +300,8 @@ export default function OnboardingChat() {
   };
 
   const canSend = !isStreaming && !completed && !isSaving && !isProcessing && inputValue.trim().length > 0;
+  const inputPlaceholder =
+    step === 4 ? "예: techcrunch.com, venturebeat.com" : "메시지를 입력하세요...";
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -366,7 +370,7 @@ export default function OnboardingChat() {
                 handleSubmit();
               }
             }}
-            placeholder="메시지를 입력하세요..."
+            placeholder={inputPlaceholder}
             className="flex-1 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none"
             disabled={isStreaming || isSaving}
           />
