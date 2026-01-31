@@ -43,6 +43,7 @@ const infoTypeOptions = [
 
 const timeOptions = ["🕗 오전 8시 (기본)", "🕐 오후 1시", "🕕 오후 6시", "🕘 오후 9시"];
 const WEBSITE_NONE_OPTION = "없음";
+const REVIEW_OPTIONS = ["✅ 확인하고 저장", "✏️ 수정하기"];
 
 const buildSummary = (preferences: UserPreferences) => {
   const paper = Math.round(preferences.info_types.paper * 100);
@@ -56,7 +57,7 @@ const buildSummary = (preferences: UserPreferences) => {
     `**정보 유형**: 논문 ${paper}%, 뉴스 ${news}%, 리포트 ${report}%\n` +
     `**이메일 발송 시간**: ${preferences.email_time}\n` +
     `**일일 제공량**: ${preferences.daily_limit}개\n\n` +
-    "이대로 저장하시겠습니까?\n\n'확인' 또는 '수정'을 입력해주세요."
+    "이대로 저장하시겠습니까?"
   );
 };
 
@@ -237,19 +238,25 @@ export default function OnboardingChat() {
         email_time: match ? EMAIL_TIME_MAP[match] : DEFAULT_EMAIL_TIME,
       };
       updatePreferences({ email_time: nextPreferences.email_time });
-      await addAssistantMessage(buildSummary(nextPreferences));
+      await addAssistantMessage(buildSummary(nextPreferences), REVIEW_OPTIONS);
       setStep(6);
       return;
     }
 
     if (step === 6) {
-      if (content.includes("수정") || content.toLowerCase().includes("edit")) {
+      const normalized = content.trim().toLowerCase();
+      if (normalized.includes("수정") || normalized.includes("edit")) {
         reset();
         initialized.current = false;
         setInputValue("");
         return;
       }
-      if (content.includes("확인") || content.toLowerCase().includes("yes") || content.includes("네")) {
+      if (
+        normalized.includes("확인") ||
+        normalized.includes("저장") ||
+        normalized.includes("yes") ||
+        normalized.includes("네")
+      ) {
         if (!user?.id) {
           setSaveError("로그인 정보를 찾을 수 없습니다.");
           return;
