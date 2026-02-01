@@ -23,6 +23,9 @@ const notoSansKr = Noto_Sans_KR({
 export const metadata: Metadata = {
   title: "Research Curator",
   description: "AI-powered research curation for focused teams.",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({
