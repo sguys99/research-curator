@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
 import { getArticleStatistics } from "@/lib/api/articles";
 import { getSchedulerStatus, triggerSchedulerJob } from "@/lib/api/scheduler";
 import { getUserDigests, sendTestDigest } from "@/lib/api/users";
@@ -27,7 +28,7 @@ const formatDateTime = (value?: string | null) => {
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const statsQuery = useQuery({
     queryKey: ["articles", "stats"],
@@ -48,16 +49,37 @@ export default function DashboardPage() {
 
   const testDigestMutation = useMutation({
     mutationFn: (userId: string) => sendTestDigest(userId),
-    onSuccess: (data) => setActionMessage(data.message),
-    onError: (error) =>
-      setActionMessage(error instanceof Error ? error.message : "Failed to send test digest."),
+    onSuccess: (data) =>
+      toast({ title: "Test digest sent", description: data.message, variant: "success" }),
+    onError: (error) => {
+      const detail =
+        (error as unknown as { response?: { data?: { detail?: string } } }).response?.data?.detail;
+      toast({
+        title: "Failed to send test digest",
+        description: detail || (error instanceof Error ? error.message : "Unknown error"),
+        variant: "error",
+      });
+    },
   });
 
   const triggerJobMutation = useMutation({
     mutationFn: (jobId: string) => triggerSchedulerJob(jobId),
-    onSuccess: (data) => setActionMessage(data.message),
-    onError: (error) =>
-      setActionMessage(error instanceof Error ? error.message : "Failed to trigger job."),
+    onSuccess: (data) => {
+      toast({
+        title: data.success ? "Job triggered" : "Job trigger failed",
+        description: data.message,
+        variant: data.success ? "success" : "error",
+      });
+    },
+    onError: (error) => {
+      const detail =
+        (error as unknown as { response?: { data?: { detail?: string } } }).response?.data?.detail;
+      toast({
+        title: "Failed to trigger job",
+        description: detail || (error instanceof Error ? error.message : "Unknown error"),
+        variant: "error",
+      });
+    },
   });
 
   const schedulerSummary = useMemo(() => {
@@ -171,10 +193,15 @@ export default function DashboardPage() {
               <button
                 className="rounded-full bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
                 onClick={() => user?.id && testDigestMutation.mutate(user.id)}
-                disabled={!user?.id || testDigestMutation.isPending}
+                disabled={!user?.id || testDigestMutation.isPending || statsQuery.data?.total === 0}
               >
                 {testDigestMutation.isPending ? "Sending..." : "Send test digest"}
               </button>
+              {statsQuery.data?.total === 0 && (
+                <p className="text-xs text-slate-400">
+                  Collect articles first before sending a test digest.
+                </p>
+              )}
               <button
                 className="rounded-full border border-slate-200 px-4 py-2 font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-200"
                 onClick={() => triggerJobMutation.mutate("collect_data")}
@@ -182,9 +209,6 @@ export default function DashboardPage() {
               >
                 {triggerJobMutation.isPending ? "Triggering..." : "Trigger collection job"}
               </button>
-              {actionMessage ? (
-                <p className="text-xs text-slate-500">{actionMessage}</p>
-              ) : null}
             </div>
           </div>
         </div>
