@@ -410,6 +410,9 @@ def _apply_category_distribution(
     """
     사용자 선호도에 따라 카테고리 분포를 적용한다.
 
+    미사용 쿼터(해당 카테고리에 아티클이 부족한 경우)는
+    남은 아티클이 있는 카테고리에 재분배한다.
+
     Args:
         articles: 필터링된 아티클 목록
         preferences: info_types를 포함한 사용자 선호도
@@ -431,21 +434,38 @@ def _apply_category_distribution(
     normalized = {k: v / total for k, v in distribution.items()}
 
     # 유형별 그룹화
-    papers = [a for a in articles if a.source_type == "paper"]
-    news = [a for a in articles if a.source_type == "news"]
-    reports = [a for a in articles if a.source_type == "report"]
+    by_type = {
+        "paper": [a for a in articles if a.source_type == "paper"],
+        "news": [a for a in articles if a.source_type == "news"],
+        "report": [a for a in articles if a.source_type == "report"],
+    }
 
-    # 목표 수량 계산
     total_articles = len(articles)
-    target_paper = int(total_articles * normalized.get("paper", 0.5))
-    target_news = int(total_articles * normalized.get("news", 0.3))
-    target_report = int(total_articles * normalized.get("report", 0.2))
+    targets = {k: int(total_articles * normalized.get(k, 0)) for k in by_type}
 
-    # 각 카테고리에서 선택
-    selected = []
-    selected.extend(_select_top_by_importance(papers, target_paper))
-    selected.extend(_select_top_by_importance(news, target_news))
-    selected.extend(_select_top_by_importance(reports, target_report))
+    # 1차 선택 + 미사용 쿼터 계산
+    selected: list[CollectedArticle] = []
+    remaining_quota = 0
+    types_with_surplus: list[str] = []
+
+    for typ in by_type:
+        available = len(by_type[typ])
+        take = min(targets[typ], available)
+        selected.extend(_select_top_by_importance(by_type[typ], take))
+        remaining_quota += targets[typ] - take
+        if available > take:
+            types_with_surplus.append(typ)
+
+    # 2차: 미사용 쿼터를 남은 아티클이 있는 카테고리에 재분배
+    if remaining_quota > 0 and types_with_surplus:
+        already_selected_ids = {id(a) for a in selected}
+        for typ in types_with_surplus:
+            if remaining_quota <= 0:
+                break
+            leftover = [a for a in by_type[typ] if id(a) not in already_selected_ids]
+            take = min(remaining_quota, len(leftover))
+            selected.extend(_select_top_by_importance(leftover, take))
+            remaining_quota -= take
 
     return selected
 
