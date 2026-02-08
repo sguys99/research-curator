@@ -14,7 +14,8 @@ dist/
 downloads/
 eggs/
 .eggs/
-/lib/
+# 현재 경로 lib만 생성하면 안되며, frontend측 lib 폴더는 필요함
+/lib/ 
 lib64/
 parts/
 sdist/
