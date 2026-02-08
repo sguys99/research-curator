@@ -181,7 +181,7 @@ def _has_sufficient_metadata(article: CollectedArticle) -> bool:
     # 요약 또는 카테고리가 있어야 하며, 중요도 점수도 설정되어야 함
     has_summary = bool(article.summary and article.summary.strip())
     has_category = bool(article.category and article.category.strip())
-    has_score = article.importance_score is not None and article.importance_score != 0.5
+    has_score = article.importance_score is not None
 
     return (has_summary or has_category) and has_score
 
