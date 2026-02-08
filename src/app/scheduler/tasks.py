@@ -485,7 +485,7 @@ def send_digest_task() -> None:
     asyncio.run(send_digest_task_async())
 
 
-async def unified_collect_and_send_task_async() -> None:
+async def unified_collect_and_send_task_async(*, send_email: bool = True) -> None:
     """
     통합 작업: 수집/매칭/처리/다이제스트 발송.
 
@@ -697,89 +697,94 @@ async def unified_collect_and_send_task_async() -> None:
                 db.rollback()
 
         # 6단계: 이메일 발송
-        logger.info(f"\n📧 Sending digests to {len(user_article_map)} users...")
+        if not send_email:
+            logger.info("\n⏭️  Skipping email sending (send_email=False)")
+        else:
+            logger.info(f"\n📧 Sending digests to {len(user_article_map)} users...")
 
-        for user in users:
-            if user.id not in user_article_map:
-                continue
-
-            try:
-                pref = crud.get_user_preference(db, user.id)
-                if not pref or not pref.email_enabled:
+            for user in users:
+                if user.id not in user_article_map:
                     continue
 
-                # 오늘 이미 발송했는지 확인(중복 방지)
-                if crud.has_digest_sent_today(db, user.id):
+                try:
+                    pref = crud.get_user_preference(db, user.id)
+                    if not pref or not pref.email_enabled:
+                        continue
+
+                    # 오늘 이미 발송했는지 확인(중복 방지)
+                    if crud.has_digest_sent_today(db, user.id):
+                        logger.info(
+                            f"⏭️  Digest already sent to {user.email} today, skipping",
+                        )
+                        continue
+
+                    # 사용자별 처리 완료 아티클 조회
+                    user_articles_data = user_article_map[user.id]
+                    user_db_articles = [processed_articles.get(a.url) for a in user_articles_data]
+                    user_db_articles = [a for a in user_db_articles if a is not None]
+
+                    # 최근 7일 내 발송한 아티클 제외
+                    sent_article_ids = crud.get_user_sent_article_ids(db, user.id, days=7)
+                    user_db_articles = [
+                        a for a in user_db_articles if str(a.id) not in sent_article_ids
+                    ]
+
                     logger.info(
-                        f"⏭️  Digest already sent to {user.email} today, skipping",
+                        f"Filtered articles for {user.email}: "
+                        f"excluded {len(sent_article_ids)} already sent in last 7 days, "
+                        f"{len(user_db_articles)} remaining",
                     )
-                    continue
 
-                # 사용자별 처리 완료 아티클 조회
-                user_articles_data = user_article_map[user.id]
-                user_db_articles = [processed_articles.get(a.url) for a in user_articles_data]
-                user_db_articles = [a for a in user_db_articles if a is not None]
+                    if not user_db_articles:
+                        logger.info(
+                            f"No new articles for {user.email} "
+                            f"(all articles already sent or processing failed)",
+                        )
+                        continue
 
-                # 최근 7일 내 발송한 아티클 제외
-                sent_article_ids = crud.get_user_sent_article_ids(db, user.id, days=7)
-                user_db_articles = [a for a in user_db_articles if str(a.id) not in sent_article_ids]
+                    # 중요도 기준 정렬 및 제한
+                    user_db_articles = sorted(
+                        user_db_articles,
+                        key=lambda x: x.importance_score or 0.0,
+                        reverse=True,
+                    )
+                    user_db_articles = user_db_articles[: pref.daily_limit]
 
-                logger.info(
-                    f"Filtered articles for {user.email}: "
-                    f"excluded {len(sent_article_ids)} already sent in last 7 days, "
-                    f"{len(user_db_articles)} remaining",
-                )
+                    # 이메일 생성 및 발송
+                    builder = EmailBuilder()
+                    html_content = builder.build_daily_digest(
+                        user_name=user.name or user.email.split("@")[0],
+                        user_email=user.email,
+                        articles=user_db_articles,
+                        daily_limit=pref.daily_limit,
+                    )
 
-                if not user_db_articles:
+                    date_str = datetime.now().strftime("%Y년 %m월 %d일")
+                    subject = f"🔬 Research Curator - {date_str} AI 연구 동향"
+
+                    sender = EmailSender()
+                    await sender.send_email(
+                        to_email=user.email,
+                        subject=subject,
+                        html_content=html_content,
+                    )
+
+                    # DB에 기록
+                    crud.create_digest(
+                        db=db,
+                        user_id=user.id,
+                        article_ids=[str(a.id) for a in user_db_articles],
+                    )
+
                     logger.info(
-                        f"No new articles for {user.email} "
-                        f"(all articles already sent or processing failed)",
+                        f"✅ Sent {len(user_db_articles)} articles to {user.email}",
                     )
-                    continue
+                    sent_count += 1
 
-                # 중요도 기준 정렬 및 제한
-                user_db_articles = sorted(
-                    user_db_articles,
-                    key=lambda x: x.importance_score or 0.0,
-                    reverse=True,
-                )
-                user_db_articles = user_db_articles[: pref.daily_limit]
-
-                # 이메일 생성 및 발송
-                builder = EmailBuilder()
-                html_content = builder.build_daily_digest(
-                    user_name=user.name or user.email.split("@")[0],
-                    user_email=user.email,
-                    articles=user_db_articles,
-                    daily_limit=pref.daily_limit,
-                )
-
-                date_str = datetime.now().strftime("%Y년 %m월 %d일")
-                subject = f"🔬 Research Curator - {date_str} AI 연구 동향"
-
-                sender = EmailSender()
-                await sender.send_email(
-                    to_email=user.email,
-                    subject=subject,
-                    html_content=html_content,
-                )
-
-                # DB에 기록
-                crud.create_digest(
-                    db=db,
-                    user_id=user.id,
-                    article_ids=[str(a.id) for a in user_db_articles],
-                )
-
-                logger.info(
-                    f"✅ Sent {len(user_db_articles)} articles to {user.email}",
-                )
-                sent_count += 1
-
-            except Exception as e:
-                logger.error(f"Error sending digest to {user.email}: {e}")
-                error_count += 1
-                db.rollback()
+                except Exception as e:
+                    logger.error(f"Error sending digest to {user.email}: {e}")
+                    error_count += 1
+                    db.rollback()
 
         logger.info("\n" + "=" * 60)
         logger.info("✅ Unified task completed!")

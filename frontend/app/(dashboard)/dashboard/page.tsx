@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { getArticleStatistics } from "@/lib/api/articles";
-import { getSchedulerStatus, triggerSchedulerJob } from "@/lib/api/scheduler";
+import { getPipelineStatus, runPipeline } from "@/lib/api/pipeline";
+import { getSchedulerStatus } from "@/lib/api/scheduler";
 import { getUserDigests, sendTestDigest } from "@/lib/api/users";
 
 const formatDateTime = (value?: string | null) => {
@@ -29,6 +30,8 @@ const formatDateTime = (value?: string | null) => {
 export default function DashboardPage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [pipelinePolling, setPipelinePolling] = useState(false);
 
   const statsQuery = useQuery({
     queryKey: ["articles", "stats"],
@@ -62,20 +65,37 @@ export default function DashboardPage() {
     },
   });
 
-  const triggerJobMutation = useMutation({
-    mutationFn: (jobId: string) => triggerSchedulerJob(jobId),
-    onSuccess: (data) => {
-      toast({
-        title: data.success ? "Job triggered" : "Job trigger failed",
-        description: data.message,
-        variant: data.success ? "success" : "error",
-      });
+  const pipelineStatusQuery = useQuery({
+    queryKey: ["pipeline", "status"],
+    queryFn: getPipelineStatus,
+    enabled: pipelinePolling,
+    refetchInterval: pipelinePolling ? 3000 : false,
+  });
+
+  const pipelineStatus = pipelineStatusQuery.data?.status;
+
+  useEffect(() => {
+    if (pipelineStatus === "completed") {
+      setPipelinePolling(false);
+      toast({ title: "Pipeline completed", description: pipelineStatusQuery.data?.message, variant: "success" });
+      queryClient.invalidateQueries({ queryKey: ["articles", "stats"] });
+    } else if (pipelineStatus === "failed") {
+      setPipelinePolling(false);
+      toast({ title: "Pipeline failed", description: pipelineStatusQuery.data?.message, variant: "error" });
+    }
+  }, [pipelineStatus]);
+
+  const runPipelineMutation = useMutation({
+    mutationFn: runPipeline,
+    onSuccess: () => {
+      setPipelinePolling(true);
+      toast({ title: "Pipeline started", description: "Collecting and processing articles...", variant: "success" });
     },
     onError: (error) => {
       const detail =
         (error as unknown as { response?: { data?: { detail?: string } } }).response?.data?.detail;
       toast({
-        title: "Failed to trigger job",
+        title: "Failed to start pipeline",
         description: detail || (error instanceof Error ? error.message : "Unknown error"),
         variant: "error",
       });
@@ -204,11 +224,16 @@ export default function DashboardPage() {
               )}
               <button
                 className="rounded-full border border-slate-200 px-4 py-2 font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-200"
-                onClick={() => triggerJobMutation.mutate("collect_data")}
-                disabled={triggerJobMutation.isPending}
+                onClick={() => runPipelineMutation.mutate()}
+                disabled={runPipelineMutation.isPending || pipelinePolling}
               >
-                {triggerJobMutation.isPending ? "Triggering..." : "Trigger collection job"}
+                {pipelinePolling ? "Running..." : runPipelineMutation.isPending ? "Starting..." : "Run pipeline"}
               </button>
+              {pipelinePolling && (
+                <p className="text-xs text-blue-500">
+                  Collecting and processing articles. This may take a few minutes...
+                </p>
+              )}
             </div>
           </div>
         </div>

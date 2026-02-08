@@ -7,7 +7,17 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routers import articles, auth, collectors, feedback, llm, processors, scheduler, users
+from app.api.routers import (
+    articles,
+    auth,
+    collectors,
+    feedback,
+    llm,
+    pipeline,
+    processors,
+    scheduler,
+    users,
+)
 from app.core.config import settings
 from app.vector_db.client import get_qdrant_client
 from app.vector_db.schema import initialize_vector_db
@@ -94,5 +104,6 @@ app.include_router(articles.router, prefix="/api")
 app.include_router(feedback.router, prefix="/api")
 app.include_router(llm.router, prefix="/api")
 app.include_router(collectors.router, prefix="/api")
+app.include_router(pipeline.router, prefix="/api")
 app.include_router(processors.router, prefix="/api")
 app.include_router(scheduler.router, prefix="/api")
